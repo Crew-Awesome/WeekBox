@@ -6,10 +6,10 @@
   "scripts": {
     "test": "electron . --developer",
     "build-windows": "electron-builder --win",
-    "build-linux": "electron-builder --linux",
-    "build-all": "electron-builder --win --linux"
+    "build-linux": "electron-builder --linux"
   },
   "build": {
+    "icon": "build/icon-big.png",
     "asar": false,
     "win": {
       "target": [
@@ -18,7 +18,8 @@
     },
     "linux": {
       "target": "AppImage",
-      "category": "Utility"
+      "category": "Utility",
+      "icon": "build/icon-big.png"
     },
     "protocols": [
       {
