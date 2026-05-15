@@ -4,7 +4,8 @@
   "description": "WeekBox base desktop app",
   "main": "node/Runner.js",
   "scripts": {
-    "test": "electron . --developer",
+    "test": "node --test node/tests/*.test.js",
+    "dev": "electron . --developer",
     "build-windows": "electron-builder --win",
     "build-linux": "electron-builder --linux"
   },
