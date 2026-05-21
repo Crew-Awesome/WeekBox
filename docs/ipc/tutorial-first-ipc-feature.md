@@ -96,10 +96,10 @@ If you need streaming updates:
 - Expose `onXxx(listener)` that returns unsubscribe
 
 See:
-- [How-to: Add an Event Channel](C:\Users\Henry\Documents\GitHub\WeekBox\docs\ipc\how-to-add-event-channel.md)
-- [Reference: Event Channels](C:\Users\Henry\Documents\GitHub\WeekBox\docs\ipc\reference-events.md)
+- [How-to: Add an Event Channel](./how-to-add-event-channel.md)
+- [Reference: Event Channels](./reference-events.md)
 
 ## Next steps
 
-- For exact channel catalog, read [WeekBox Channels](C:\Users\Henry\Documents\GitHub\WeekBox\docs\ipc\reference-channels-weekbox.md).
-- For common recipes, open [How-to Index](C:\Users\Henry\Documents\GitHub\WeekBox\docs\ipc\how-to-index.md).
+- For exact channel catalog, read [WeekBox Channels](./reference-channels-weekbox.md).
+- For common recipes, open [How-to Index](./how-to-index.md).
