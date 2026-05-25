@@ -1,2 +1,2 @@
 @echo off
-npm test
+npm run dev
