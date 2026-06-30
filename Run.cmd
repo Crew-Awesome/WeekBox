@@ -1,2 +1,3 @@
 @echo off
-npm run dev
+npm test
+pause

@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Please wait...</title>
+</head>
+<body>
+    <img src="dl.svg" width="50" height="50" alt="Loading...">
+    <div class="pbar">
+        <div class="pbarFill">
+
+        </div>
+    </div>
+</body>
+<style>
+    .pbar {
+        width: 70%;
+        height: 30px;
+        background-color: #d5d5d5;
+        border-radius: 15px;
+        overflow: hidden;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    }
+    @keyframes bgxmove {
+        from {
+            background-position: 0 0;
+        }
+        to {
+            background-position: 100% 0;
+        }
+    }
+    .pbarFill {
+        height: 100%;
+        width: 0;
+        background-image: url("data:image/svg+xml,<svg id='patternId' width='100%' height='100%' xmlns='http://www.w3.org/2000/svg'><defs><pattern id='a' patternUnits='userSpaceOnUse' width='20' height='20' patternTransform='scale(2) rotate(115)'><rect x='0' y='0' width='100%' height='100%' fill='%234caf50ff'/><path d='M0 10h20z'   stroke-width='1.5' stroke='%238bc34aff' fill='none'/></pattern></defs><rect width='800%' height='800%' transform='translate(0,0)' fill='url(%23a)'/></svg>");
+        background-size: 20px 100%;
+        background-repeat: repeat-x;
+        animation: bgxmove 7s linear infinite;
+        transition: width 0.3s ease-in-out;
+    }
+    body {
+        gap: 20px;
+        background-color: #f0f0f0;
+        font-family: Arial, sans-serif;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        width: 100%;
+        margin: 0;
+        padding: 0;
+    }
+</style>
+<script>
+    window.progress = function (value) {
+        const progressBarFill = document.querySelector('.pbarFill');
+        progressBarFill.style.width = value + '%';
+    }
+    document.querySelector('img').src = new URLSearchParams(window.location.search).get('img') || 'dl.svg';
+</script>
+</html>

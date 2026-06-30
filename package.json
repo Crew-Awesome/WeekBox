@@ -1,40 +1,19 @@
 {
   "name": "weekbox",
-  "version": "0.1.0",
-  "description": "WeekBox base desktop app",
-  "main": "node/Runner.js",
+  "version": "1.0.0",
+  "description": "FNF mod manager",
+  "license": "ISC",
+  "author": "Malloy & GhinoRhino",
+  "type": "commonjs",
+  "main": "node/Main.js",
   "scripts": {
-    "test": "node --test node/tests/*.test.js",
-    "dev": "electron . --developer",
-    "build-windows": "electron-builder --win",
-    "build-linux": "electron-builder --linux"
+    "test": "electron ."
   },
-  "build": {
-    "icon": "build/icon-big.png",
-    "asar": false,
-    "win": {
-      "target": [
-        "portable"
-      ]
-    },
-    "linux": {
-      "target": "AppImage",
-      "category": "Utility",
-      "icon": "build/icon-big.png"
-    },
-    "protocols": [
-      {
-        "name": "WeekBox",
-        "schemes": [
-          "weekbox"
-        ]
-      }
-    ]
-  },
-  "author": "WeekBox",
-  "license": "UNLICENSED",
-  "devDependencies": {
-    "electron": "^40.6.0",
-    "electron-builder": "^26.7.0"
+  "dependencies": {
+    "axios": "^1.18.1",
+    "create-desktop-shortcuts": "^1.11.1",
+    "electron": "^42.5.1",
+    "node-fetch": "^2.7.0",
+    "zip-lib": "^1.4.0"
   }
 }
