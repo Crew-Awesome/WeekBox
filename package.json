@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "FNF mod manager",
   "license": "ISC",
-  "author": "Malloy & GhinoRhino",
+  "author": "Crew Awesome",
   "type": "commonjs",
   "main": "node/Main.js",
   "scripts": {
@@ -22,7 +22,7 @@
   },
   "build": {
     "icon": "build/icon.png",
-    "asar": true,
+    "asar": false,
     "win": {
       "target": [
         "portable",
