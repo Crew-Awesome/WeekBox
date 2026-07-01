@@ -1,38 +1,39 @@
-const { exec } = require("child_process");
-const path = require("path");
+const https = require('https');
+const http = require('http');
+const fs = require('fs');
+const path = require('path');
+const { URL } = require('url');
+const axios = require('axios');
+
+
 function downloadFile(url, destination, progressCallback) {
-    return new Promise((resolve, reject) => {
-        const ariaPath = path.join(__dirname, "..", "tools", "aria2c.exe");
-        const args = [
-            "--summary-interval=1",
-            "--console-log-level=warn",
-            "--max-connection-per-server=16",
-            `--dir="${path.dirname(destination)}"`,
-            `--out="${path.basename(destination)}"`,
-            `"${url}"`
-        ].join(" ");
-        const cmd = `"${ariaPath}" ${args}`;
-        const aria = exec(cmd);
+    return new Promise(async (resolve, reject) => {
+        try {
+            var response = await axios({
+                method: 'get',
+                url: url,
+                responseType: 'stream'
+            });
 
-        aria.stdout.on("data", data => {
-            const text = data.toString();
-            const match = text.match(/\((\d+)%\)/);
+            const writer = fs.createWriteStream(destination);
+            const total = Number(response.headers['content-length']) || 0;
+            let received = 0;
 
-            if (match && progressCallback) {
-                progressCallback(Number(match[1]));
-            }
-        });
+            response.data.on('data', (chunk) => {
+                received += chunk.length;
+                if (total > 0) {
+                    progressCallback((received / total) * 100);
+                }
+            });
 
-        aria.on("close", code => {
-            if (code === 0) {
-                progressCallback?.(100);
-                resolve();
-            } else {
-                reject(new Error(`aria2c exited with code ${code}`));
-            }
-        });
+            response.data.on('error', reject);
+            writer.on('error', reject);
+            writer.on('finish', resolve);
 
-        aria.on("error", reject);
+            response.data.pipe(writer);
+        } catch (error) {
+            reject({error: true, message: error.message});
+        }
     });
 }
 

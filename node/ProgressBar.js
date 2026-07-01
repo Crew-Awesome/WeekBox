@@ -1,7 +1,7 @@
 const { BrowserWindow } = require('electron');
 const path = require('path');
 
-function progressBar(img) {
+function progressBar(img, title) {
     const progressWindow = new BrowserWindow({
         width: 500,
         height: 200,
@@ -16,7 +16,7 @@ function progressBar(img) {
     }); 
 
     progressWindow.setMenuBarVisibility(false);
-    progressWindow.loadURL(`file://${path.join(__dirname, '../web/progress.html')}?img=${img}`);
+    progressWindow.loadURL(`file://${path.join(__dirname, '../web/progress.html')}?img=${img}&title=${encodeURIComponent(title)}`);
 
     // bottom-right corner
     const { width, height } = require('electron').screen.getPrimaryDisplay().workAreaSize;

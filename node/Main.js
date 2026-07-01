@@ -1,10 +1,10 @@
-const { app, BrowserWindow, dialog } = require('electron')
+const { app, BrowserWindow, dialog, ipcMain } = require('electron')
 const path = require('path');
 const fs = require('fs');
 const { execSync } = require('child_process');
 const { progressBar } = require('./ProgressBar.js');
 const Download = require('./Download.js');
-const zl = require('zip-lib');
+const zip = require('7zip-min');
 const createDesktopShortcut = require('create-desktop-shortcuts');
 const { DATA_PATH } = require('./Constants.js');
 const axios = require('axios'); 
@@ -25,6 +25,7 @@ async function main() {
         var modURL = uri[1];
         var modModel = uri[2];
         var modID = uri[3];
+        var format = uri[4];
 
         var profile = await axios.get(`https://gamebanana.com/apiv12/${modModel}/${modID}/ProfilePage`).catch(e => {
             dialog.showMessageBoxSync({
@@ -36,11 +37,11 @@ async function main() {
             return;
         });
 
-        var modName = profile._sName;
+        var modName = profile.data._sName;
 
-        var progress = progressBar("dl.svg");
+        var progress = progressBar(profile.data._aPreviewMedia._aImages[0]._sBaseUrl + '/' + profile.data._aPreviewMedia._aImages[0]._sFile, 'Downloading "' + modName + '"...');
 
-        var dlPath = path.join(DATA_PATH, '_tempMod.zip');
+        var dlPath = path.join(DATA_PATH, '_tempMod.' + format);
         var download = await Download.downloadFile(modURL, dlPath, (progressValue) => {
             progress.updateProgress(progressValue);
         }).catch(e => {
@@ -61,7 +62,7 @@ async function main() {
         }
         catch (e) {}
 
-        var modSeed = await require('./ModDB.js').installMod(dlPath, 'codename').catch(e => {
+        var modSeed = await require('./ModDB.js').installMod(dlPath, 'codename', modName).catch(e => {
             return {error: true, message: e.message};
         });
         try {
@@ -97,7 +98,63 @@ async function main() {
     // if launching engine
     if (uri && uri[0] === 'engine') {
         var engineUID = uri[1];
-        execSync('"' + path.join(DATA_PATH, engineUID, 'CodenameEngine.exe') + '"', { stdio: 'ignore', cwd: path.join(DATA_PATH, engineUID) });
+        if (!fs.existsSync(path.join(DATA_PATH, engineUID, 'CodenameEngine.exe'))) {
+            dialog.showMessageBoxSync({
+                title: 'Engine not found',
+                message: 'The specified engine could not be found.',
+                buttons: ['OK']
+            });
+            app.quit();
+            return;
+        }
+        await new Promise(resolve => {
+            var selectorWin = new BrowserWindow({
+                width: 700,
+                height: 500,
+                resizable: false,
+                webPreferences: {
+                    nodeIntegration: true,
+                    preload: path.join(__dirname, '..', 'web', 'selpreload.js')
+                }
+            });
+
+            selectorWin.setMenuBarVisibility(false);
+
+            selectorWin.loadFile(path.join(__dirname, '..', 'web', 'selector.html'));
+
+            ipcMain.handle('getMods', () => {
+                return require('./ModDB.js').getInstalledMods();
+            });
+
+            ipcMain.handle('deleteMod', (event, modSeed) => {
+                return require('./ModDB.js').deleteMod(modSeed[0]);
+            });
+
+            ipcMain.handle('addViaImport', async () => {
+                var file = dialog.showOpenDialogSync(selectorWin, {
+                    title: 'Select a mod file to import',
+                    filters: [
+                        { name: 'Zip Files', extensions: ['zip'] },
+                        { name: 'All Files', extensions: ['*'] }
+                    ],
+                    properties: ['openFile']
+                });
+                return require('./ModDB.js').installMod(file[0], 'codename', null);
+            });
+
+            ipcMain.handle('go', async (event, args) => {
+                selectorWin.hide();
+
+                await require('./ModDB.js').loadToEngine(engineUID, args[0]);
+
+                execSync('"' + path.join(DATA_PATH, engineUID, 'CodenameEngine.exe') + '"', { stdio: 'ignore', cwd: path.join(DATA_PATH, engineUID) });
+
+                fs.rmdirSync(path.join(DATA_PATH, engineUID, 'mods'), { recursive: true });
+                fs.mkdirSync(path.join(DATA_PATH, engineUID, 'mods'), { recursive: true });
+                
+                app.quit();
+            });
+        });
         app.quit();
         return;
     }
@@ -112,14 +169,16 @@ async function main() {
         });
 
         if (response === 0) {
-            var progress = progressBar("dl.svg");
+            var progress = progressBar("codenameBG.jpg", "Downloading Codename Engine...");
             var engineUID = Math.random().toString(36).substring(2, 15) + "-" + Math.random().toString(36).substring(2, 15);
             var dlPath = path.join(DATA_PATH, '_tempEngine.zip');
+
             var download = await Download.downloadFile('https://nightly.link/CodenameCrew/CodenameEngine/workflows/windows/main/Codename%20Engine.zip', dlPath, (progressValue) => {
                 progress.updateProgress(progressValue);
             }).catch(e => {
                 return {error: true, message: e.message};
             });
+            
             try {
                 if (download.error) {
                     progress.window.setClosable(true);
@@ -134,8 +193,8 @@ async function main() {
                 }
             }
             catch (e) {}
-            
-            await zl.extract(dlPath, path.join(DATA_PATH, engineUID));
+
+		    await zip.unpack(dlPath, path.join(DATA_PATH, engineUID));
 
             progress.window.setClosable(true);
             progress.window.close();
@@ -150,9 +209,9 @@ async function main() {
 
             let shortcut = createDesktopShortcut({
                 windows: { 
-                    filePath: 'weekbox:engine,' + engineUID,
+                    filePath: app.getPath('exe'),
                     name: 'Codename Engine (WeekBox)',
-                    arguments: process.argv.slice(1).map(x => "\""+x+"\"").join(' ') + ' --engine ' + engineUID,
+                    arguments: process.argv.slice(1).map(x => "\""+x+"\"").join(' ') + ' weekbox:engine,' + engineUID,
                     icon: path.join(DATA_PATH, engineUID, 'icon.ico')
                 }
             });

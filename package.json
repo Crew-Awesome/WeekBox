@@ -7,13 +7,40 @@
   "type": "commonjs",
   "main": "node/Main.js",
   "scripts": {
-    "test": "electron ."
+    "test": "electron .",
+    "win-build": "electron-builder --win"
   },
   "dependencies": {
+    "7zip-min": "^3.0.1",
     "axios": "^1.18.1",
     "create-desktop-shortcuts": "^1.11.1",
+    "node-fetch": "^2.7.0"
+  },
+  "devDependencies": {
     "electron": "^42.5.1",
-    "node-fetch": "^2.7.0",
-    "zip-lib": "^1.4.0"
+    "electron-builder": "^26.15.3"
+  },
+  "build": {
+    "icon": "build/icon.png",
+    "asar": true,
+    "win": {
+      "target": [
+        "portable",
+        "nsis"
+      ]
+    },
+    "linux": {
+      "target": "AppImage",
+      "category": "Utility",
+      "icon": "build/icon.png"
+    },
+    "protocols": [
+      {
+        "name": "WeekBox",
+        "schemes": [
+          "weekbox"
+        ]
+      }
+    ]
   }
 }

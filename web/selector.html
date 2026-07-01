@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Select your mods</title>
+    <style>
+        :root {
+            --bg: #f4f7fb;
+            --panel: #ffffff;
+            --border: #d9e2ec;
+            --header: #eef3f8;
+            --text: #1f2937;
+            --muted: #6b7280;
+            --accent: #4782ff;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            padding: 24px;
+            font-family: Arial, Helvetica, sans-serif;
+            background: linear-gradient(180deg, #f8fafc 0%, var(--bg) 100%);
+            color: var(--text);
+        }
+
+        p {
+            margin: 0 0 14px;
+            font-size: 18px;
+        }
+
+        table {
+            width: 100%;
+            max-width: 720px;
+            border-collapse: separate;
+            border-spacing: 0;
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            overflow: hidden;
+            box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+        }
+
+        thead th {
+            background: var(--header);
+            color: var(--muted);
+            text-align: left;
+            font-size: 13px;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        tbody td {
+            padding: 14px 16px;
+            border-bottom: 1px solid #edf2f7;
+        }
+
+        tbody tr:nth-child(even) {
+            background: #fbfdff;
+        }
+        tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        th:last-child,
+        td:last-child {
+            width: 96px;
+            text-align: center;
+        }
+
+        input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: var(--accent);
+            cursor: pointer;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        button {
+            margin-top: 24px;
+            padding: 12px 24px;
+            font-size: 16px;
+            font-weight: bold;
+            color: #fff;
+            background-color: var(--accent);
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <p><b>Please select the mods you'd like to use:</b></p>
+    <table>
+        <colgroup>
+            <col style="width: calc(100% - 50px)">
+            <col style="width: 50px">
+        </colgroup>
+        <thead>
+            <tr>
+                <th>Mod</th>
+                <th>Enabled</th>
+            </tr>   
+        </thead>
+        <tbody id="mods">
+            
+        </tbody>
+    </table>
+    <br>
+    <button onclick="saveMods(this)">Go!</button>
+    <br>
+    <button onclick="add(this)">Add mod</button>
+</body>
+<script>
+    async function add(b) {
+        b.disabled = true;
+        b.innerHTML = 'Adding...';
+        await window.api.addViaImport();
+        window.location.reload();
+    }
+    (async () => {
+        try {
+            var mods = await window.api.getMods();
+            var modsContainer = document.getElementById('mods');
+            if (mods.length == 0) {
+                var row = document.createElement('tr');
+                row.innerHTML = `
+                    <td colspan="2" style="text-align: center;">No mods found</td>
+                `;
+                modsContainer.appendChild(row);
+                return;
+            }
+            mods.forEach(mod => {
+                var row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>
+                        <span>${mod.name.replaceAll(/"/g, '&quot;').replaceAll(/'/g, '&#39;').replaceAll(/</g, '&lt;').replaceAll(/>/g, '&gt;')} - <a href="#" onclick="window.api.deleteMod('${mod.seed}'); window.location.reload();">Delete</a></span>
+                    </td>
+                    <td><input type="checkbox" name="${mod.seed}" ${mod.enabled ? 'checked' : ''}></td>
+                `;
+                modsContainer.appendChild(row);
+            });
+        }
+        catch (err) {
+            console.error(err);
+            var modsContainer = document.getElementById('mods');
+            var row = document.createElement('tr');
+            row.innerHTML = `
+                <td colspan="2" style="text-align: center;">Error loading mods</td>
+            `;
+            modsContainer.appendChild(row);
+        }
+    })();
+
+    function saveMods(b) {
+        b.disabled = true;
+        b.innerHTML = 'Saving...';
+        var checkboxes = document.querySelectorAll('input[type="checkbox"]');
+        var mods = Array.from(checkboxes).map(c => c.name);
+        window.api.go(mods);
+    }
+</script>
+</html>
