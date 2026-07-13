@@ -1,84 +1,8 @@
 import { FS } from '../../utils/filesystem.js';
 import { appEvents } from '../../core/events.js';
 import { getSelectedEngine } from '../../core/state.js';
-
-/**
- * Class representing a global toast notification for tracking download progress.
- * It creates a floating UI element that persists across different views
- * to keep the user informed about the current download state.
- */
-class GlobalDownloadToast {
-    /**
-     * Initializes the toast notification, sets the default view context,
-     * and binds the necessary event listeners.
-     */
-    constructor() {
-        this.el = null;
-        this.currentView = 'engines';
-        this.lastData = null;
-        this.createUI();
-        this.bindEvents();
-    }
-    
-    /**
-     * Constructs and injects the DOM elements for the toast notification
-     * if they do not already exist in the document.
-     */
-    createUI() {
-        if (document.getElementById('global-dl-toast')) return;
-        this.el = document.createElement('div');
-        this.el.className = 'global-dl-toast';
-        this.el.innerHTML = `
-            <span class="toast-title" id="toast-title">Downloading Engine</span>
-            <span class="toast-status" id="toast-status">0%</span>
-        `;
-        document.body.appendChild(this.el);
-    }
-
-    /**
-     * Binds internal events to external application triggers, such as
-     * file system updates and view changes.
-     */
-    bindEvents() {
-        FS.addEventListener('dl:update', (e) => this.handleUpdate(e.detail));
-        
-        appEvents.addEventListener('view:loaded', (e) => {
-            this.currentView = e.detail;
-            this.checkVisibility();
-        });
-    }
-
-    /**
-     * Processes download progress data and updates the textual content
-     * of the toast notification.
-     * 
-     * @param {Object} data - The download progress payload.
-     */
-    handleUpdate(data) {
-        this.lastData = data;
-        if (!data || data.state === 'finished' || data.state === 'cancelled' || data.state === 'error') {
-            this.lastData = null;
-        } else if (this.el) {
-            document.getElementById('toast-title').textContent = `Downloading ${data.engineName}`;
-            document.getElementById('toast-status').textContent = data.text;
-        }
-        this.checkVisibility();
-    }
-
-    /**
-     * Evaluates whether the toast should be visible based on the presence
-     * of active download data and the user's current view.
-     */
-    checkVisibility() {
-        if (!this.el) return;
-        if (this.lastData && this.currentView !== 'engines') {
-            this.el.classList.add('show');
-        } else {
-            this.el.classList.remove('show');
-        }
-    }
-}
-new GlobalDownloadToast();
+import '../../utils/downloadToast.js';
+import { fetchAndRenderReleaseNotes } from './releaseNotes.js';
 
 /**
  * Main view controller for the Engines section.
@@ -327,7 +251,7 @@ export const enginesView = {
                 optionDiv.classList.add('selected');
                 dropdown.classList.remove('open');
                 
-                this.updateReleaseNotes(v);
+                fetchAndRenderReleaseNotes(v, this.getTargetLink(v));
                 this.updateButtonState(); 
             });
             optionsContainer.appendChild(optionDiv);
@@ -337,7 +261,7 @@ export const enginesView = {
         selectedText.textContent = this.currentVersion;
         badge.textContent = `Version: ${this.currentVersion}`;
         
-        this.updateReleaseNotes(engine.versions[0]);
+        fetchAndRenderReleaseNotes(engine.versions[0], this.getTargetLink(engine.versions[0]));
         this.updateButtonState(); 
         
         trigger.addEventListener('click', (e) => {
@@ -349,49 +273,6 @@ export const enginesView = {
             if (!dropdown.contains(e.target)) dropdown.classList.remove('open');
         };
         document.addEventListener('click', this.outsideClickHandler);
-    },
-    
-    /**
-     * Dynamically fetches release notes matching the current version from the GitHub API.
-     * Parses the markdown body into basic HTML elements to be injected into the view container.
-     * 
-     * @param {Object} versionData - The structured dataset encompassing the selected version parameters.
-     */
-    async updateReleaseNotes(versionData) {
-        const notesContainer = document.getElementById('engine-release-notes');
-        if (!notesContainer) return;
-        
-        notesContainer.innerHTML = '<p style="color: var(--text-muted);">Fetching release notes...</p>';
-        
-        const link = this.getTargetLink(versionData) || versionData.win || versionData.lin || versionData.mac || "";
-        const match = link.match(/github\.com\/([^\/]+)\/([^\/]+)\/releases\/download\/([^\/]+)\//);
-        
-        if (!match) {
-            notesContainer.innerHTML = '<p><em>No release notes available.</em></p>';
-            return;
-        }
-        
-        try {
-            const res = await fetch(`https://api.github.com/repos/${match[1]}/${match[2]}/releases/tags/${match[3]}`);
-            if (!res.ok) throw new Error();
-            const data = await res.json();
-            
-            let safeMarkdown = (data.body || "No description.")
-                .replace(/</g, "&lt;").replace(/>/g, "&gt;");
-            
-            let html = safeMarkdown
-                .replace(/^### (.*$)/gim, '<h3>$1</h3>')
-                .replace(/^## (.*$)/gim, '<h2>$1</h2>')
-                .replace(/^# (.*$)/gim, '<h1>$1</h1>')
-                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                .replace(/\*(.*?)\*/g, '<em>$1</em>')
-                .replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" target="_blank">$1</a>')
-                .replace(/\r\n|\n/g, '<br>');
-                
-            notesContainer.innerHTML = html;
-        } catch (error) {
-            notesContainer.innerHTML = '<p><em>Failed to fetch release notes.</em></p>';
-        }
     }
 };
 
@@ -405,6 +286,3 @@ export function registerEnginesView() {
         else enginesView.destroy();
     });
 }
-
-
-// TIME TO MODULARIZE THIS FILE
