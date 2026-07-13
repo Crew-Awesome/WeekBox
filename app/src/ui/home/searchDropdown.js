@@ -5,6 +5,7 @@ export const homeSearchDropdown = {
     recentSearches: [],
     maxRecent: 5,
     fetchTimeout: null,
+    suggestionVersion: 0,
     
     init() {
         this.loadRecent();
@@ -47,6 +48,7 @@ export const homeSearchDropdown = {
     },
     
     async updateDropdown() {
+        const suggestionVersion = ++this.suggestionVersion;
         const query = this.input.value.trim().toLowerCase();
         this.dropdown.innerHTML = '';
         
@@ -56,7 +58,7 @@ export const homeSearchDropdown = {
         }
         
         if(filteredRecent.length > 0) {
-            this.renderSection('Búsquedas recientes', filteredRecent, 'fa-clock-rotate-left');
+            this.renderSection('Búsquedas recientes', filteredRecent, 'fa-clock-rotate-left', true);
         }
 
         if(query.length > 2) {
@@ -69,6 +71,7 @@ export const homeSearchDropdown = {
 
             this.fetchTimeout = setTimeout(async () => {
                 const related = await this.fetchRelated(query);
+                if (suggestionVersion !== this.suggestionVersion) return;
                 if(related.length > 0) {
                     relatedSection.innerHTML = `<div class="dropdown-title">Sugerencias relacionadas</div>`;
                     related.forEach(title => {
@@ -93,7 +96,13 @@ export const homeSearchDropdown = {
         }
     },
     
-    renderSection(title, items, icon) {
+    removeRecent(query) {
+        this.recentSearches = this.recentSearches.filter(item => item.toLowerCase() !== query.toLowerCase());
+        localStorage.setItem('weekbox_recent_searches', JSON.stringify(this.recentSearches));
+        this.updateDropdown();
+    },
+
+    renderSection(title, items, icon, removable = false) {
         const section = document.createElement('div');
         section.className = 'dropdown-section';
         section.innerHTML = `<div class="dropdown-title">${title}</div>`;
@@ -107,6 +116,18 @@ export const homeSearchDropdown = {
                 this.hideDropdown();
                 homeSearch.executeSearch(text);
             });
+            if (removable) {
+                const removeButton = document.createElement('button');
+                removeButton.className = 'history-remove';
+                removeButton.type = 'button';
+                removeButton.setAttribute('aria-label', `Remove ${text} from search history`);
+                removeButton.innerHTML = '<i class="fa-solid fa-xmark"></i>';
+                removeButton.addEventListener('click', event => {
+                    event.stopPropagation();
+                    this.removeRecent(text);
+                });
+                item.appendChild(removeButton);
+            }
             section.appendChild(item);
         });
         

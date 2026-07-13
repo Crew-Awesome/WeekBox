@@ -1,16 +1,7 @@
 import { FS } from './filesystem.js';
 import { appEvents } from '../core/events.js';
 
-/**
- * Class representing a global toast notification for tracking download progress.
- * It creates a floating UI element that persists across different views
- * to keep the user informed about the current download state.
- */
 class GlobalDownloadToast {
-    /**
-     * Initializes the toast notification, sets the default view context,
-     * and binds the necessary event listeners.
-     */
     constructor() {
         this.el = null;
         this.currentView = 'engines';
@@ -19,10 +10,6 @@ class GlobalDownloadToast {
         this.bindEvents();
     }
     
-    /**
-     * Constructs and injects the DOM elements for the toast notification
-     * if they do not already exist in the document.
-     */
     createUI() {
         if (document.getElementById('global-dl-toast')) return;
         this.el = document.createElement('div');
@@ -34,10 +21,6 @@ class GlobalDownloadToast {
         document.body.appendChild(this.el);
     }
 
-    /**
-     * Binds internal events to external application triggers, such as
-     * file system updates and view changes.
-     */
     bindEvents() {
         FS.addEventListener('dl:update', (e) => this.handleUpdate(e.detail));
         
@@ -47,12 +30,6 @@ class GlobalDownloadToast {
         });
     }
 
-    /**
-     * Processes download progress data and updates the textual content
-     * of the toast notification.
-     * 
-     * @param {Object} data - The download progress payload.
-     */
     handleUpdate(data) {
         this.lastData = data;
         if (!data || data.state === 'finished' || data.state === 'cancelled' || data.state === 'error') {
@@ -64,10 +41,6 @@ class GlobalDownloadToast {
         this.checkVisibility();
     }
 
-    /**
-     * Evaluates whether the toast should be visible based on the presence
-     * of active download data and the user's current view.
-     */
     checkVisibility() {
         if (!this.el) return;
         if (this.lastData && this.currentView !== 'engines') {
@@ -78,5 +51,4 @@ class GlobalDownloadToast {
     }
 }
 
-// Inicializamos y exportamos la instancia para que viva globalmente al ser importada
 export const globalDownloadToast = new GlobalDownloadToast();

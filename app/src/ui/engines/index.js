@@ -4,16 +4,7 @@ import { getSelectedEngine } from '../../core/state.js';
 import '../../utils/downloadToast.js';
 import { fetchAndRenderReleaseNotes } from './releaseNotes.js';
 
-/**
- * Main view controller for the Engines section.
- * Manages UI interactions, version selection, download handling, 
- * and engine execution.
- */
 export const enginesView = {
-    /**
-     * Initializes the engines view by retrieving the selected engine,
-     * setting up the interface, and binding event listeners.
-     */
     init() {
         const engine = getSelectedEngine();
         if (!engine) return;
@@ -38,21 +29,11 @@ export const enginesView = {
         if (FS.activeDownload) this.handleProgress(FS.activeDownload);
     },
 
-    /**
-     * Cleans up event listeners and references to prevent memory leaks 
-     * when the view is destroyed or changed.
-     */
     destroy() {
         if (this.outsideClickHandler) document.removeEventListener('click', this.outsideClickHandler);
         if (this.fsListener) FS.removeEventListener('dl:update', this.fsListener);
     },
 
-    /**
-     * Updates the main download UI inside the engines view based on the 
-     * current download progress data.
-     * 
-     * @param {Object} dlData - The download progress payload from the filesystem service.
-     */
     handleProgress(dlData) {
         const launchBtn = document.getElementById('launch-engine-btn');
         const dlUI = document.getElementById('download-ui');
@@ -84,10 +65,6 @@ export const enginesView = {
         }
     },
 
-    /**
-     * Asynchronously evaluates if the currently selected engine version is installed
-     * and updates the text and interactivity of the launch button accordingly.
-     */
     async updateButtonState() {
         if (FS.activeDownload) {
             this.handleProgress(FS.activeDownload);
@@ -107,9 +84,6 @@ export const enginesView = {
         launchBtn.disabled = false;
     },
 
-    /**
-     * Assigns click handlers to the pause and cancel actions within the download UI.
-     */
     setupDownloadActions() {
         const btnPause = document.getElementById('dl-pause');
         const btnCancel = document.getElementById('dl-cancel');
@@ -120,13 +94,6 @@ export const enginesView = {
         btnCancel.onclick = () => FS.cancelDownload();
     },
     
-    /**
-     * Resolves the appropriate download link for a version based on the 
-     * user's current operating system and architecture.
-     * 
-     * @param {Object} versionData - The dataset containing varying OS and architecture download URLs.
-     * @returns {string|null} The resolved download URL, or null if no compatible build is found.
-     */
     getTargetLink(versionData) {
         const os = window.NL_OS;
         const arch = window.NL_ARCH; 
@@ -145,10 +112,6 @@ export const enginesView = {
         return null;
     },
 
-    /**
-     * Sets up the main execution logic for the launch button. It determines whether 
-     * the engine should be played locally or queued for installation via the filesystem.
-     */
     setupLaunchButton() {
         const launchBtn = document.getElementById('launch-engine-btn');
         if (!launchBtn) return;
@@ -188,13 +151,6 @@ export const enginesView = {
         };
     },
 
-    /**
-     * Tries to extract a readable version string from a given URL using regular expressions.
-     * Acts as a fallback for generic or unparsed version configurations.
-     * 
-     * @param {string} url - The URL to inspect.
-     * @returns {string} The parsed version string, or "Unknown".
-     */
     extractVersionFallback(url) {
         if (!url) return "Unknown";
         const githubMatch = url.match(/\/download\/(v?([^\/]+))\//);
@@ -206,12 +162,6 @@ export const enginesView = {
         return "Unknown";
     },
 
-    /**
-     * Configures the behavior and population of the custom version selector dropdown.
-     * Overrides and corrects undefined version naming before appending UI options.
-     * 
-     * @param {Object} engine - The engine metadata block containing the version array.
-     */
     setupCustomDropdown(engine) {
         const dropdown = document.getElementById('engine-version-dropdown');
         let trigger = document.getElementById('engine-version-trigger');
@@ -276,10 +226,6 @@ export const enginesView = {
     }
 };
 
-/**
- * Attaches the main view script execution binding to the application's global 
- * router mechanism. Triggered upon specific view navigation requests.
- */
 export function registerEnginesView() {
     appEvents.addEventListener('view:loaded', (event) => {
         if (event.detail === 'engines') enginesView.init();

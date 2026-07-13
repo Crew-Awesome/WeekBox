@@ -6,8 +6,9 @@ export const gameBananaApi = {
     featuredCacheKey: "weekbox-featured-v1",
     freshPopularRecords: [],
     freshPopularNextPage: 1,
+    freshPopularFallbackPage: 1,
+    freshPopularUsingFallback: false,
     freshPopularExhausted: false,
-    freshPopularFeaturedIds: new Set(),
     freshPopularPages: new Map(),
     freshPopularSeenIds: new Set(),
 
@@ -173,17 +174,16 @@ export const gameBananaApi = {
         };
     },
 
-    getPopularScore(mod, isFeatured = false) {
+    getPopularScore(mod) {
         const likes = mod._nLikeCount || 0;
         const views = mod._nViewCount || 0;
         const ageDays = Math.max(0, (Date.now() / 1000 - (mod._tsDateAdded || 0)) / 86400);
         const likeRate = likes / Math.max(views, 1);
-        const momentum = Math.log1p(likes / Math.max(ageDays, 1)) + 0.4 * Math.log1p(likes);
+        const momentum = Math.log1p(likes / Math.sqrt(Math.max(ageDays, 1))) + 0.4 * Math.log1p(likes);
         const qualityMultiplier = 0.7 + Math.min(0.5, likeRate * 30);
-        const freshnessMultiplier = Math.exp(-ageDays / 10);
-        const diversityMultiplier = isFeatured ? 0.88 : 1;
+        const freshnessMultiplier = Math.exp(-ageDays / 45);
 
-        return momentum * qualityMultiplier * freshnessMultiplier * diversityMultiplier;
+        return momentum * qualityMultiplier * freshnessMultiplier;
     },
 
     isFreshPopularMod(mod) {
@@ -192,15 +192,24 @@ export const gameBananaApi = {
         const views = mod._nViewCount || 0;
         const likeRate = likes / Math.max(views, 1);
 
-        return ageDays <= 21 && likes >= 4 && views >= 250 && likeRate >= 0.0125;
+        return ageDays <= 90 && likes >= 4 && views >= 250 && likeRate >= 0.0125;
+    },
+
+    isEstablishedPopularMod(mod) {
+        const likes = mod._nLikeCount || 0;
+        const views = mod._nViewCount || 0;
+        const likeRate = likes / Math.max(views, 1);
+
+        return likes >= 8 && views >= 500 && likeRate >= 0.01;
     },
 
     async getFreshPopularMods(page) {
         if (page === 1) {
             this.freshPopularRecords = [];
             this.freshPopularNextPage = 1;
+            this.freshPopularFallbackPage = 1;
+            this.freshPopularUsingFallback = false;
             this.freshPopularExhausted = false;
-            this.freshPopularFeaturedIds = new Set((await this.getFeaturedCarousel()).map(mod => mod.id));
             this.freshPopularPages = new Map();
             this.freshPopularSeenIds = new Set();
         }
@@ -211,20 +220,24 @@ export const gameBananaApi = {
         while (!this.freshPopularExhausted) {
             available = [...this.freshPopularRecords]
                 .filter(mod => !this.freshPopularSeenIds.has(mod._idRow))
-                .sort((left, right) => this.getPopularScore(right, this.freshPopularFeaturedIds.has(right._idRow)) - this.getPopularScore(left, this.freshPopularFeaturedIds.has(left._idRow)));
+                .sort((left, right) => this.getPopularScore(right) - this.getPopularScore(left));
             if (available.length >= 12) break;
 
+            const isFallback = this.freshPopularUsingFallback;
             const records = await this.getCategoryRecords({
-                page: this.freshPopularNextPage++,
+                page: isFallback ? this.freshPopularFallbackPage++ : this.freshPopularNextPage++,
                 perPage: 50,
-                sort: 'Generic_Newest'
+                sort: isFallback ? 'Generic_MostLiked' : 'Generic_Newest'
             });
-            const freshRecords = records.filter(mod => this.isFreshPopularMod(mod));
+            const eligibleRecords = records.filter(mod => isFallback
+                ? this.isEstablishedPopularMod(mod)
+                : this.isFreshPopularMod(mod));
             const knownIds = new Set(this.freshPopularRecords.map(mod => mod._idRow));
-            this.freshPopularRecords.push(...freshRecords.filter(mod => !knownIds.has(mod._idRow)));
+            this.freshPopularRecords.push(...eligibleRecords.filter(mod => !knownIds.has(mod._idRow)));
 
-            if (records.length === 0 || freshRecords.length === 0) {
-                this.freshPopularExhausted = true;
+            if (records.length === 0 || eligibleRecords.length === 0) {
+                if (isFallback) this.freshPopularExhausted = true;
+                else this.freshPopularUsingFallback = true;
             }
         }
 
@@ -250,6 +263,29 @@ export const gameBananaApi = {
         }
     },
 
+    getSearchScore(mod, query, terms) {
+        const title = (mod._sName || '').toLowerCase();
+        const tags = (mod._aTags || []).join(' ').toLowerCase();
+        const likes = mod._nLikeCount || 0;
+        const views = mod._nViewCount || 0;
+        const ageDays = Math.max(0, (Date.now() / 1000 - (mod._tsDateAdded || 0)) / 86400);
+        let relevance = 0;
+
+        if (title === query) relevance += 1_000;
+        else if (title.startsWith(query)) relevance += 700;
+        else if (title.includes(query)) relevance += 400;
+
+        terms.forEach(term => {
+            if (title.includes(term)) relevance += 120;
+            else if (tags.includes(term)) relevance += 35;
+        });
+
+        return relevance
+            + Math.log1p(likes) * 18
+            + Math.log1p(views) * 3
+            + 12 * Math.exp(-ageDays / 180);
+    },
+
     async searchMods(query, page = 1, perPage = 50) {
         try {
             const searchQuery = encodeURIComponent(query + ' fnf');
@@ -257,15 +293,13 @@ export const gameBananaApi = {
             const data = await res.json();
             const records = this.getValidRecords(data);
 
-            let parsedMods = records.map(mod => this.toGridMod(mod));
+            const normalizedQuery = query.trim().toLowerCase();
+            const terms = normalizedQuery.split(/\s+/).filter(Boolean);
 
-            parsedMods.sort((a, b) => {
-                const scoreA = (a.likes * 10) + a.views;
-                const scoreB = (b.likes * 10) + b.views;
-                return scoreB - scoreA;
-            });
-
-            return parsedMods;
+            return records
+                .map(mod => ({ mod, score: this.getSearchScore(mod, normalizedQuery, terms) }))
+                .sort((left, right) => right.score - left.score)
+                .map(({ mod }) => this.toGridMod(mod));
         } catch (error) {
             console.error("Error searching mods:", error);
             return [];

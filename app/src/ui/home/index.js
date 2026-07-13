@@ -8,8 +8,9 @@ export const homeView = {
     init() {
         this.mainContent = document.getElementById('main-content');
         this.container = document.querySelector('.home-container');
-        
-        this.mainContent.addEventListener('scroll', this.handleScroll.bind(this));
+        this.scrollHandler ??= this.handleScroll.bind(this);
+        this.mainContent.removeEventListener('scroll', this.scrollHandler);
+        this.mainContent.addEventListener('scroll', this.scrollHandler);
 
         homeCarousel.init();
         homeGrid.init();
@@ -19,7 +20,12 @@ export const homeView = {
 
     handleScroll() {
         if (!this.container) return;
-        if (this.mainContent.scrollTop > 50) {
+        const isScrolled = this.container.classList.contains('scrolled');
+        const shouldCompact = isScrolled
+            ? this.mainContent.scrollTop > 30
+            : this.mainContent.scrollTop > 70;
+
+        if (shouldCompact) {
             this.container.classList.add('scrolled');
         } else {
             this.container.classList.remove('scrolled');
@@ -28,7 +34,7 @@ export const homeView = {
 
     destroy() {
         if (this.mainContent) {
-            this.mainContent.removeEventListener('scroll', this.handleScroll);
+            this.mainContent.removeEventListener('scroll', this.scrollHandler);
         }
         homeCarousel.stopAutoSlide();
         homeGrid.removeScroll();

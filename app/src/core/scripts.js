@@ -3,9 +3,6 @@ import { router } from './router.js';
 import { registerHomeView } from '../ui/home/index.js';
 import { registerEnginesView } from '../ui/engines/index.js';
 
-/**
-* init the App and Neutralino native API
-*/ 
 async function startApp() {
     try {
         Neutralino.init();

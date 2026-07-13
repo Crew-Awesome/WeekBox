@@ -9,11 +9,14 @@ export const homeGrid = {
     currentFilter: "popular",
     hasMore: true,
     scrollHandler: null,
+    renderVersion: 0,
+    pendingInitialRender: false,
 
     async init() {
         this.currentPage = 1;
         this.isSearchMode = false;
         this.hasMore = true;
+        this.pendingInitialRender = false;
         this.setupFilters();
         await this.renderGrid(true);
         this.setupInfiniteScroll();
@@ -23,7 +26,6 @@ export const homeGrid = {
         const pills = document.querySelectorAll('.pill-btn');
         pills.forEach(pill => {
             pill.addEventListener('click', async (e) => {
-                if (this.isLoading) return; 
                 pills.forEach(p => p.classList.remove('active'));
                 e.target.classList.add('active');
                 this.currentFilter = e.target.getAttribute('data-filter');
@@ -34,7 +36,14 @@ export const homeGrid = {
     },
 
     async renderGrid(isInitial = false) {
-        if (this.isLoading) return;
+        if (this.isLoading) {
+            if (isInitial) {
+                this.renderVersion++;
+                this.pendingInitialRender = true;
+            }
+            return;
+        }
+        const renderVersion = ++this.renderVersion;
         const grid = document.getElementById('popular-grid');
         if (!grid) return;
         if (isInitial) { this.currentPage = 1; this.hasMore = true; grid.innerHTML = ''; }
@@ -45,6 +54,8 @@ export const homeGrid = {
             let mods = this.isSearchMode
                 ? await gameBananaApi.searchMods(this.searchQuery, this.currentPage)
                 : await gameBananaApi.getGridMods(this.currentFilter, this.currentPage);
+
+            if (renderVersion !== this.renderVersion) return;
 
             if (mods.length === 0 && isInitial) {
                 grid.innerHTML = `<p style="color: var(--text-muted); padding: 16px;">No mods found.</p>`;
@@ -87,6 +98,10 @@ export const homeGrid = {
             if (isInitial) grid.innerHTML = `<p style="color: red; padding: 16px;">Failed to load mods.</p>`;
         } finally {
             this.isLoading = false;
+            if (this.pendingInitialRender) {
+                this.pendingInitialRender = false;
+                this.renderGrid(true);
+            }
         }
     },
 
