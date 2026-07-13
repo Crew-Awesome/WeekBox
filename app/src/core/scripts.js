@@ -1,4 +1,7 @@
-const ScriptLoader = {
+import { router } from './router.js';
+import { registerEnginesView } from '../ui/engines/index.js';
+
+const appLoader = {
     async init() {
         try {
             Neutralino.init();
@@ -18,7 +21,8 @@ const ScriptLoader = {
             }
             console.log("WeekBox: Módulos JS cargados.");
             
-            if (window.Router) await window.Router.init();
+            registerEnginesView();
+            await router.init();
             
         } catch (error) {
             console.error("Error crítico:", error);
@@ -39,4 +43,4 @@ const ScriptLoader = {
         });
     }
 };
-ScriptLoader.init();
+appLoader.init();

@@ -1,4 +1,7 @@
-window.SidebarLogic = {
+import { router } from '../core/router.js';
+import { setSelectedEngine } from '../core/state.js';
+
+export const sidebar = {
     async init() {
         this.sidebar = document.getElementById('sidebar');
         this.resizer = document.getElementById('sidebar-resizer');
@@ -49,7 +52,7 @@ window.SidebarLogic = {
                 
                 btn.classList.add('active');
                 const viewToLoad = btn.getAttribute('data-tab');
-                window.Router.navigate(viewToLoad);
+                router.navigate(viewToLoad);
             });
         });
     },
@@ -118,16 +121,16 @@ window.SidebarLogic = {
                         
                         btn.querySelector('span').textContent = originalText;
                         
-                        window.SelectedEngine = { 
+                        setSelectedEngine({
                             id: engineDef.versions,
                             meta: {
                                 name: engineDef.name,
                                 icon: engineDef.icon
                             },
                             versions: processedVersionsData 
-                        };
+                        });
                         
-                        window.Router.navigate('engines');
+                        router.navigate('engines');
                         
                     } catch (err) {
                         console.error(err);

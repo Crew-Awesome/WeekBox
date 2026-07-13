@@ -1,4 +1,6 @@
 import { FS } from '../../utils/filesystem.js';
+import { appEvents } from '../../core/events.js';
+import { getSelectedEngine } from '../../core/state.js';
 
 class GlobalDownloadToast {
     constructor() {
@@ -23,7 +25,7 @@ class GlobalDownloadToast {
     bindEvents() {
         FS.addEventListener('dl:update', (e) => this.handleUpdate(e.detail));
         
-        window.addEventListener('view:loaded', (e) => {
+        appEvents.addEventListener('view:loaded', (e) => {
             this.currentView = e.detail;
             this.checkVisibility();
         });
@@ -52,9 +54,9 @@ class GlobalDownloadToast {
 
 new GlobalDownloadToast();
 
-const EnginesController = {
+export const enginesView = {
     init() {
-        const engine = window.SelectedEngine;
+        const engine = getSelectedEngine();
         if (!engine) return;
         
         this.currentEngine = engine;
@@ -287,9 +289,9 @@ const EnginesController = {
     }
 };
 
-window.EnginesApp = EnginesController;
-
-window.addEventListener('view:loaded', (e) => {
-    if (e.detail === 'engines') window.EnginesApp.init();
-    else if (window.EnginesApp && window.EnginesApp.destroy) window.EnginesApp.destroy();
-});
+export function registerEnginesView() {
+    appEvents.addEventListener('view:loaded', (event) => {
+        if (event.detail === 'engines') enginesView.init();
+        else enginesView.destroy();
+    });
+}

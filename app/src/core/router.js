@@ -1,14 +1,14 @@
-window.Router = {
+import { emitViewChange } from './events.js';
+import { sidebar } from '../ui/sidebar.js';
+
+export const router = {
     async init() {
         this.mainContent = document.getElementById('main-content');
         this.sidebarContainer = document.getElementById('sidebar-container');
 
         await this.loadComponent(this.sidebarContainer, 'src/html/sidebar.html');
+        await sidebar.init();
         
-        if (window.SidebarLogic) {
-            window.SidebarLogic.init();
-        }
-
         await this.navigate('home');
     },
 
@@ -22,7 +22,7 @@ window.Router = {
         try {
             await this.loadComponent(this.mainContent, `src/html/${viewId}.html`);
             
-            window.dispatchEvent(new CustomEvent('view:loaded', { detail: viewId }));
+            emitViewChange(viewId);
             
         } catch (error) {
             this.mainContent.innerHTML = `<p style="padding: 24px; color: #ff4a4a;">Error cargando la vista: ${viewId}.html</p>`;

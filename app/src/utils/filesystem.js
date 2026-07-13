@@ -229,4 +229,3 @@ class FileSystemService extends EventTarget {
 }
 
 export const FS = new FileSystemService();
-window.WeekBoxFS = FS;
