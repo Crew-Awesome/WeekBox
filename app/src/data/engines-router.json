@@ -5,18 +5,13 @@
         "versions": "vslice"
     },
     {
-        "name": "P-Slice",
-        "icon": "p-slice.png",
-        "versions": "pslice"
+        "name": "Codename",
+        "icon": "codename.png",
+        "versions": "codename"
     },
     {
         "name": "Psych Engine",
         "icon": "psych.ico",
         "versions": "psych"
-    },
-    {
-        "name": "Kade Engine",
-        "icon": null,
-        "versions": "kade"
     }
 ]
