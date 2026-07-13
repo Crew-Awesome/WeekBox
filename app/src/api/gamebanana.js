@@ -286,8 +286,25 @@ export const gameBananaApi = {
             + 12 * Math.exp(-ageDays / 180);
     },
 
+    getModIdFromQuery(query) {
+        const trimmedQuery = query.trim();
+        const urlMatch = trimmedQuery.match(/gamebanana\.com\/mods\/(\d+)/i);
+        if (urlMatch) return urlMatch[1];
+        return /^\d+$/.test(trimmedQuery) ? trimmedQuery : null;
+    },
+
+    async getSearchModById(modId) {
+        const response = await fetch(`${this.baseUrl}/Mod/${modId}/ProfilePage`);
+        if (!response.ok) throw new Error(`GameBanana returned ${response.status}`);
+
+        return this.toGridMod(await response.json());
+    },
+
     async searchMods(query, page = 1, perPage = 50) {
         try {
+            const modId = this.getModIdFromQuery(query);
+            if (modId) return [await this.getSearchModById(modId)];
+
             const searchQuery = encodeURIComponent(query + ' fnf');
             const res = await fetch(`${this.baseUrl}/Util/Search/Results?_sModelName=Mod&_sSearchString=${searchQuery}&_nPage=${page}&_nPerpage=${perPage}`);
             const data = await res.json();
