@@ -5,11 +5,12 @@ export const gameBananaApi = {
     featuredUrl: "https://raw.githubusercontent.com/Crew-Awesome/weekbox.featured/main/public/featured.json",
     featuredCacheKey: "weekbox-featured-v1",
     
-    currentFreshCategoryId: null,
+    currentFreshCategoryId: undefined,
     freshPopularRecords: [],
     freshPopularNextPage: 1,
+    freshPopularFallbackPage: 1,
+    freshPopularUsingFallback: false,
     freshPopularExhausted: false,
-    freshPopularFeaturedIds: new Set(),
     freshPopularPages: new Map(),
     freshPopularSeenIds: new Set(),
     
@@ -131,8 +132,21 @@ export const gameBananaApi = {
         );
     },
     
-    async getCategoryRecords({ page = 1, perPage = 20, sort, categoryId } = {}) {
-        const categoriesToFetch = categoryId ? [categoryId] : this.categoryRoots;
+    getCategories(categoryId = null) {
+        return this.categoryRoots.includes(categoryId) ? [categoryId] : this.categoryRoots;
+    },
+
+    getRecordSortValue(mod, sort) {
+        if (sort === 'Generic_LatestUpdated') {
+            return Number(mod._tsDateUpdated || mod._tsDateModified || mod._tsDateAdded || 0);
+        }
+
+        if (sort === 'Generic_MostLiked') return Number(mod._nLikeCount || 0);
+        return Number(mod._tsDateAdded || 0);
+    },
+
+    async getCategoryRecords({ page = 1, perPage = 20, sort, categoryId = null } = {}) {
+        const categoriesToFetch = this.getCategories(categoryId);
         const responses = await Promise.allSettled(categoriesToFetch.map(async id => {
             const params = new URLSearchParams({
                 _nPage: String(page),
@@ -152,8 +166,13 @@ export const gameBananaApi = {
         const records = responses
             .filter(result => result.status === 'fulfilled')
             .flatMap(result => result.value);
-            
-        return [...new Map(records.map(mod => [mod._idRow, mod])).values()];
+
+        if (records.length === 0 && responses.every(result => result.status === 'rejected')) {
+            throw new Error('GameBanana category requests failed');
+        }
+
+        return [...new Map(records.map(mod => [mod._idRow, mod])).values()]
+            .sort((left, right) => this.getRecordSortValue(right, sort) - this.getRecordSortValue(left, sort));
     },
     
     toGridMod(mod) {
@@ -168,16 +187,15 @@ export const gameBananaApi = {
         };
     },
     
-    getPopularScore(mod, isFeatured = false) {
+    getPopularScore(mod) {
         const likes = mod._nLikeCount || 0;
         const views = mod._nViewCount || 0;
         const ageDays = Math.max(0, (Date.now() / 1000 - (mod._tsDateAdded || 0)) / 86400);
         const likeRate = likes / Math.max(views, 1);
-        const momentum = Math.log1p(likes / Math.max(ageDays, 1)) + 0.4 * Math.log1p(likes);
+        const momentum = Math.log1p(likes / Math.sqrt(Math.max(ageDays, 1))) + 0.4 * Math.log1p(likes);
         const qualityMultiplier = 0.7 + Math.min(0.5, likeRate * 30);
-        const freshnessMultiplier = Math.exp(-ageDays / 10);
-        const diversityMultiplier = isFeatured ? 0.88 : 1;
-        return momentum * qualityMultiplier * freshnessMultiplier * diversityMultiplier;
+        const freshnessMultiplier = Math.exp(-ageDays / 45);
+        return momentum * qualityMultiplier * freshnessMultiplier;
     },
     
     isFreshPopularMod(mod) {
@@ -185,7 +203,14 @@ export const gameBananaApi = {
         const likes = mod._nLikeCount || 0;
         const views = mod._nViewCount || 0;
         const likeRate = likes / Math.max(views, 1);
-        return ageDays <= 21 && likes >= 4 && views >= 250 && likeRate >= 0.0125;
+        return ageDays <= 90 && likes >= 4 && views >= 250 && likeRate >= 0.0125;
+    },
+
+    isEstablishedPopularMod(mod) {
+        const likes = mod._nLikeCount || 0;
+        const views = mod._nViewCount || 0;
+        const likeRate = likes / Math.max(views, 1);
+        return likes >= 8 && views >= 500 && likeRate >= 0.01;
     },
     
     async getFreshPopularMods(page, categoryId) {
@@ -193,8 +218,9 @@ export const gameBananaApi = {
             this.currentFreshCategoryId = categoryId;
             this.freshPopularRecords = [];
             this.freshPopularNextPage = 1;
+            this.freshPopularFallbackPage = 1;
+            this.freshPopularUsingFallback = false;
             this.freshPopularExhausted = false;
-            this.freshPopularFeaturedIds = new Set((await this.getFeaturedCarousel()).map(mod => mod.id));
             this.freshPopularPages = new Map();
             this.freshPopularSeenIds = new Set();
         }
@@ -205,24 +231,28 @@ export const gameBananaApi = {
         while (!this.freshPopularExhausted) {
             available = [...this.freshPopularRecords]
                 .filter(mod => !this.freshPopularSeenIds.has(mod._idRow))
-                .sort((left, right) => this.getPopularScore(right, this.freshPopularFeaturedIds.has(right._idRow)) - this.getPopularScore(left, this.freshPopularFeaturedIds.has(left._idRow)));
+                .sort((left, right) => this.getPopularScore(right) - this.getPopularScore(left));
                 
             if (available.length >= 12) break;
             
             try {
+                const isFallback = this.freshPopularUsingFallback;
                 const records = await this.getCategoryRecords({
-                    page: this.freshPopularNextPage++,
+                    page: isFallback ? this.freshPopularFallbackPage++ : this.freshPopularNextPage++,
                     perPage: 50,
-                    sort: 'Generic_Newest',
+                    sort: isFallback ? 'Generic_MostLiked' : 'Generic_Newest',
                     categoryId: categoryId
                 });
-                
-                const freshRecords = records.filter(mod => this.isFreshPopularMod(mod));
+
+                const eligibleRecords = records.filter(mod => isFallback
+                    ? this.isEstablishedPopularMod(mod)
+                    : this.isFreshPopularMod(mod));
                 const knownIds = new Set(this.freshPopularRecords.map(mod => mod._idRow));
-                this.freshPopularRecords.push(...freshRecords.filter(mod => !knownIds.has(mod._idRow)));
-                
-                if (records.length === 0 || freshRecords.length === 0) {
-                    this.freshPopularExhausted = true;
+                this.freshPopularRecords.push(...eligibleRecords.filter(mod => !knownIds.has(mod._idRow)));
+
+                if (records.length === 0 || eligibleRecords.length === 0) {
+                    if (isFallback) this.freshPopularExhausted = true;
+                    else this.freshPopularUsingFallback = true;
                 }
             } catch (err) {
                 this.freshPopularExhausted = true;
@@ -236,7 +266,7 @@ export const gameBananaApi = {
         return mods;
     },
     
-    async getGridMods(filter = 'ripe', page = 1, categoryId = 29202) {
+    async getGridMods(filter = 'ripe', page = 1, categoryId = null) {
         try {
             if (filter === 'popular') return await this.getFreshPopularMods(page, categoryId);
             
