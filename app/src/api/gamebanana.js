@@ -1,6 +1,7 @@
 export const gameBananaApi = {
     baseUrl: "https://gamebanana.com/apiv11",
     gameId: 8694,
+    categoryRoots: [34764, 28367, 29202],
     featuredUrl: "https://raw.githubusercontent.com/Crew-Awesome/weekbox.featured/main/public/featured.json",
     featuredCacheKey: "weekbox.featured.v1",
 
@@ -131,56 +132,44 @@ export const gameBananaApi = {
         );
     },
 
+    async getCategoryRecords({ page = 1, perPage = 20, sort } = {}) {
+        const responses = await Promise.all(this.categoryRoots.map(async categoryId => {
+            const params = new URLSearchParams({
+                _nPage: String(page),
+                _nPerpage: String(perPage)
+            });
+            params.set('_aFilters[Generic_Game]', String(this.gameId));
+            params.set('_aFilters[Generic_Category]', String(categoryId));
+            if (sort) params.set('_sSort', sort);
+
+            const response = await fetch(`${this.baseUrl}/Mod/Index?${params}`);
+            if (!response.ok) throw new Error(`GameBanana returned ${response.status}`);
+            return this.getValidRecords(await response.json());
+        }));
+
+        return [...new Map(responses.flat().map(mod => [mod._idRow, mod])).values()];
+    },
+
+    toGridMod(mod) {
+        return {
+            id: mod._idRow,
+            title: mod._sName,
+            author: mod._aSubmitter?._sName || "Unknown",
+            image: this.getImageUrl(mod),
+            likes: mod._nLikeCount || 0,
+            views: mod._nViewCount || 0,
+            timeAgo: this.getTimeAgo(mod._tsDateAdded)
+        };
+    },
+
     async getGridMods(filter = 'ripe', page = 1) {
         try {
-            if (filter === 'ripe') {
-                const res = await fetch(`${this.baseUrl}/Mod/Index?_aFilters%5BGeneric_Game%5D=${this.gameId}&_nPage=${page}&_nPerpage=20`);
-                const data = await res.json();
-                const records = this.getValidRecords(data);
-
-                return records.slice(0, 12).map(mod => ({
-                    id: mod._idRow,
-                    title: mod._sName,
-                    author: mod._aSubmitter?._sName || "Unknown",
-                    image: this.getImageUrl(mod),
-                    likes: mod._nLikeCount || 0,
-                    views: mod._nViewCount || 0,
-                    timeAgo: this.getTimeAgo(mod._tsDateAdded)
-                }));
-            } else {
-                const isUpdated = filter === 'updated' ? '&include_updated=1' : '';
-                const rssRes = await fetch(`https://api.gamebanana.com/Rss/New?gameid=${this.gameId}&itemtype=Mod&perpage=50${isUpdated}`);
-                
-                if (!rssRes.ok) throw new Error(`RSS Error: ${rssRes.status}`);
-                
-                const xmlText = await rssRes.text();
-                const parser = new DOMParser();
-                const xml = parser.parseFromString(xmlText, "text/xml");
-                const items = Array.from(xml.querySelectorAll("item"));
-                
-                const startIndex = (page - 1) * 12;
-                const paginatedItems = items.slice(startIndex, startIndex + 12);
-                
-                return paginatedItems.map((item, index) => {
-                    const title = item.querySelector("title")?.textContent || "Unknown Mod";
-                    const link = item.querySelector("link")?.textContent || "";
-                    const image = item.querySelector("image")?.textContent || "https://images.gamebanana.com/img/ss/mods/default.jpg";
-                    const id = link.split('/').pop() || index.toString();
-                    
-                    const pubDate = item.querySelector("pubDate")?.textContent;
-                    const ts = pubDate ? Math.floor(new Date(pubDate).getTime() / 1000) : 0;
-                    
-                    return {
-                        id: id,
-                        title: title,
-                        author: "Creator",
-                        image: image,
-                        likes: 0, 
-                        views: 0,
-                        timeAgo: this.getTimeAgo(ts)
-                    };
-                });
-            }
+            const sort = {
+                new: 'Generic_Newest',
+                updated: 'Generic_LatestUpdated'
+            }[filter];
+            const records = await this.getCategoryRecords({ page, sort });
+            return records.slice(0, 12).map(mod => this.toGridMod(mod));
         } catch (error) {
             console.error("Error loading grid mods:", error);
             return [];
@@ -194,15 +183,7 @@ export const gameBananaApi = {
             const data = await res.json();
             const records = this.getValidRecords(data);
 
-            let parsedMods = records.map(mod => ({
-                id: mod._idRow,
-                title: mod._sName,
-                author: mod._aSubmitter?._sName || "Unknown",
-                image: this.getImageUrl(mod),
-                likes: mod._nLikeCount || 0,
-                views: mod._nViewCount || 0,
-                timeAgo: this.getTimeAgo(mod._tsDateAdded)
-            }));
+            let parsedMods = records.map(mod => this.toGridMod(mod));
 
             parsedMods.sort((a, b) => {
                 const scoreA = (a.likes * 10) + a.views;
