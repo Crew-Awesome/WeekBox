@@ -184,20 +184,8 @@ export const enginesView = {
     setupDownloadActions(activeBtn, downloadActions) {
         if (!downloadActions || !this.activeInstall) return;
         downloadActions.hidden = false;
-        const pauseBtn = document.getElementById('pause-engine-download-btn');
         const cancelBtn = document.getElementById('cancel-engine-download-btn');
         const { engineId, version } = this.activeInstall;
-
-        pauseBtn.onclick = async () => {
-            pauseBtn.disabled = true;
-            if (pauseBtn.textContent === 'Pause') {
-                const paused = await downloadEngine.pause(engineId, version);
-                if (!paused) pauseBtn.disabled = false;
-            } else {
-                const resumed = await downloadEngine.resume(engineId, version);
-                if (!resumed) pauseBtn.disabled = false;
-            }
-        };
         cancelBtn.onclick = async () => {
             cancelBtn.disabled = true;
             this.cancelledInstall = `${engineId}:${version}`;
@@ -208,32 +196,14 @@ export const enginesView = {
     },
 
     updateInstallState(state, activeBtn) {
-        const pauseBtn = document.getElementById('pause-engine-download-btn');
         const cancelBtn = document.getElementById('cancel-engine-download-btn');
 
-        if (state === 'paused') {
-            activeBtn.textContent = 'Paused';
-            if (pauseBtn) {
-                pauseBtn.textContent = 'Resume';
-                pauseBtn.disabled = false;
-            }
-        } else if (state === 'downloading') {
+        if (state === 'downloading') {
             activeBtn.textContent = 'Downloading...';
-            if (pauseBtn) {
-                pauseBtn.textContent = 'Pause';
-                pauseBtn.disabled = false;
-            }
-        } else if (state === 'pausing') {
-            activeBtn.textContent = 'Pausing...';
-        } else if (state === 'pause_failed') {
-            activeBtn.textContent = 'Downloading...';
-            if (pauseBtn) pauseBtn.disabled = false;
         } else if (state === 'installing') {
             activeBtn.textContent = 'Installing...';
-            if (pauseBtn) pauseBtn.disabled = true;
         } else if (state === 'cancelled') {
             activeBtn.textContent = 'Cancelled';
-            if (pauseBtn) pauseBtn.disabled = true;
             if (cancelBtn) cancelBtn.disabled = true;
         }
     },
