@@ -1,6 +1,6 @@
 import { appEvents } from '../../core/events.js';
 import { homeCarousel } from './carousel.js';
-import { homeGrid } from './grid.js';
+import { homeGrid } from './grid/index.js';
 import { homeSearch } from './search.js';
 import { homeSearchDropdown } from './searchDropdown.js';
 

@@ -1,4 +1,4 @@
-import { homeGrid } from './grid.js';
+import { homeGrid } from './grid/index.js';
 import { homeSearchDropdown } from './searchDropdown.js';
 
 export const homeSearch = {
