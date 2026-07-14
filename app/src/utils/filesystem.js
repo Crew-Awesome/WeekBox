@@ -33,19 +33,19 @@ class FileSystemService extends EventTarget {
     async isEngineInstalled(engineId, version) {
         if (!this.isInitialized) return false;
         const targetPath = `${this.enginesPath}/${engineId}/${version}`;
-        return await this.api.exists(targetPath);
+        return Boolean(await this.findExecutable(targetPath));
     }
     
     async findExecutable(dir) {
         try {
-            const files = await Neutralino.filesystem.readDirectory(dir);
+            const files = await Neutralino.filesystem.readDirectory(dir, { recursive: true });
             const isWindows = window.NL_OS === 'Windows';
             for (const file of files) {
                 if (file.type === 'FILE') {
                     if (isWindows && file.entry.endsWith('.exe')) {
-                        return `${dir}/${file.entry}`;
+                        return file.path || `${dir}/${file.entry}`;
                     } else if (!isWindows && !file.entry.includes('.')) {
-                        return `${dir}/${file.entry}`;
+                        return file.path || `${dir}/${file.entry}`;
                     }
                 }
             }
@@ -65,7 +65,8 @@ class FileSystemService extends EventTarget {
         if (exePath) {
             if (onStateChange) onStateChange('running');
             try {
-                const process = await Neutralino.os.spawnProcess(`"${exePath}"`);
+                const executableDir = exePath.slice(0, Math.max(exePath.lastIndexOf('/'), exePath.lastIndexOf('\\')));
+                const process = await Neutralino.os.spawnProcess(`"${exePath}"`, { cwd: executableDir });
                 this.activeEngineProcesses.set(engineKey, process);
 
                 const handler = event => {

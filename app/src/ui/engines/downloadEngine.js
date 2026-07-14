@@ -111,7 +111,7 @@ export const downloadEngine = {
             return true;
 
         } catch (error) {
-            console.error(`Error installing engine ${engineId}:`, error);
+            if (!task.cancelled) console.error(`Error installing engine ${engineId}:`, error);
             await FS.api.remove(tempFilePath);
             if (task.cancelled) {
                 await FS.api.remove(engineDir);
