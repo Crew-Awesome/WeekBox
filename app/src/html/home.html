@@ -47,12 +47,19 @@
                         </div>
                     </div>
                     
-                    <div class="filter-divider" aria-hidden="true"></div>
-                    
-                    <button class="pill-btn active filter-type" data-filter="popular">Discover</button>
-                    <button class="pill-btn filter-type" data-filter="ripe">Ripe</button>
-                    <button class="pill-btn filter-type" data-filter="new">New</button>
-                    <button class="pill-btn filter-type" data-filter="updated">Updated</button>
+                    <div class="pill-dropdown" id="sort-filter-dropdown">
+                        <button class="pill-btn dropdown-trigger" id="sort-filter-trigger" type="button" aria-haspopup="listbox" aria-expanded="false">
+                            <i class="fa-solid fa-arrow-down-wide-short" aria-hidden="true"></i>
+                            <span id="sort-filter-selected">Discovery</span>
+                            <i class="fa-solid fa-chevron-down filter-dropdown-chevron" aria-hidden="true"></i>
+                        </button>
+                        <div class="custom-options-container" id="sort-filter-options" role="listbox" aria-label="Mod order">
+                            <button class="custom-option selected" type="button" data-filter="popular" data-label="Discovery" role="option" aria-selected="true">Discovery</button>
+                            <button class="custom-option" type="button" data-filter="ripe" data-label="Ripe" role="option" aria-selected="false">Ripe</button>
+                            <button class="custom-option" type="button" data-filter="new" data-label="New" role="option" aria-selected="false">New</button>
+                            <button class="custom-option" type="button" data-filter="updated" data-label="Updated" role="option" aria-selected="false">Updated</button>
+                        </div>
+                    </div>
                 </div>
             </header>
             
