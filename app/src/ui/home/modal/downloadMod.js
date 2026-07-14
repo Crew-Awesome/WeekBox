@@ -98,6 +98,10 @@ export const downloadMod = {
                 engineId,
                 folderName: sanitizedModName
             });
+            const injectionResults = await FS.injectModIntoInstalledEngines(modId);
+            injectionResults
+                .filter(result => result.status === 'rejected')
+                .forEach(result => console.warn('Could not inject mod into engine:', result.reason));
             
             if (this.activeTasks.get(modId)?.cancelled) throw new Error('Cancelled');
 

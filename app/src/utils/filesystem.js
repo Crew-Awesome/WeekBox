@@ -88,6 +88,69 @@ class FileSystemService extends EventTarget {
         }
     }
 
+    async getInstalledEngines() {
+        if (!this.isInitialized) return [];
+        try {
+            const engineEntries = await Neutralino.filesystem.readDirectory(this.enginesPath);
+            const engines = await Promise.all(engineEntries
+                .filter(entry => entry.type === 'DIRECTORY')
+                .map(async entry => {
+                    const enginePath = `${this.enginesPath}/${entry.entry}`;
+                    const versions = await Neutralino.filesystem.readDirectory(enginePath);
+                    return versions
+                        .filter(version => version.type === 'DIRECTORY')
+                        .map(version => ({ id: entry.entry, version: version.entry }));
+                }));
+            return engines.flat();
+        } catch (error) {
+            return [];
+        }
+    }
+
+    async linkModToEngine(mod, engineId, version) {
+        const folderName = mod.folderName || mod.name.replace(/[<>:"/\\|?*]+/g, '').trim();
+        const sourcePath = `${this.modsPath}/${folderName}`;
+        const modsPath = `${this.enginesPath}/${engineId}/${version}/mods`;
+        const linkPath = `${modsPath}/${folderName}`;
+
+        if (!await this.api.exists(sourcePath)) {
+            throw new Error(`Mod files not found for ${mod.name}`);
+        }
+
+        await this.api.ensureDir(modsPath);
+        if (await this.api.exists(linkPath)) return { linked: false, path: linkPath };
+
+        const command = window.NL_OS === 'Windows'
+            ? `cmd /c mklink /J "${linkPath}" "${sourcePath}"`
+            : `ln -s "${sourcePath}" "${linkPath}"`;
+        const result = await Neutralino.os.execCommand(command, { background: false });
+        if (result.exitCode !== 0) throw new Error(result.stdErr || `Could not inject ${mod.name}`);
+
+        return { linked: true, path: linkPath };
+    }
+
+    async injectModIntoEngine(modId, engineId, version) {
+        const mod = (await this.getInstalledMods()).find(item => item.id === modId);
+        if (!mod) throw new Error('Installed mod metadata was not found');
+        return this.linkModToEngine(mod, engineId, version);
+    }
+
+    async injectModsIntoEngine(engineId, version) {
+        const mods = await this.getInstalledMods();
+        const matchingMods = mods.filter(mod => mod.engineId === engineId);
+        return Promise.allSettled(matchingMods.map(mod => this.linkModToEngine(mod, engineId, version)));
+    }
+
+    async injectModIntoInstalledEngines(modId) {
+        const mod = (await this.getInstalledMods()).find(item => item.id === modId);
+        if (!mod?.engineId) return [];
+
+        const engines = await this.getInstalledEngines();
+        return Promise.allSettled(engines
+            .filter(engine => engine.id === mod.engineId)
+            .map(engine => this.linkModToEngine(mod, engine.id, engine.version)));
+    }
+
     async getInstalledMods() {
         if (!this.isInitialized) return [];
         const jsonPath = `${this.dataPath}/installedmods.json`;

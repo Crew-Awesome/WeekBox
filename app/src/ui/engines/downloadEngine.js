@@ -129,6 +129,10 @@ export const downloadEngine = {
             // 3. Limpieza final
             updateProgress('Cleaning temporary files...', 99);
             await FS.api.remove(tempFilePath);
+            const injectionResults = await FS.injectModsIntoEngine(engineId, version);
+            injectionResults
+                .filter(result => result.status === 'rejected')
+                .forEach(result => console.warn('Could not inject installed mod:', result.reason));
 
             updateProgress('Completed', 100);
             this.notifyState(task, 'completed');
