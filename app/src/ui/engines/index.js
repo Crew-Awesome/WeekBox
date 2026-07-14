@@ -116,7 +116,9 @@ export const enginesView = {
                     downloadUrl, 
                     (progressInfo) => {
                         const p = Math.floor(progressInfo.progress);
-                        const progressText = `${p}% - ${progressInfo.status}`;
+                        const progressText = progressInfo.status.startsWith('Extracting:')
+                            ? progressInfo.status
+                            : `${p}% - ${progressInfo.status}`;
                         
                         if (dlText) dlText.textContent = progressText;
                         if (dlTextSizer) dlTextSizer.textContent = progressText;
