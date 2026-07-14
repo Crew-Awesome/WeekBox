@@ -88,23 +88,42 @@ class FileSystemService extends EventTarget {
         }
     }
 
-    async saveInstalledMod(modId, modName) {
+    async getInstalledMods() {
+        if (!this.isInitialized) return [];
+        const jsonPath = `${this.dataPath}/installedmods.json`;
+        if (!await this.api.exists(jsonPath)) return [];
+
+        try {
+            const content = await this.api.read(jsonPath);
+            const installedMods = JSON.parse(content);
+            return Array.isArray(installedMods) ? installedMods : [];
+        } catch (error) {
+            return [];
+        }
+    }
+
+    async saveInstalledMod(modId, modName, metadata = {}) {
         if (!this.isInitialized) return;
         const jsonPath = `${this.dataPath}/installedmods.json`;
-        let installedMods = [];
-        
-        if (await this.api.exists(jsonPath)) {
-            try {
-                const content = await this.api.read(jsonPath);
-                installedMods = JSON.parse(content);
-            } catch (error) {}
-        }
+        const installedMods = await this.getInstalledMods();
         
         const exists = installedMods.find(m => m.id === modId);
         if (!exists) {
-            installedMods.push({ name: modName, id: modId });
+            installedMods.push({ name: modName, id: modId, ...metadata });
             await this.api.write(jsonPath, JSON.stringify(installedMods, null, 2));
         }
+    }
+
+    async assignModEngine(modId, engineId) {
+        if (!this.isInitialized) return false;
+        const jsonPath = `${this.dataPath}/installedmods.json`;
+        const installedMods = await this.getInstalledMods();
+        const mod = installedMods.find(item => item.id === modId);
+        if (!mod) return false;
+
+        mod.engineId = engineId || null;
+        await this.api.write(jsonPath, JSON.stringify(installedMods, null, 2));
+        return true;
     }
 
     async removeInstalledMod(modId) {
@@ -113,8 +132,7 @@ class FileSystemService extends EventTarget {
         
         if (await this.api.exists(jsonPath)) {
             try {
-                const content = await this.api.read(jsonPath);
-                let installedMods = JSON.parse(content);
+                let installedMods = await this.getInstalledMods();
                 const initialLength = installedMods.length;
                 installedMods = installedMods.filter(m => m.id !== modId);
                 
@@ -131,8 +149,7 @@ class FileSystemService extends EventTarget {
         
         if (await this.api.exists(jsonPath)) {
             try {
-                const content = await this.api.read(jsonPath);
-                const installedMods = JSON.parse(content);
+                const installedMods = await this.getInstalledMods();
                 return installedMods.some(m => m.id === modId);
             } catch (error) {}
         }

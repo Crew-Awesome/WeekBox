@@ -47,7 +47,7 @@ export const downloadMod = {
         } catch (error) {}
     },
 
-    async install(modId, modName, downloadUrl) {
+    async install(modId, modName, downloadUrl, engineId = null) {
         if (!FS.isInitialized) await FS.init();
         
         const modsBasePath = FS.modsPath;
@@ -94,7 +94,10 @@ export const downloadMod = {
             toastDownloadMod.update(modId, 99, 'Deleting temp Zip...');
             await FS.api.remove(tempFilePath);
             
-            await FS.saveInstalledMod(modId, modName);
+            await FS.saveInstalledMod(modId, modName, {
+                engineId,
+                folderName: sanitizedModName
+            });
             
             if (this.activeTasks.get(modId)?.cancelled) throw new Error('Cancelled');
 

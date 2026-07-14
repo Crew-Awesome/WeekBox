@@ -2,6 +2,11 @@ export const gameBananaApi = {
     baseUrl: "https://gamebanana.com/apiv11",
     gameId: 8694,
     categoryRoots: [34764, 28367, 29202],
+    engineCategories: {
+        29202: 'vslice',
+        28367: 'psych',
+        34764: 'codename'
+    },
     featuredUrl: "https://raw.githubusercontent.com/Crew-Awesome/weekbox.featured/main/public/featured.json",
     featuredCacheKey: "weekbox-featured-v1",
     
@@ -20,6 +25,10 @@ export const gameBananaApi = {
             return `${img._sBaseUrl}/${img._sFile}`;
         }
         return "https://images.gamebanana.com/img/ss/mods/default.jpg";
+    },
+
+    getEngineIdForCategory(categoryId) {
+        return this.engineCategories[Number(categoryId)] || null;
     },
     
     getValidRecords(data) {
@@ -87,7 +96,8 @@ export const gameBananaApi = {
                 timeAgo: this.getTimeAgo(data._tsDateAdded),
                 images: images,
                 fileSizeStr: this.formatBytes(fileSize),
-                downloadUrl: downloadUrl
+                downloadUrl: downloadUrl,
+                engineId: this.getEngineIdForCategory(data._idCategory)
             };
         } catch (error) {
             return null;

@@ -93,7 +93,7 @@ export const modModal = {
             btn.disabled = false;
             btn.innerHTML = '<i class="fa-solid fa-download"></i> Download';
             btn.onclick = () => {
-                downloadMod.install(data.id, data.title, data.downloadUrl);
+                downloadMod.install(data.id, data.title, data.downloadUrl, data.engineId);
             };
         }
         
