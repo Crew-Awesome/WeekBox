@@ -1,12 +1,11 @@
-<div class="engines-layout">
-  <div class="engines-scroll-area">
-    <header class="engines-header">
-      <h1 style="font-size: 2rem;">Engine Manager</h1>
+<div class="mod-manager-overlay" id="engine-manager-modal" style="display: none;">
+  <div class="mod-manager-content">
+    <header class="mod-manager-header">
+      <h2>Engine Manager</h2>
+      <button class="mod-manager-close-btn" id="engine-manager-close-btn">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
     </header>
-    <section class="engines-info-section" style="min-height: auto;">
-      <p style="color: var(--text-muted); font-size: 0.95rem;">
-        Here you will be able to manage, update, and remove your installed engines.
-      </p>
-    </section>
+    <div class="mod-manager-body" id="engine-manager-modal-body"></div>
   </div>
 </div>

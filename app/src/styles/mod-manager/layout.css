@@ -1,13 +1,85 @@
+.mod-manager-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.mod-manager-overlay.show {
+  opacity: 1;
+}
+
+.mod-manager-content {
+  width: 70vw;
+  height: 75vh;
+  max-width: 1200px;
+  max-height: 850px;
+  background-color: var(--bg-panel);
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  transform: scale(0.95) translateY(20px);
+  transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+}
+
+.mod-manager-overlay.show .mod-manager-content {
+  transform: scale(1) translateY(0);
+}
+
+.mod-manager-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-lg) var(--spacing-xl);
+  border-bottom: 1px solid var(--border-color);
+  background-color: rgba(0, 0, 0, 0.2);
+}
+
+.mod-manager-header h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  color: var(--text-main);
+}
+
+.mod-manager-close-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 1.5rem;
+  cursor: pointer;
+  transition: color 0.2s, transform 0.2s;
+}
+
+.mod-manager-close-btn:hover {
+  color: var(--text-main);
+  transform: scale(1.1);
+}
+
+.mod-manager-body {
+  padding: var(--spacing-xl);
+  overflow-y: auto;
+  flex: 1;
+}
+
 .mod-manager-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: var(--spacing-md);
-  margin-top: var(--spacing-lg);
   width: 100%;
 }
 
 .mod-manager-card {
-  background-color: var(--bg-panel);
+  background-color: var(--bg-color);
   border: 1px solid var(--border-color);
   border-radius: var(--border-radius);
   padding: var(--spacing-lg);
@@ -70,7 +142,6 @@
 }
 
 .empty-mods-state {
-  grid-column: 1 / -1;
   padding: var(--spacing-xl);
   text-align: center;
   color: var(--text-muted);
@@ -78,5 +149,5 @@
   background-color: transparent;
   border-radius: var(--border-radius);
   border: 2px dashed var(--border-color);
-  margin-top: var(--spacing-md);
+  width: 100%;
 }

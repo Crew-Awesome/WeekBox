@@ -1,11 +1,39 @@
-import { appEvents } from "../../core/events.js";
 import { FS } from "../../utils/filesystem.js";
 
-export const modManagerView = {
+export const modManagerModal = {
   async init() {
+    if (!document.getElementById("mod-manager-modal")) {
+      const response = await fetch("src/html/mod-manager.html");
+      if (!response.ok) return;
+      const html = await response.text();
+      const wrapper = document.createElement("div");
+      wrapper.innerHTML = html;
+      document.body.appendChild(wrapper.firstElementChild);
+
+      document.getElementById("mod-manager-close-btn").addEventListener("click", () => this.close());
+      document.getElementById("mod-manager-modal").addEventListener("click", (e) => {
+        if (e.target.id === "mod-manager-modal") this.close();
+      });
+    }
+  },
+
+  async open() {
+    await this.init();
     if (!FS.isInitialized) await FS.init();
-    this.container = document.getElementById("mod-manager-modal-content") || document.querySelector(".home-content");
+    const modal = document.getElementById("mod-manager-modal");
+    if (!modal) return;
+    modal.style.display = "flex";
+    requestAnimationFrame(() => modal.classList.add("show"));
     await this.loadInstalledMods();
+  },
+
+  close() {
+    const modal = document.getElementById("mod-manager-modal");
+    if (!modal) return;
+    modal.classList.remove("show");
+    setTimeout(() => {
+      modal.style.display = "none";
+    }, 300);
   },
 
   async loadInstalledMods() {
@@ -14,21 +42,18 @@ export const modManagerView = {
   },
 
   render(mods) {
-    if (!this.container) return;
+    const container = document.getElementById("mod-manager-modal-body");
+    if (!container) return;
     
-    let gridContainer = this.container.querySelector(".mod-manager-grid");
-    if (!gridContainer) {
-      gridContainer = document.createElement("div");
-      gridContainer.className = "mod-manager-grid";
-      this.container.appendChild(gridContainer);
-    }
-    
-    gridContainer.innerHTML = "";
+    container.innerHTML = "";
 
     if (mods.length === 0) {
-      gridContainer.innerHTML = `<div class="empty-mods-state">No mods installed yet.</div>`;
+      container.innerHTML = `<div class="empty-mods-state">No mods installed yet.</div>`;
       return;
     }
+
+    const gridContainer = document.createElement("div");
+    gridContainer.className = "mod-manager-grid";
 
     mods.forEach(mod => {
       const card = document.createElement("div");
@@ -53,23 +78,7 @@ export const modManagerView = {
 
       gridContainer.appendChild(card);
     });
-  },
-
-  destroy() {
-    if (this.container) {
-      const gridContainer = this.container.querySelector(".mod-manager-grid");
-      if (gridContainer) gridContainer.innerHTML = "";
-    }
-    this.container = null;
+    
+    container.appendChild(gridContainer);
   }
 };
-
-export function registerModManagerView() {
-  appEvents.addEventListener("view:loaded", (event) => {
-    if (event.detail === "mods" || event.detail === "mod-manager") {
-      modManagerView.init();
-    } else {
-      modManagerView.destroy();
-    }
-  });
-}
