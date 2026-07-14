@@ -14,15 +14,30 @@
     </div>
 
     <div id="download-ui" class="download-ui-container" style="display: none;">
-        <div class="dl-info-row">
-            <span class="dl-status-text" id="dl-text">Fetching data...</span>
-            <div class="download-actions" id="dl-actions">
-                <button id="dl-pause" class="dl-btn">Pause</button>
-                <button id="dl-cancel" class="dl-btn cancel">Cancel</button>
-            </div>
-        </div>
+        <svg style="width:0;height:0;position:absolute;" aria-hidden="true">
+            <defs>
+                <filter id="gooey-progress">
+                    <feGaussianBlur in="SourceGraphic" stdDeviation="4" result="blur" />
+                    <feColorMatrix in="blur" mode="matrix" values="
+                        1 0 0 0 0  
+                        0 1 0 0 0  
+                        0 0 1 0 0  
+                        0 0 0 20 -9" result="gooey" />
+                    <feComposite in="SourceGraphic" in2="gooey" operator="atop"/>
+                </filter>
+            </defs>
+        </svg>
+
         <div class="progress-bar-container">
-            <div class="progress-fill" id="dl-fill" style="width: 0%;"></div>
+            <div class="progress-fill-mask" id="dl-active-layer" style="clip-path: inset(0 100% 0 0);">
+                <div class="progress-gooey-box">
+                    <div class="progress-line"></div>
+                    <div class="progress-pill-bg">
+                        <span class="text-sizer" id="dl-text-sizer">0% - Starting download...</span>
+                    </div>
+                </div>
+            </div>
+            <div class="progress-text-mixed" id="dl-text">0% - Starting download...</div>
         </div>
     </div>
 
@@ -30,7 +45,6 @@
         <div class="engine-bottom-content">
             <div class="engine-status">
                 <img id="engine-bottom-icon" src="" class="engine-icon" style="display: none;">
-                
                 <div class="engine-version-dropdown custom-dropdown" id="engine-version-dropdown">
                     <label>Version:</label>
                     <div class="custom-select-trigger" id="engine-version-trigger">
@@ -40,7 +54,6 @@
                     <div class="custom-options-container" id="engine-version-options"></div>
                 </div>
             </div>
-            
             <button class="launch-btn" id="launch-engine-btn">Download</button>
         </div>
     </div>

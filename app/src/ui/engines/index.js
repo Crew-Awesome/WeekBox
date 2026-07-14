@@ -1,4 +1,3 @@
-// ui/engines/index.js
 import { appEvents } from '../../core/events.js';
 import { getSelectedEngine } from '../../core/state.js';
 import { engineDropdown } from './dropdown.js';
@@ -37,8 +36,10 @@ export const enginesView = {
     async updateButtonState() {
         const launchBtn = document.getElementById('launch-engine-btn');
         const dlUI = document.getElementById('download-ui');
+        
         const dlText = document.getElementById('dl-text');
-        const dlFill = document.getElementById('dl-fill');
+        const dlTextSizer = document.getElementById('dl-text-sizer');
+        const dlActiveLayer = document.getElementById('dl-active-layer');
 
         if (!launchBtn) return;
         
@@ -88,20 +89,29 @@ export const enginesView = {
             
             activeBtn.addEventListener('click', async () => {
                 activeBtn.disabled = true;
+                
                 if (dlUI) {
-                    dlUI.style.display = 'flex';
-                    dlText.textContent = "Iniciando descarga...";
-                    dlFill.style.width = "0%";
+                    dlUI.style.display = 'block';
+                    const initialText = "0% - Starting download...";
+                    if (dlText) dlText.textContent = initialText;
+                    if (dlTextSizer) dlTextSizer.textContent = initialText;
+                    if (dlActiveLayer) dlActiveLayer.style.clipPath = `inset(0 100% 0 0)`;
                 }
 
-                // Asegúrate de enviar solo: engineId, version, url, y la función de progreso
                 const success = await downloadEngine.install(
                     this.currentEngine.id, 
                     this.currentVersion, 
                     downloadUrl, 
                     (progressInfo) => {
-                        if (dlText) dlText.textContent = progressInfo.status;
-                        if (dlFill) dlFill.style.width = `${progressInfo.progress}%`;
+                        const p = Math.floor(progressInfo.progress);
+                        const progressText = `${p}% - ${progressInfo.status}`;
+                        
+                        if (dlText) dlText.textContent = progressText;
+                        if (dlTextSizer) dlTextSizer.textContent = progressText;
+                        
+                        if (dlActiveLayer) {
+                            dlActiveLayer.style.clipPath = `inset(0 ${100 - progressInfo.progress}% 0 0)`;
+                        }
                     }
                 );
 
@@ -109,7 +119,8 @@ export const enginesView = {
                     if (dlUI) dlUI.style.display = 'none';
                     this.updateButtonState(); 
                 } else {
-                    if (dlText) dlText.textContent = "Descarga fallida";
+                    if (dlText) dlText.textContent = "0% - Download failed";
+                    if (dlTextSizer) dlTextSizer.textContent = "0% - Download failed";
                     activeBtn.disabled = false;
                     activeBtn.textContent = "Retry Download";
                 }
