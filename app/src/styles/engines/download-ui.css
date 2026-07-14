@@ -3,20 +3,20 @@
 /* ========================================= */
 
 .download-ui-container {
-    width: 100%;
-    background-color: transparent;
-    z-index: 9;
-    position: relative;
+  width: 100%;
+  background-color: transparent;
+  z-index: 9;
+  position: relative;
 }
 
 .progress-bar-container {
-    position: relative;
-    width: 100%;
-    height: 28px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background-color: transparent;
+  position: relative;
+  width: 100%;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: transparent;
 }
 
 /* ========================================= */
@@ -24,40 +24,40 @@
 /* ========================================= */
 
 .progress-fill-mask {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    transition: clip-path 0.1s linear;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  transition: clip-path 0.1s linear;
 }
 
 .progress-gooey-box {
-    position: relative;
-    width: 100%;
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    filter: url("#gooey-progress");
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  filter: url("#gooey-progress");
 }
 
 .progress-line {
-    position: absolute;
-    left: 0;
-    bottom: 0;
-    width: 100%;
-    height: 7px;
-    background-color: var(--text-main);
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: 7px;
+  background-color: var(--text-main);
 }
 
 .progress-pill-bg {
-    background-color: var(--text-main);
-    padding: 2px 6px; 
-    border-radius: 6px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    position: relative;
+  background-color: var(--text-main);
+  padding: 2px 6px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
 }
 
 /* ========================================= */
@@ -65,24 +65,24 @@
 /* ========================================= */
 
 .text-sizer {
-    font-size: 20px;
-    line-height: 20px;
-    font-weight: 800;
-    letter-spacing: 0.5px;
-    white-space: nowrap;
-    opacity: 0;
-    pointer-events: none;
+  font-size: 20px;
+  line-height: 20px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
 }
 
 .progress-text-mixed {
-    position: absolute;
-    font-size: 20px;
-    line-height: 20px;
-    font-weight: 800;
-    color: #ffffff;
-    letter-spacing: 0.5px;
-    white-space: nowrap;
-    mix-blend-mode: difference;
-    pointer-events: none;
-    z-index: 2;
+  position: absolute;
+  font-size: 20px;
+  line-height: 20px;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+  mix-blend-mode: difference;
+  pointer-events: none;
+  z-index: 2;
 }

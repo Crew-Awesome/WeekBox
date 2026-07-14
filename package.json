@@ -1,0 +1,24 @@
+{
+  "name": "weekbox",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "format": "node scripts/formatter.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Crew-Awesome/Weekbox.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/Crew-Awesome/Weekbox/issues"
+  },
+  "homepage": "https://github.com/Crew-Awesome/Weekbox#readme",
+  "devDependencies": {
+    "prettier": "^3.9.5"
+  }
+}

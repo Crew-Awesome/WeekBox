@@ -1,17 +1,17 @@
 [
-    {
-        "name": "V-Slice",
-        "icon": "vslice.png",
-        "versions": "vslice"
-    },
-    {
-        "name": "Codename",
-        "icon": "codename.png",
-        "versions": "codename"
-    },
-    {
-        "name": "Psych Engine",
-        "icon": "psych.png",
-        "versions": "psych"
-    }
+  {
+    "name": "V-Slice",
+    "icon": "vslice.png",
+    "versions": "vslice"
+  },
+  {
+    "name": "Codename",
+    "icon": "codename.png",
+    "versions": "codename"
+  },
+  {
+    "name": "Psych Engine",
+    "icon": "psych.png",
+    "versions": "psych"
+  }
 ]

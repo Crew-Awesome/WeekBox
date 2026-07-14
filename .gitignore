@@ -5,3 +5,4 @@ neutralino.js
 .storage
 *.log
 .tmp/
+node_modules/

@@ -1,66 +1,71 @@
 .grid-layout {
-    display: grid;
-    gap: var(--spacing-md);
-    grid-template-columns: 1fr;
+  display: grid;
+  gap: var(--spacing-md);
+  grid-template-columns: 1fr;
 }
 
 @media (min-width: 480px) {
-    .grid-layout { grid-template-columns: repeat(2, 1fr); }
+  .grid-layout {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
 @media (min-width: 1024px) {
-    .grid-layout { 
-        grid-template-columns: repeat(3, 1fr);
-        gap: var(--spacing-lg); 
-    }
+  .grid-layout {
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--spacing-lg);
+  }
 }
 
 @media (min-width: 1400px) {
-    .grid-layout { grid-template-columns: repeat(4, 1fr); }
+  .grid-layout {
+    grid-template-columns: repeat(4, 1fr);
+  }
 }
 
 @media (max-width: 768px) {
-    .sidebar {
-        width: var(--sidebar-width-collapsed) !important;
-        align-items: center;
-    }
-    
-    .sidebar-top {
-        padding: var(--spacing-lg) 0;
-        width: 100%;
-    }
-    
-    .user-name, .nav-btn span {
-        display: none;
-    }
+  .sidebar {
+    width: var(--sidebar-width-collapsed) !important;
+    align-items: center;
+  }
 
-    .user-profile {
-        padding: 0;
-        justify-content: center;
-    }
+  .sidebar-top {
+    padding: var(--spacing-lg) 0;
+    width: 100%;
+  }
 
-    .nav-btn {
-        justify-content: center;
-        padding: var(--spacing-md);
-    }
+  .user-name,
+  .nav-btn span {
+    display: none;
+  }
 
-    .section-title {
-        display: none;
-    }
-    
-    .config-btn {
-        padding: var(--spacing-md) 0;
-    }
+  .user-profile {
+    padding: 0;
+    justify-content: center;
+  }
 
-    .nav-btn i {
-        margin: 0;
-    }
+  .nav-btn {
+    justify-content: center;
+    padding: var(--spacing-md);
+  }
 
-    .content {
-        padding: var(--spacing-lg);
-    }
+  .section-title {
+    display: none;
+  }
 
-    .sidebar-resizer {
-        display: none;
-    }
+  .config-btn {
+    padding: var(--spacing-md) 0;
+  }
+
+  .nav-btn i {
+    margin: 0;
+  }
+
+  .content {
+    padding: var(--spacing-lg);
+  }
+
+  .sidebar-resizer {
+    display: none;
+  }
 }
