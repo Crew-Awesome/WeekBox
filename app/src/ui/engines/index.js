@@ -66,7 +66,8 @@ export const enginesView = {
     },
 
     async updateButtonState() {
-        if (FS.activeDownload) {
+        const activeState = FS.activeDownload?.state;
+        if (FS.activeDownload && !['finished', 'cancelled', 'error'].includes(activeState)) {
             this.handleProgress(FS.activeDownload);
             return;
         }

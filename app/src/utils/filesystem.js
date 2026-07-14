@@ -126,6 +126,27 @@ class FileSystemService extends EventTarget {
         return this.isPaused;
     }
 
+    quotePowerShell(value) {
+        return `'${String(value).replace(/'/g, "''")}'`;
+    }
+
+    async downloadWithNativeTool(downloadUrl, filePath, os) {
+        const safeUrl = this.quotePowerShell(downloadUrl);
+        const safePath = this.quotePowerShell(filePath);
+        let command;
+
+        if (os === 'Windows') {
+            command = `powershell -NoProfile -ExecutionPolicy Bypass -Command "$ProgressPreference='SilentlyContinue'; Invoke-WebRequest -UseBasicParsing -Uri ${safeUrl} -OutFile ${safePath}"`;
+        } else {
+            const shellUrl = this.cleanCmd(downloadUrl);
+            const shellPath = this.cleanCmd(filePath);
+            command = `curl -L --fail --silent --show-error --output "${shellPath}" "${shellUrl}"`;
+        }
+
+        const result = await Neutralino.os.execCommand(command);
+        if (result.exitCode !== 0) throw new Error(result.stdErr || 'Native download failed');
+    }
+
     async installEngine(engineId, engineName, version, downloadUrl) {
         if (this.activeDownload) return false;
 
@@ -149,60 +170,57 @@ class FileSystemService extends EventTarget {
             try { await Neutralino.filesystem.remove(filePath); } catch(e) {}
             await Neutralino.filesystem.writeBinaryFile(filePath, new ArrayBuffer(0)); 
 
-            const response = await fetch(downloadUrl, { signal: this.abortController.signal });
-            if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
-            
-            const totalBytes = parseInt(response.headers.get('content-length') || 0, 10);
-            let loadedBytes = 0;
-            const reader = response.body.getReader();
-            
-            let writeBuffer = [];
-            let writeBufferSize = 0;
-            const MAX_BUFFER_SIZE = 1024 * 1024;
+            const os = window.NL_OS;
+            const isGithubRelease = /github\.com\/[^/]+\/[^/]+\/releases\/download\//i.test(downloadUrl);
 
-            const flushBuffer = async () => {
-                if (writeBufferSize === 0) return;
-                const tempArray = new Uint8Array(writeBufferSize);
-                let offset = 0;
-                for (const chunk of writeBuffer) {
-                    tempArray.set(chunk, offset);
-                    offset += chunk.length;
-                }
-                await Neutralino.filesystem.appendBinaryFile(filePath, tempArray.buffer);
-                writeBuffer = []; writeBufferSize = 0;
-            };
-
-            while (true) {
-                while (this.isPaused) {
-                    if (this.abortController.signal.aborted) throw new Error("Cancelado");
-                    await new Promise(r => setTimeout(r, 200));
-                }
-
-                const { done, value } = await reader.read();
-                if (done) {
-                    await flushBuffer();
-                    break;
-                }
-                
-                writeBuffer.push(value);
-                writeBufferSize += value.length;
-                loadedBytes += value.length;
-                
-                if (writeBufferSize >= MAX_BUFFER_SIZE) {
-                    await flushBuffer();
-                    await new Promise(r => setTimeout(r, 1)); 
-                }
-                
-                if (totalBytes) {
-                    const percent = ((loadedBytes / totalBytes) * 100).toFixed(1);
-                    this.emitUpdate('downloading', { percent, text: `${percent}% - ${engineName}` });
+            if (isGithubRelease) {
+                this.emitUpdate('downloading', { percent: 0, text: `Downloading - ${engineName}` });
+                await this.downloadWithNativeTool(downloadUrl, filePath, os);
+                this.emitUpdate('downloading', { percent: 100, text: `100% - ${engineName}` });
+            } else {
+                const response = await fetch(downloadUrl, { signal: this.abortController.signal });
+                if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
+                const totalBytes = parseInt(response.headers.get('content-length') || 0, 10);
+                let loadedBytes = 0;
+                const reader = response.body.getReader();
+                let writeBuffer = [];
+                let writeBufferSize = 0;
+                const MAX_BUFFER_SIZE = 1024 * 1024;
+                const flushBuffer = async () => {
+                    if (writeBufferSize === 0) return;
+                    const tempArray = new Uint8Array(writeBufferSize);
+                    let offset = 0;
+                    for (const chunk of writeBuffer) {
+                        tempArray.set(chunk, offset);
+                        offset += chunk.length;
+                    }
+                    await Neutralino.filesystem.appendBinaryFile(filePath, tempArray.buffer);
+                    writeBuffer = []; writeBufferSize = 0;
+                };
+                while (true) {
+                    while (this.isPaused) {
+                        if (this.abortController.signal.aborted) throw new Error("Cancelled");
+                        await new Promise(r => setTimeout(r, 200));
+                    }
+                    const { done, value } = await reader.read();
+                    if (done) {
+                        await flushBuffer();
+                        break;
+                    }
+                    writeBuffer.push(value);
+                    writeBufferSize += value.length;
+                    loadedBytes += value.length;
+                    if (writeBufferSize >= MAX_BUFFER_SIZE) await flushBuffer();
+                    if (totalBytes) {
+                        const percent = ((loadedBytes / totalBytes) * 100).toFixed(1);
+                        this.emitUpdate('downloading', { percent, text: `${percent}% - ${engineName}` });
+                    }
                 }
             }
 
             if (fileName.toLowerCase().endsWith('.zip')) {
                 this.emitUpdate('extracting', { percent: 100, text: `Extracting... - ${engineName}` });
                 
-                const os = window.NL_OS;
                 const cleanZip = this.cleanCmd(filePath);
                 const cleanDest = this.cleanCmd(versionFolder);
                 let cmd = os === 'Windows' 

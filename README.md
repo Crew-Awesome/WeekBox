@@ -6,6 +6,18 @@ Still in Development
 
 Made by ImMalloy and Britex
 
+## Run
+
+(You will need the Neutralino CLI)
+```bash
+neu run
+```
+or
+```bash
+neu build
+```
+if you wanna make builds 
+
 ## License
 
 [MIT](LICENSE)
