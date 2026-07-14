@@ -2,11 +2,15 @@ import { storageBridge } from './storagePatch.js';
 import { router } from './router.js';
 import { registerHomeView } from '../ui/home/index.js';
 import { registerEnginesView } from '../ui/engines/index.js';
+import { downloadEngine } from '../ui/engines/downloadEngine.js';
 
 async function startApp() {
     try {
         Neutralino.init();
-        Neutralino.events.on('windowClose', () => Neutralino.app.exit());
+        Neutralino.events.on('windowClose', async () => {
+            await downloadEngine.cleanupAll();
+            await Neutralino.app.exit();
+        });
 
         await storageBridge.init();
         registerHomeView();

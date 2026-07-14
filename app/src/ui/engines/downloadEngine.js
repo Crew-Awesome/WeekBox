@@ -2,12 +2,69 @@
 import { FS } from '../../utils/filesystem.js';
 
 export const downloadEngine = {
+    activeTasks: new Map(),
+
+    getTaskKey(engineId, version) {
+        return `${engineId}:${version}`;
+    },
+
+    async stopProcess(task) {
+        if (!task?.pid) return;
+
+        const command = window.NL_OS === 'Windows'
+            ? `taskkill /T /F /PID ${task.pid}`
+            : `kill -TERM ${task.pid}`;
+
+        try {
+            await Neutralino.os.execCommand(command, { background: false });
+        } catch (error) {
+            console.warn('Could not stop engine install process:', error);
+        }
+    },
+
+    async cleanupTask(task) {
+        await this.stopProcess(task);
+        await Promise.allSettled([
+            FS.api.remove(task.tempFilePath),
+            FS.api.remove(task.engineDir)
+        ]);
+    },
+
+    async cancel(engineId, version) {
+        const key = this.getTaskKey(engineId, version);
+        const task = this.activeTasks.get(key);
+        if (!task) return;
+
+        task.cancelled = true;
+        await this.cleanupTask(task);
+        this.activeTasks.delete(key);
+    },
+
+    async cleanupAll() {
+        await Promise.all([...this.activeTasks.entries()].map(async ([key, task]) => {
+            task.cancelled = true;
+            await this.cleanupTask(task);
+            this.activeTasks.delete(key);
+        }));
+    },
+
     async install(engineId, version, downloadUrl, onProgress) {
         if (!FS.isInitialized) await FS.init();
         
         const enginesBasePath = FS.enginesPath;
         const engineDir = `${enginesBasePath}/${engineId}/${version}`;
         const tempFilePath = `${enginesBasePath}/temp_${engineId}_${version}.zip`;
+        const taskKey = this.getTaskKey(engineId, version);
+
+        if (this.activeTasks.has(taskKey)) return false;
+
+        const task = {
+            cancelled: false,
+            pid: null,
+            tempFilePath,
+            engineDir
+        };
+        this.activeTasks.set(taskKey, task);
 
         const updateProgress = (status, progress) => {
             if (typeof onProgress === 'function') {
@@ -36,11 +93,16 @@ export const downloadEngine = {
             await FS.api.remove(tempFilePath);
 
             updateProgress('Completed', 100);
+            this.activeTasks.delete(taskKey);
             return true;
 
         } catch (error) {
             console.error(`Error installing engine ${engineId}:`, error);
             await FS.api.remove(tempFilePath);
+            if (this.activeTasks.get(taskKey)?.cancelled) {
+                await FS.api.remove(engineDir);
+            }
+            this.activeTasks.delete(taskKey);
             return false;
         }
     },
@@ -50,9 +112,16 @@ export const downloadEngine = {
             try {
                 let maxPercent = 0;
                 const process = await Neutralino.os.spawnProcess(`curl -# -L "${url}" -o "${outPath}"`);
+                const task = [...this.activeTasks.values()].find(activeTask => activeTask.tempFilePath === outPath);
+                if (task) task.pid = process.pid;
 
                 const handler = (event) => {
                     if (event.detail.id === process.id) {
+                        if (task?.cancelled) {
+                            Neutralino.events.off('spawnedProcess', handler);
+                            reject(new Error('Cancelled'));
+                            return;
+                        }
                         const action = event.detail.action;
                         
                         if (action === 'stdErr' || action === 'stdOut') {
@@ -96,9 +165,16 @@ export const downloadEngine = {
 
             try {
                 const process = await Neutralino.os.spawnProcess(cmd);
+                const task = [...this.activeTasks.values()].find(activeTask => activeTask.engineDir === destPath);
+                if (task) task.pid = process.pid;
 
                 const handler = (event) => {
                     if (event.detail.id === process.id) {
+                        if (task?.cancelled) {
+                            Neutralino.events.off('spawnedProcess', handler);
+                            reject(new Error('Cancelled'));
+                            return;
+                        }
                         const action = event.detail.action;
                         
                         if (action === 'stdOut' || action === 'stdErr') {
