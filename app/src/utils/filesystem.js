@@ -11,6 +11,7 @@ class FileSystemService extends EventTarget {
         this.activeDownload = null;
         this.abortController = null;
         this.isPaused = false;
+        this.activeEngineProcesses = new Map();
         this.api = APIneuFileSystem;
     }
     
@@ -53,18 +54,37 @@ class FileSystemService extends EventTarget {
     }
     
     async runEngine(engineId, version, onStateChange) {
+        const engineKey = `${engineId}:${version}`;
+        if (this.activeEngineProcesses.has(engineKey)) {
+            if (onStateChange) onStateChange('already_running');
+            return false;
+        }
+
         const targetPath = `${this.enginesPath}/${engineId}/${version}`;
         const exePath = await this.findExecutable(targetPath);
         if (exePath) {
             if (onStateChange) onStateChange('running');
             try {
-                await Neutralino.os.execCommand(`"${exePath}"`, { background: true });
-                if (onStateChange) onStateChange('completed');
+                const process = await Neutralino.os.spawnProcess(`"${exePath}"`);
+                this.activeEngineProcesses.set(engineKey, process);
+
+                const handler = event => {
+                    if (event.detail.id !== process.id || event.detail.action !== 'exit') return;
+                    Neutralino.events.off('spawnedProcess', handler);
+                    this.activeEngineProcesses.delete(engineKey);
+                    if (onStateChange) onStateChange('completed');
+                };
+
+                await Neutralino.events.on('spawnedProcess', handler);
+                if (onStateChange) onStateChange('launched');
+                return true;
             } catch (error) {
                 if (onStateChange) onStateChange('error');
+                return false;
             }
         } else {
             if (onStateChange) onStateChange('not_found');
+            return false;
         }
     }
 

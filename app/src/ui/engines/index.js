@@ -80,7 +80,11 @@ export const enginesView = {
                 this.setupDownloadActions(activeBtn, downloadActions);
                 activeBtn.textContent = "Running...";
                 await FS.runEngine(this.currentEngine.id, this.currentVersion, (state) => {
-                    if (state === 'completed' || state === 'error' || state === 'not_found') {
+                    if (state === 'launched') {
+                        activeBtn.textContent = 'Launched';
+                    } else if (state === 'already_running') {
+                        activeBtn.textContent = 'Already running';
+                    } else if (state === 'completed' || state === 'error' || state === 'not_found') {
                         activeBtn.disabled = false;
                         activeBtn.textContent = "Launch";
                     }
