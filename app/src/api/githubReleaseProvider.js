@@ -76,8 +76,22 @@ function normalizeRelease(release, source) {
 
 function withLatestReleaseOption(versions, engineId) {
   if (engineId !== "psychonline" || !versions.length) return versions;
-  if (versions.some((version) => version.version === "Latest")) return versions;
-  const [latest, ...olderVersions] = versions;
+  const existingLatest = versions.find((version) => version.version === "Latest");
+  if (existingLatest) {
+    const releaseVersion = existingLatest.releaseVersion;
+    if (
+      releaseVersion &&
+      !versions.some((version) => version.version === releaseVersion)
+    ) {
+      return [
+        existingLatest,
+        { ...existingLatest, version: releaseVersion },
+        ...versions.filter((version) => version !== existingLatest),
+      ];
+    }
+    return versions;
+  }
+  const [latest] = versions;
   return [
     {
       ...latest,
@@ -85,7 +99,7 @@ function withLatestReleaseOption(versions, engineId) {
       releaseVersion: latest.version,
       updateKey: `release:${latest.version}`,
     },
-    ...olderVersions,
+    ...versions,
   ];
 }
 
