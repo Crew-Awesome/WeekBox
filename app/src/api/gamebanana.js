@@ -5,12 +5,14 @@ import { DISCOVERY_CONFIG } from "../config/discovery.js";
 import {
   ENGINE_CATEGORY_IDS,
   ENGINE_CATEGORY_ROOTS,
+  EXCLUDED_MOD_CATEGORY_IDS,
 } from "../config/engines.js";
 
 export const gameBananaApi = {
   baseUrl: "https://gamebanana.com/apiv11",
   gameId: 8694,
   categoryRoots: ENGINE_CATEGORY_ROOTS,
+  excludedCategoryIds: new Set(EXCLUDED_MOD_CATEGORY_IDS),
   engineCategories: ENGINE_CATEGORY_IDS,
   legacyEngineCategories: {
     43774: "vslice", // Originals / Full Mods (Base)
@@ -19,6 +21,10 @@ export const gameBananaApi = {
     "https://raw.githubusercontent.com/Crew-Awesome/weekbox.featured/main/public/featured.json",
   featuredCacheKey: "weekbox-featured-v2",
   searchCache: new Map(),
+  categoryHierarchyCache: new Map(),
+  categoryHierarchyRequests: new Map(),
+  modProfileCache: new Map(),
+  modProfileRequests: new Map(),
   featuredService: null,
   categoryFeedService: null,
   categoryTransport: null,
@@ -41,6 +47,17 @@ export const gameBananaApi = {
     return this.engineCategories[id] || this.legacyEngineCategories[id] || null;
   },
 
+  getEngineIdForCategoryName(...categories) {
+    const names = categories
+      .filter((category) => category && typeof category === "object")
+      .map((category) => String(category._sName || "").toLocaleLowerCase());
+    if (names.some((name) => /\bpsych\b/.test(name))) return "psych";
+    if (names.some((name) => /\bcodename\b/.test(name))) return "codename";
+    if (names.some((name) => /\bexecutable\b/.test(name))) return "executable";
+    if (names.some((name) => /\bbase\b/.test(name))) return "vslice";
+    return null;
+  },
+
   getCategoryId(category) {
     if (!category || typeof category !== "object") return null;
     const id =
@@ -48,6 +65,33 @@ export const gameBananaApi = {
       category._idCategory ||
       category._sProfileUrl?.match(/\/mods\/cats\/(\d+)/)?.[1];
     return Number.isFinite(Number(id)) ? Number(id) : null;
+  },
+
+  isExcludedCategory(...categories) {
+    const pending = categories.filter(Boolean);
+    const seen = new Set();
+    while (pending.length) {
+      const category = pending.shift();
+      if (typeof category === "number" || typeof category === "string") {
+        if (this.excludedCategoryIds.has(Number(category))) return true;
+        continue;
+      }
+      if (typeof category !== "object" || seen.has(category)) continue;
+      seen.add(category);
+      if (
+        category._bIsObsolete ||
+        this.excludedCategoryIds.has(this.getCategoryId(category))
+      )
+        return true;
+      pending.push(
+        category._aCategory,
+        category._aRootCategory,
+        category._aSubCategory,
+        category._aParentCategory,
+        category._aSuperCategory,
+      );
+    }
+    return false;
   },
 
   // 1. Detección Inteligente y recursiva de categorías y motores
@@ -89,6 +133,112 @@ export const gameBananaApi = {
     if (data && Array.isArray(data._aRecords)) return data._aRecords;
     if (Array.isArray(data)) return data;
     return [];
+  },
+
+  isDeletedMod(mod) {
+    return Boolean(
+      mod?._bIsTrashed ||
+        mod?._bIsDeleted ||
+        mod?._sInitialVisibility === "hide",
+    );
+  },
+
+  async getCategoryHierarchy(categoryId) {
+    const id = Number(categoryId);
+    if (!id) return null;
+    if (this.categoryHierarchyCache.has(id))
+      return this.categoryHierarchyCache.get(id);
+    if (this.categoryHierarchyRequests.has(id))
+      return this.categoryHierarchyRequests.get(id);
+    const request = fetch(`${this.baseUrl}/ModCategory/${id}/ProfilePage`)
+      .then(async (response) => {
+        if (!response.ok) return null;
+        const category = await response.json();
+        this.categoryHierarchyCache.set(id, category);
+        return category;
+      })
+      .catch(() => null)
+      .finally(() => this.categoryHierarchyRequests.delete(id));
+    this.categoryHierarchyRequests.set(id, request);
+    return request;
+  },
+
+  async getModProfile(modId) {
+    const id = Number(modId);
+    if (!id) return null;
+    if (this.modProfileCache.has(id)) return this.modProfileCache.get(id);
+    if (this.modProfileRequests.has(id)) return this.modProfileRequests.get(id);
+    const request = fetch(`${this.baseUrl}/Mod/${id}/ProfilePage`)
+      .then(async (response) => {
+        if (!response.ok) return null;
+        const profile = await response.json();
+        this.modProfileCache.set(id, profile);
+        return profile;
+      })
+      .catch(() => null)
+      .finally(() => this.modProfileRequests.delete(id));
+    this.modProfileRequests.set(id, request);
+    return request;
+  },
+
+  async resolveEngineIdForMod(mod) {
+    const initialEngine = this.getEngineIdForCategories(
+      mod.__injectedCategoryId,
+      mod._aCategory,
+      mod._aSuperCategory,
+      mod._aRootCategory,
+      mod._aSubCategory,
+      mod._idCategory,
+    );
+    if (initialEngine) return initialEngine;
+    const namedEngine = this.getEngineIdForCategoryName(
+      mod._aCategory,
+      mod._aSubCategory,
+      mod._aSuperCategory,
+      mod._aRootCategory,
+    );
+    if (namedEngine) return namedEngine;
+
+    const seen = new Set();
+    let category =
+      mod._aCategory ||
+      mod._aSubCategory ||
+      mod._aSuperCategory ||
+      mod._aRootCategory ||
+      mod._idCategory;
+    while (category) {
+      const categoryId = this.getCategoryId(category) || Number(category);
+      if (!categoryId || seen.has(categoryId)) break;
+      seen.add(categoryId);
+      const hierarchy = await this.getCategoryHierarchy(categoryId);
+      if (!hierarchy) break;
+      const engine = this.getEngineIdForCategories(hierarchy);
+      if (engine) return engine;
+      const hierarchyNameEngine = this.getEngineIdForCategoryName(hierarchy);
+      if (hierarchyNameEngine) return hierarchyNameEngine;
+      category =
+        hierarchy._aSuperCategory ||
+        hierarchy._aParentCategory ||
+        hierarchy._aRootCategory ||
+        null;
+    }
+    const profile = await this.getModProfile(mod._idRow);
+    if (!profile) return null;
+    return (
+      this.getEngineIdForCategories(
+        profile._aCategory,
+        profile._aSuperCategory,
+        profile._aRootCategory,
+        profile._aSubCategory,
+        profile._idCategory,
+      ) ||
+      this.getEngineIdForCategoryName(
+        profile._aCategory,
+        profile._aSuperCategory,
+        profile._aRootCategory,
+        profile._aSubCategory,
+      )
+    );
   },
 
   getTimeAgo(timestamp) {
@@ -149,6 +299,8 @@ export const gameBananaApi = {
         fileSizeStr: this.formatBytes(fileSize),
         downloadUrl: downloadUrl,
         gameId: Number(data._aGame?._idRow || data._idGame || 0),
+        isDeleted: this.isDeletedMod(data),
+        categoryId: this.getCategoryId(data._aCategory),
         engineId: this.getEngineIdForCategories(
           data._aCategory,
           data._aSuperCategory,
@@ -184,7 +336,7 @@ export const gameBananaApi = {
       likes: mod._nLikeCount || 0,
       views: mod._nViewCount || 0,
       timeAgo: this.getTimeAgo(mod._tsDateAdded),
-      engineId: this.getEngineIdForCategories(
+      engineId: mod.__resolvedEngineId || this.getEngineIdForCategories(
         mod.__injectedCategoryId, // Pasamos el ID inyectado primero para prioridad
         mod._aCategory,
         mod._aSuperCategory,
@@ -217,7 +369,7 @@ export const gameBananaApi = {
     return this.categoryFeedService;
   },
 
-  getSearchScore(mod, query) {
+  getSearchRelevance(mod, query) {
     const title = String(mod._sName || "").toLocaleLowerCase();
     const normalizedQuery = query.toLocaleLowerCase();
     const words = normalizedQuery.split(/\s+/).filter(Boolean);
@@ -225,9 +377,16 @@ export const gameBananaApi = {
     const startsWithQuery = title.startsWith(normalizedQuery) ? 100000000 : 0;
     const matchingWords =
       words.filter((word) => title.includes(word)).length * 1000000;
-    const likes = Number(mod._nLikeCount || 0) * 10;
-    const views = Number(mod._nViewCount || 0);
-    return exactTitle + startsWithQuery + matchingWords + likes + views;
+    return exactTitle + startsWithQuery + matchingWords;
+  },
+
+  getSearchMatchCount(mod, query) {
+    const title = String(mod._sName || "").toLocaleLowerCase();
+    return query
+      .toLocaleLowerCase()
+      .split(/\s+/)
+      .filter(Boolean)
+      .filter((word) => title.includes(word)).length;
   },
 
   async searchMods(query, page = 1, perPage = 12) {
@@ -245,7 +404,11 @@ export const gameBananaApi = {
 
       if (page === 1 && idMatch && idMatch[1]) {
         const specificMod = await this.getModDetails(idMatch[1]);
-        if (specificMod?.gameId === this.gameId) {
+        if (
+          specificMod?.gameId === this.gameId &&
+          !specificMod.isDeleted &&
+          !this.isExcludedCategory(specificMod.categoryId)
+        ) {
           directMod = {
             id: specificMod.id,
             title: specificMod.title,
@@ -260,11 +423,15 @@ export const gameBananaApi = {
         }
       }
 
+      const searchWindowSize = 50;
+      const resultOffset = (page - 1) * perPage;
+      const sourcePage = Math.floor(resultOffset / searchWindowSize) + 1;
+      const sourceOffset = resultOffset % searchWindowSize;
       const params = new URLSearchParams({
         _sModelName: "Mod",
         _sSearchString: `${normalizedQuery} fnf`,
-        _nPage: String(page),
-        _nPerpage: String(perPage),
+        _nPage: String(sourcePage),
+        _nPerpage: String(searchWindowSize),
       });
       params.set("_aFilters[Generic_Game]", String(this.gameId));
       const res = await fetch(`${this.baseUrl}/Util/Search/Results?${params}`);
@@ -273,17 +440,37 @@ export const gameBananaApi = {
       const records = this.getValidRecords(data).filter(
         (mod) =>
           mod._sModelName === "Mod" &&
-          Number(mod._aGame?._idRow || mod._idGame) === this.gameId,
+          Number(mod._aGame?._idRow || mod._idGame) === this.gameId &&
+          !this.isDeletedMod(mod) &&
+          !this.isExcludedCategory(
+            mod._aCategory,
+            mod._aRootCategory,
+            mod._aSubCategory,
+          ),
       );
 
-      let parsedMods = [
+      const sortedRecords = [
         ...new Map(records.map((mod) => [mod._idRow, mod])).values(),
       ]
         .sort(
           (left, right) =>
-            this.getSearchScore(right, normalizedQuery) -
-            this.getSearchScore(left, normalizedQuery),
-        )
+            this.getSearchMatchCount(right, normalizedQuery) -
+              this.getSearchMatchCount(left, normalizedQuery) ||
+            Number(right._nViewCount || 0) - Number(left._nViewCount || 0) ||
+            Number(right._nLikeCount || 0) - Number(left._nLikeCount || 0) ||
+            this.getSearchRelevance(right, normalizedQuery) -
+              this.getSearchRelevance(left, normalizedQuery) ||
+            Number(right._idRow || 0) - Number(left._idRow || 0),
+        );
+      for (let index = 0; index < sortedRecords.length; index += 2) {
+        await Promise.all(
+          sortedRecords.slice(index, index + 2).map(async (mod) => {
+            mod.__resolvedEngineId = await this.resolveEngineIdForMod(mod);
+          }),
+        );
+      }
+      let parsedMods = sortedRecords
+        .slice(sourceOffset, sourceOffset + perPage)
         .map((mod) => this.toGridMod(mod));
 
       if (directMod) {
