@@ -29,7 +29,6 @@ function extractColor(img, targetElement) {
         r = Math.floor(r / count);
         g = Math.floor(g / count);
         b = Math.floor(b / count);
-        // Asignamos el color predominante como variable CSS en la columna
         targetElement.style.setProperty("--engine-color", `rgba(${r}, ${g}, ${b}, 0.25)`);
       }
     } catch (e) {
@@ -42,6 +41,9 @@ function extractColor(img, targetElement) {
 }
 
 export const engineManagerModal = {
+  currentIndex: 0,
+  resizeObserver: null,
+
   async init() {
     if (!document.getElementById("engine-manager-modal")) {
       const response = await fetch("src/html/engine-manager.html");
@@ -77,8 +79,13 @@ export const engineManagerModal = {
     const modal = document.getElementById("engine-manager-modal");
     if (!modal) return;
     modal.classList.remove("show");
+    
     setTimeout(() => {
       modal.style.display = "none";
+      if (this.resizeObserver) {
+        this.resizeObserver.disconnect();
+        this.resizeObserver = null;
+      }
     }, 300);
   },
 
@@ -91,10 +98,15 @@ export const engineManagerModal = {
     const container = document.getElementById("engine-manager-modal-body");
     if (!container) return;
     
+    // Limpieza de renderizado previo
+    if (this.resizeObserver) {
+      this.resizeObserver.disconnect();
+      this.resizeObserver = null;
+    }
     container.innerHTML = "";
 
     if (engines.length === 0) {
-      container.innerHTML = `<div class="empty-mods-state">No engines installed yet.</div>`;
+      container.innerHTML = `<div class="empty-mods-state" style="margin: auto;">No engines installed yet.</div>`;
       return;
     }
 
@@ -109,41 +121,71 @@ export const engineManagerModal = {
 
     // 2. Ordenar basándonos en el orden exacto del aside
     const ENGINE_ORDER = ["vslice", "codename", "psych", "pslice", "alepsych", "fpsplus", "psychonline", "executable"];
-    
     const sortedEngineEntries = Object.entries(groupedEngines).sort((a, b) => {
       const indexA = ENGINE_ORDER.indexOf(a[0]);
       const indexB = ENGINE_ORDER.indexOf(b[0]);
-      // Si un engine no está en la lista (raro, pero seguro), se va al final
       const posA = indexA === -1 ? 999 : indexA;
       const posB = indexB === -1 ? 999 : indexB;
       return posA - posB;
     });
 
-    // 3. Crear el contenedor de columnas (Estilo Carrusel)
-    const columnsContainer = document.createElement("div");
-    columnsContainer.className = "engine-columns-container";
+    // Ajustar el índice por si se borró el último elemento
+    if (this.currentIndex >= sortedEngineEntries.length) {
+      this.currentIndex = Math.max(0, sortedEngineEntries.length - 1);
+    }
 
-    // 4. Generar una columna por cada Engine respetando el orden
-    for (const [engineId, versions] of sortedEngineEntries) {
+    // 3. Crear elementos del layout del carrusel con nuevas clases únicas (Prefijo "em-")
+    const viewport = document.createElement("div");
+    viewport.className = "em-carousel-viewport";
+
+    const track = document.createElement("div");
+    track.className = "em-carousel-track";
+
+    const btnPrev = document.createElement("button");
+    btnPrev.className = "em-nav-btn left";
+    btnPrev.innerHTML = '<i class="fa-solid fa-chevron-left"></i>';
+
+    const btnNext = document.createElement("button");
+    btnNext.className = "em-nav-btn right";
+    btnNext.innerHTML = '<i class="fa-solid fa-chevron-right"></i>';
+
+    const indexContainer = document.createElement("div");
+    indexContainer.className = "em-carousel-index";
+
+    viewport.appendChild(track);
+    viewport.appendChild(btnPrev);
+    viewport.appendChild(btnNext);
+    
+    container.appendChild(viewport);
+    container.appendChild(indexContainer);
+
+    // 4. Generar las tarjetas (Cards) y los iconos del índice
+    sortedEngineEntries.forEach(([engineId, versions], idx) => {
       const details = ENGINE_DETAILS[engineId] || { name: engineId, icon: "exe.png" };
       
-      const column = document.createElement("div");
-      column.className = "engine-column";
+      // -- Tarjeta del Carrusel --
+      const card = document.createElement("div");
+      card.className = "engine-column";
+      
+      // Evento de clic para activar la tarjeta si no lo está
+      card.addEventListener("click", () => {
+        if (this.currentIndex !== idx) {
+          this.currentIndex = idx;
+          updateCarousel();
+        }
+      });
 
-      // Cabecera de la columna (Fija)
       const header = document.createElement("div");
       header.className = "engine-column-header";
       header.innerHTML = `
         <img src="assets/icons/${details.icon}" alt="${details.name}" class="engine-col-icon" crossorigin="Anonymous" onerror="this.src='assets/icons/exe.png'"/>
         <span class="engine-col-name">${details.name}</span>
       `;
-      column.appendChild(header);
+      card.appendChild(header);
 
-      // Extraer el color cuando la imagen esté lista
       const imgEl = header.querySelector(".engine-col-icon");
-      extractColor(imgEl, column);
+      extractColor(imgEl, card);
 
-      // Lista de versiones (Con Scroll Y, transparente, y líneas arriba/abajo)
       const versionsList = document.createElement("div");
       versionsList.className = "engine-versions-list";
 
@@ -157,27 +199,22 @@ export const engineManagerModal = {
             <button class="engine-action-btn engine-dir-btn" title="Open Directory">
               <i class="fa-solid fa-folder-open"></i>
             </button>
-            <button class="engine-action-btn engine-delete-btn" title="Uninstall Engine">
+            <button class="engine-action-btn engine-delete-btn" title="Uninstall Version">
               <i class="fa-solid fa-trash"></i>
             </button>
           </div>
         `;
 
-        // Eventos de los botones
-        const dirBtn = item.querySelector(".engine-dir-btn");
-        dirBtn.addEventListener("click", async () => {
+        item.querySelector(".engine-dir-btn").addEventListener("click", async (e) => {
+          e.stopPropagation(); // Evita que se dispare el evento click de la tarjeta
           const targetPath = `${FS.enginesPath}/${engineId}/${version}`;
-          try {
-            await Neutralino.os.open(targetPath);
-          } catch (e) {
-            console.error("Could not open engine directory", e);
-          }
+          try { await Neutralino.os.open(targetPath); } catch (e) {}
         });
 
         const deleteBtn = item.querySelector(".engine-delete-btn");
-        deleteBtn.addEventListener("click", async () => {
+        deleteBtn.addEventListener("click", async (e) => {
+          e.stopPropagation(); // Evita que se dispare el evento click de la tarjeta
           if (!confirm(`Are you sure you want to uninstall ${details.name} (Version: ${version})?`)) return;
-
           deleteBtn.disabled = true;
           deleteBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i>`;
           const targetPath = `${FS.enginesPath}/${engineId}/${version}`;
@@ -188,20 +225,76 @@ export const engineManagerModal = {
             } else {
               await Neutralino.os.execCommand(`rm -rf "${targetPath}"`, { background: true }).catch(() => {});
             }
-          } catch (e) {
-            console.error("Failed to delete engine", e);
-          }
+          } catch (e) {}
           
-          await this.loadInstalledEngines();
+          await this.loadInstalledEngines(); // Recarga automática
         });
 
         versionsList.appendChild(item);
       });
 
-      column.appendChild(versionsList);
-      columnsContainer.appendChild(column);
-    }
+      card.appendChild(versionsList);
+      track.appendChild(card);
 
-    container.appendChild(columnsContainer);
+      // -- Icono del Índice Inferior (Pastilla) --
+      const indexIcon = document.createElement("img");
+      indexIcon.className = "em-index-icon";
+      indexIcon.src = `assets/icons/${details.icon}`;
+      indexIcon.onerror = () => indexIcon.src = 'assets/icons/exe.png';
+      indexIcon.title = details.name;
+      
+      indexIcon.addEventListener("click", () => {
+        this.currentIndex = idx;
+        updateCarousel();
+      });
+      
+      indexContainer.appendChild(indexIcon);
+    });
+
+    // 5. Lógica de cálculo y actualización del Carrusel
+    const updateCarousel = () => {
+      const vw = viewport.clientWidth;
+      if (vw === 0) return; 
+      
+      const cardWidth = 300; 
+      const gap = 30; 
+      
+      const offset = (vw / 2) - (cardWidth / 2) - (this.currentIndex * (cardWidth + gap));
+      track.style.transform = `translateX(${offset}px)`;
+
+      // Actualizar clases activas en Tarjetas
+      Array.from(track.children).forEach((col, idx) => {
+        col.classList.toggle("active", idx === this.currentIndex);
+      });
+
+      // Actualizar clases activas en Iconos del Índice
+      Array.from(indexContainer.children).forEach((icon, idx) => {
+        icon.classList.toggle("active", idx === this.currentIndex);
+      });
+
+      // Visibilidad de flechas
+      btnPrev.style.display = this.currentIndex === 0 ? "none" : "flex";
+      btnNext.style.display = this.currentIndex === sortedEngineEntries.length - 1 ? "none" : "flex";
+    };
+
+    btnPrev.addEventListener("click", () => {
+      if (this.currentIndex > 0) {
+        this.currentIndex--;
+        updateCarousel();
+      }
+    });
+
+    btnNext.addEventListener("click", () => {
+      if (this.currentIndex < sortedEngineEntries.length - 1) {
+        this.currentIndex++;
+        updateCarousel();
+      }
+    });
+
+    // 6. Observar redimensiones para que el carrusel se centre si la ventana cambia de tamaño
+    this.resizeObserver = new ResizeObserver(() => updateCarousel());
+    this.resizeObserver.observe(viewport);
+
+    requestAnimationFrame(updateCarousel);
   },
 };
