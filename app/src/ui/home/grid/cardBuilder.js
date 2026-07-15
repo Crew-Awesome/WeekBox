@@ -1,11 +1,5 @@
 import { modModal } from "../modal/index.js";
-
-const engineDetails = {
-  vslice: { name: "Base Game", icon: "vslice.png" },
-  psych: { name: "Psych Engine", icon: "psych.png" },
-  codename: { name: "Codename Engine", icon: "codename.png" },
-  executable: { name: "Executable", icon: "exe.png" },
-};
+import { ENGINE_DETAILS } from "../../../config/engines.js";
 
 // Función para obtener el color predominante y aplicarlo a la variable CSS
 function extractColor(img, card) {
@@ -100,7 +94,7 @@ export function createCard(mod, index) {
       <span>Unassigned</span>
     </div>
   `;
-  const engine = engineDetails[mod.engineId];
+  const engine = ENGINE_DETAILS[mod.engineId];
   if (engine) {
     engineBadgeHtml = `
       <div class="home-engine-badge grid-engine-badge">

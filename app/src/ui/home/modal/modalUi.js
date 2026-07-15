@@ -1,3 +1,5 @@
+import { ENGINE_DETAILS } from "../../../config/engines.js";
+
 export async function ensureModal(onClose) {
   if (!document.getElementById("mod-modal")) {
     const response = await fetch("src/html/modal.html");
@@ -67,7 +69,7 @@ export function showModData(data, isInstalled, onDownload) {
   document.getElementById("modal-filesize").textContent = data.fileSizeStr;
   document.getElementById("modal-image-loader").style.display = "none";
 
-  const engine = engineDetails[data.engineId];
+  const engine = ENGINE_DETAILS[data.engineId];
   const engineBadge = document.getElementById("modal-engine-badge");
   const engineIcon = document.getElementById("modal-engine-icon");
   const engineName = document.getElementById("modal-engine-name");
@@ -90,9 +92,3 @@ export function showModData(data, isInstalled, onDownload) {
     button.onclick = onDownload;
   }
 }
-const engineDetails = {
-  vslice: { name: "Base Game", icon: "vslice.png" },
-  psych: { name: "Psych Engine", icon: "psych.png" },
-  codename: { name: "Codename Engine", icon: "codename.png" },
-  executable: { name: "Executable", icon: "exe.png" },
-};

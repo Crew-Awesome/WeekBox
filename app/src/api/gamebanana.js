@@ -1,13 +1,15 @@
+import { FeaturedService } from "./gamebanana/featuredService.js";
+import { CategoryFeedService } from "./gamebanana/categoryFeedService.js";
+import {
+  ENGINE_CATEGORY_IDS,
+  ENGINE_CATEGORY_ROOTS,
+} from "../config/engines.js";
+
 export const gameBananaApi = {
   baseUrl: "https://gamebanana.com/apiv11",
   gameId: 8694,
-  categoryRoots: [34764, 28367, 29202, 3827],
-  engineCategories: {
-    29202: "vslice",
-    28367: "psych",
-    34764: "codename",
-    3827: "executable",
-  },
+  categoryRoots: ENGINE_CATEGORY_ROOTS,
+  engineCategories: ENGINE_CATEGORY_IDS,
   featuredUrl:
     "https://raw.githubusercontent.com/Crew-Awesome/weekbox.featured/main/public/featured.json",
   featuredCacheKey: "weekbox-featured-v2",
@@ -20,6 +22,8 @@ export const gameBananaApi = {
   freshPopularPages: new Map(),
   freshPopularSeenIds: new Set(),
   searchCache: new Map(),
+  featuredService: null,
+  categoryFeedService: null,
 
   getImageUrl(mod) {
     if (
@@ -146,103 +150,24 @@ export const gameBananaApi = {
     }
   },
 
-  // 2. Carrusel Destacados con Fetch de IDs de Motor faltantes
   async getFeaturedCarousel() {
-    const cachedData = this.getCachedFeatured();
-    if (cachedData && Date.parse(cachedData.expiresAt) > Date.now()) {
-      return this.flattenFeatured(cachedData);
+    if (!this.featuredService) {
+      this.featuredService = new FeaturedService({
+        url: this.featuredUrl,
+        cacheKey: this.featuredCacheKey,
+        getTimeAgo: this.getTimeAgo.bind(this),
+        getEngineIdForCategory: this.getEngineIdForCategory.bind(this),
+      });
     }
-    try {
-      const response = await fetch(this.featuredUrl, { cache: "no-store" });
-      if (!response.ok) throw new Error();
-      const featuredData = await response.json();
-      if (!this.isSupportedFeaturedData(featuredData)) throw new Error();
-
-      // Auto-completar los engineId si el JSON no los trae
-      if (Array.isArray(featuredData.rankings)) {
-        for (const ranking of featuredData.rankings) {
-          if (Array.isArray(ranking.mods)) {
-            await Promise.all(
-              ranking.mods.map(async (mod) => {
-                if (!mod.engineId && !mod.categoryId) {
-                  try {
-                    const details = await this.getModDetails(mod.id);
-                    if (details && details.engineId) {
-                      mod.engineId = details.engineId;
-                    }
-                  } catch (e) {}
-                }
-              }),
-            );
-          }
-        }
-      }
-
-      featuredData.expiresAt = new Date(Date.now() + 3600 * 1000).toISOString();
-      const mods = this.flattenFeatured(featuredData);
-      if (mods.length === 0) throw new Error();
-      localStorage.setItem(this.featuredCacheKey, JSON.stringify(featuredData));
-      return mods;
-    } catch (error) {
-      return cachedData ? this.flattenFeatured(cachedData) : [];
-    }
-  },
-
-  getCachedFeatured() {
-    try {
-      const cached = localStorage.getItem(this.featuredCacheKey);
-      const featuredData = cached ? JSON.parse(cached) : null;
-      return this.isSupportedFeaturedData(featuredData) ? featuredData : null;
-    } catch (error) {
-      return null;
-    }
-  },
-
-  isSupportedFeaturedData(featuredData) {
-    if (
-      !featuredData ||
-      featuredData.schemaVersion !== 2 ||
-      !Array.isArray(featuredData.rankings)
-    )
-      return false;
-
-    // Schema v2 adds a categoryId to every featured mod, so the client can
-    // classify it without a follow-up GameBanana profile request.
-    return featuredData.rankings.every(
-      (ranking) =>
-        Array.isArray(ranking?.mods) &&
-        ranking.mods.every((mod) => Number.isFinite(Number(mod?.categoryId))),
-    );
-  },
-
-  flattenFeatured(featuredData) {
-    if (!Array.isArray(featuredData?.rankings)) return [];
-    return featuredData.rankings.flatMap((ranking) =>
-      (ranking.mods || []).map((mod) => ({
-        ...mod,
-        label: ranking.label,
-        timeAgo: this.getTimeAgo(mod.publishedAt),
-        categoryId: Number(mod.categoryId) || null,
-        engineId:
-          mod.engineId || this.getEngineIdForCategory(mod.categoryId) || null,
-      })),
-    );
+    return this.featuredService.getCarousel();
   },
 
   getCategories(categoryId = null) {
-    return this.categoryRoots.includes(categoryId)
-      ? [categoryId]
-      : this.categoryRoots;
+    return this.getCategoryFeed().getCategories(categoryId);
   },
 
   getRecordSortValue(mod, sort) {
-    if (sort === "Generic_LatestUpdated") {
-      return Number(
-        mod._tsDateUpdated || mod._tsDateModified || mod._tsDateAdded || 0,
-      );
-    }
-    if (sort === "Generic_MostLiked") return Number(mod._nLikeCount || 0);
-    return Number(mod._tsDateAdded || 0);
+    return this.getCategoryFeed().getSortValue(mod, sort);
   },
 
   // 3. Inyección artificial de categoryId a los resultados del grid
@@ -396,19 +321,20 @@ export const gameBananaApi = {
   },
 
   async getGridMods(filter = "popular", page = 1, categoryId = null) {
-    try {
-      if (filter === "popular")
-        return await this.getFreshPopularMods(page, categoryId);
-      const sort =
-        {
-          new: "Generic_Newest",
-          updated: "Generic_LatestUpdated",
-        }[filter] || "Generic_Newest";
-      const records = await this.getCategoryRecords({ page, sort, categoryId });
-      return records.slice(0, 12).map((mod) => this.toGridMod(mod));
-    } catch (error) {
-      return [];
+    return this.getCategoryFeed().getGridMods(filter, page, categoryId);
+  },
+
+  getCategoryFeed() {
+    if (!this.categoryFeedService) {
+      this.categoryFeedService = new CategoryFeedService({
+        baseUrl: this.baseUrl,
+        gameId: this.gameId,
+        categoryRoots: this.categoryRoots,
+        getRecords: this.getValidRecords.bind(this),
+        toGridMod: this.toGridMod.bind(this),
+      });
     }
+    return this.categoryFeedService;
   },
 
   getSearchScore(mod, query) {

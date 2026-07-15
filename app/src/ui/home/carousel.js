@@ -1,12 +1,6 @@
 import { gameBananaApi } from "../../api/gamebanana.js";
+import { ENGINE_DETAILS } from "../../config/engines.js";
 import { modModal } from "./modal/index.js";
-
-const engineDetails = {
-  vslice: { name: "Base Game", icon: "vslice.png" },
-  psych: { name: "Psych Engine", icon: "psych.png" },
-  codename: { name: "Codename Engine", icon: "codename.png" },
-  executable: { name: "Executable", icon: "exe.png" },
-};
 
 export const homeCarousel = {
   currentSlideIndex: 0,
@@ -41,8 +35,8 @@ export const homeCarousel = {
         // Si conocemos el engine, usar su icono y nombre
         const engine =
           mod.categoryId === 3827
-            ? engineDetails.executable
-            : engineDetails[mod.engineId];
+            ? ENGINE_DETAILS.executable
+            : ENGINE_DETAILS[mod.engineId];
         if (engine) {
           engineBadgeHtml = `
             <div class="home-engine-badge">

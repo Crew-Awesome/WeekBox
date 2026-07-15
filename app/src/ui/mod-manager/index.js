@@ -1,11 +1,7 @@
 import { FS } from "../../utils/filesystem.js";
+import { sanitizePathSegment } from "../../utils/filesystem/pathUtils.js";
 import { gameBananaApi } from "../../api/gamebanana.js";
-
-const engineDetails = {
-  vslice: { name: "Base Game", icon: "vslice.png" },
-  psych: { name: "Psych Engine", icon: "psych.png" },
-  codename: { name: "Codename Engine", icon: "codename.png" },
-};
+import { ENGINE_DETAILS } from "../../config/engines.js";
 
 function extractColor(img, card) {
   const processColor = () => {
@@ -190,8 +186,8 @@ export const modManagerModal = {
             <img src="assets/icons/exe.png" alt="Executable"/>
             <span>Executable</span>
           </div>`;
-      } else if (engineDetails[mod.engineId]) {
-        const engineInfo = engineDetails[mod.engineId];
+      } else if (ENGINE_DETAILS[mod.engineId]) {
+        const engineInfo = ENGINE_DETAILS[mod.engineId];
         engineBadgeHtml = `
           <div class="mod-manager-engine-badge">
             <img src="assets/icons/${engineInfo.icon}" alt=""/>
@@ -253,7 +249,7 @@ export const modManagerModal = {
       const dirBtn = card.querySelector(".mod-manager-dir-btn");
       dirBtn.addEventListener("click", async () => {
         try {
-          const modPath = `${FS.modsPath}/${mod.folderName || mod.name.replace(/[<>:"/\\|?*]+/g, "").trim()}`;
+          const modPath = `${FS.modsPath}/${mod.folderName || sanitizePathSegment(mod.name)}`;
           await Neutralino.os.open(modPath);
         } catch (e) {
           console.error("Could not open mod directory", e);
