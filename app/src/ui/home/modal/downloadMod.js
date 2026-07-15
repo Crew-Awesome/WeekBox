@@ -97,47 +97,56 @@ export const downloadMod = {
 
       if (this.activeTasks.get(modId)?.cancelled) throw new Error("Cancelled");
 
-      let hasNestedZip = true;
-      while (hasNestedZip) {
-        hasNestedZip = false;
+      let hasNestedArchive = true;
+      while (hasNestedArchive) {
+        hasNestedArchive = false;
         const files = await Neutralino.filesystem.readDirectory(targetModFolder);
         const realFiles = files.filter((f) => f.entry !== "." && f.entry !== "..");
         
-        if (realFiles.length === 1 && realFiles[0].type === "FILE" && realFiles[0].entry.toLowerCase().endsWith(".zip")) {
-          hasNestedZip = true;
-          const innerZipPath = `${targetModFolder}/${realFiles[0].entry}`;
-          toastDownloadMod.update(modId, 98, "Extracting nested zip...");
-          
-          const innerTempPath = `${modsBasePath}/temp_inner_${modId}`;
-          await FS.api.ensureDir(innerTempPath);
-          
-          await this.extractArchive(
-            modId,
-            innerZipPath,
-            innerTempPath,
-            os,
-            (file) => {
-              toastDownloadMod.update(modId, 98, `Extracting nested - ${file}`);
-            },
-          );
-          
-          if (this.activeTasks.get(modId)?.cancelled) {
-            await FS.api.remove(innerTempPath).catch(() => {});
-            throw new Error("Cancelled");
-          }
-          
-          await FS.api.remove(innerZipPath).catch(() => {});
-          
-          const extractedFiles = await Neutralino.filesystem.readDirectory(innerTempPath);
-          for (const ef of extractedFiles) {
-            if (ef.entry !== "." && ef.entry !== "..") {
-              await Neutralino.filesystem.move(
-                `${innerTempPath}/${ef.entry}`,
-                `${targetModFolder}/${ef.entry}`
-              );
+        if (realFiles.length === 1 && realFiles[0].type === "FILE") {
+          const entryName = realFiles[0].entry.toLowerCase();
+          if (
+            entryName.endsWith(".zip") || 
+            entryName.endsWith(".rar") || 
+            entryName.endsWith(".7z") || 
+            entryName.endsWith(".tar") || 
+            entryName.endsWith(".gz")
+          ) {
+            hasNestedArchive = true;
+            const innerZipPath = `${targetModFolder}/${realFiles[0].entry}`;
+            toastDownloadMod.update(modId, 98, "Extracting nested archive...");
+            
+            const innerTempPath = `${modsBasePath}/temp_inner_${modId}`;
+            await FS.api.ensureDir(innerTempPath);
+            
+            await this.extractArchive(
+              modId,
+              innerZipPath,
+              innerTempPath,
+              os,
+              (file) => {
+                toastDownloadMod.update(modId, 98, `Extracting nested - ${file}`);
+              },
+            );
+            
+            if (this.activeTasks.get(modId)?.cancelled) {
+              await FS.api.remove(innerTempPath).catch(() => {});
+              throw new Error("Cancelled");
             }
+            
+            await FS.api.remove(innerZipPath).catch(() => {});
+            
+            const extractedFiles = await Neutralino.filesystem.readDirectory(innerTempPath);
+            for (const ef of extractedFiles) {
+              if (ef.entry !== "." && ef.entry !== "..") {
+                await Neutralino.filesystem.move(
+                  `${innerTempPath}/${ef.entry}`,
+                  `${targetModFolder}/${ef.entry}`
+                );
+              }
+            }
+            await FS.api.remove(innerTempPath).catch(() => {});
           }
-          await FS.api.remove(innerTempPath).catch(() => {});
         }
       }
 

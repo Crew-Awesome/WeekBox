@@ -2,6 +2,7 @@ import { router } from "../core/router.js";
 import { setSelectedEngine } from "../core/state.js";
 import { modManagerModal } from "./mod-manager/index.js";
 import { engineManagerModal } from "./engine-manager/index.js";
+import { FS } from "../utils/filesystem.js";
 
 export const sidebar = {
   async init() {
@@ -15,6 +16,7 @@ export const sidebar = {
     this.setupResizer();
     this.setupNavigation();
     await this.loadEngines();
+    await this.loadStandaloneMods();
   },
   setupResizer() {
     if (!this.resizer) return;
@@ -146,4 +148,74 @@ export const sidebar = {
       wrapper.innerHTML = `<p style="color:red; padding:8px; font-size:12px;">Failed to load engine router</p>`;
     }
   },
+
+  async loadStandaloneMods() {
+    if (!FS.isInitialized) await FS.init();
+    
+    const standaloneMods = await FS.getStandaloneMods();
+    if (standaloneMods.length === 0) return;
+
+    const sidebarNav = document.querySelector(".sidebar-nav");
+    if (!sidebarNav) return;
+
+    const divider = document.createElement("div");
+    divider.className = "nav-divider";
+    sidebarNav.appendChild(divider);
+
+    const sectionTitle = document.createElement("p");
+    sectionTitle.className = "section-title";
+    sectionTitle.textContent = "Standalone Mods";
+    sidebarNav.appendChild(sectionTitle);
+
+    const wrapper = document.createElement("div");
+    wrapper.className = "engines-wrapper";
+    sidebarNav.appendChild(wrapper);
+
+    for (const mod of standaloneMods) {
+      const btn = document.createElement("button");
+      btn.className = "nav-btn engine-btn standalone-btn";
+      
+      const iconSrc = mod.icoPath || "data:image/svg+xml;utf8,<svg xmlns=\\'http://www.w3.org/2000/svg\\' viewBox=\\'0 0 512 512\\'><path fill=\\'%23888\\' d=\\'M448 32H64C28.65 32 0 60.65 0 96v320c0 35.35 28.65 64 64 64h384c35.35 0 64-28.65 64-64V96C512 60.65 483.3 32 448 32zM212.7 222.7L132.7 302.7C126.4 308.9 118.2 312 110.1 312s-16.38-3.125-22.62-9.375c-12.5-12.5-12.5-32.75 0-45.25L155.3 189.3l-67.88-67.88c-12.5-12.5-12.5-32.75 0-45.25s32.75-12.5 45.25 0l102.6 102.6C247.7 191.3 247.7 210.2 212.7 222.7zM384 320c-17.67 0-32-14.33-32-32s14.33-32 32-32h32c17.67 0 32 14.33 32 32s-14.33 32-32 32H384z\\'/></svg>";
+      
+      btn.innerHTML = `
+          <img src="${iconSrc}" class="engine-icon" onerror="this.onerror=null; this.src='data:image/svg+xml;utf8,<svg xmlns=\\'http://www.w3.org/2000/svg\\' viewBox=\\'0 0 512 512\\'><path fill=\\'%23888\\' d=\\'M448 32H64C28.65 32 0 60.65 0 96v320c0 35.35 28.65 64 64 64h384c35.35 0 64-28.65 64-64V96C512 60.65 483.3 32 448 32zM212.7 222.7L132.7 302.7C126.4 308.9 118.2 312 110.1 312s-16.38-3.125-22.62-9.375c-12.5-12.5-12.5-32.75 0-45.25L155.3 189.3l-67.88-67.88c-12.5-12.5-12.5-32.75 0-45.25s32.75-12.5 45.25 0l102.6 102.6C247.7 191.3 247.7 210.2 212.7 222.7zM384 320c-17.67 0-32-14.33-32-32s14.33-32 32-32h32c17.67 0 32 14.33 32 32s-14.33 32-32 32H384z\\'/></svg>'">
+          <span>${mod.name}</span>
+      `;
+      
+      btn.addEventListener("click", async () => {
+        if (btn.classList.contains("running")) {
+          const process = FS.activeEngineProcesses.get(`standalone:${mod.id}`);
+          if (process) {
+            btn.querySelector("span").innerHTML = `<i class="fa-solid fa-spinner fa-spin" style="margin-right:4px;"></i> Closing...`;
+            Neutralino.os.updateSpawnedProcess(process.id, "exit").catch(() => {});
+          }
+          return;
+        }
+        
+        this.tabButtons.forEach((b) => b.classList.remove("active"));
+        if (this.modManagerBtn) this.modManagerBtn.classList.remove("active");
+        if (this.engineManagerBtn) this.engineManagerBtn.classList.remove("active");
+        const engineBtns = document.querySelectorAll(".engine-btn");
+        engineBtns.forEach((b) => b.classList.remove("active"));
+        btn.classList.add("active");
+        
+        const originalText = btn.querySelector("span").textContent;
+        
+        btn.querySelector("span").innerHTML = `
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <i class="fa-solid fa-stop" style="color: #ff4a4a;" title="Stop"></i>
+            <span>Launched</span>
+          </div>
+        `;
+        btn.classList.add("running");
+        
+        await FS.runStandaloneMod(mod.id, () => {
+           btn.querySelector("span").textContent = originalText;
+           btn.classList.remove("running");
+           btn.classList.remove("active");
+        });
+      });
+      wrapper.appendChild(btn);
+    }
+  }
 };
