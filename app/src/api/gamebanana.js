@@ -10,6 +10,7 @@ import {
 
 export const gameBananaApi = {
   baseUrl: "https://gamebanana.com/apiv11",
+  subfeedBaseUrl: "https://gamebanana.com/apiv12",
   gameId: 8694,
   categoryRoots: ENGINE_CATEGORY_ROOTS,
   excludedCategoryIds: new Set(EXCLUDED_MOD_CATEGORY_IDS),
@@ -23,6 +24,7 @@ export const gameBananaApi = {
     "https://raw.githubusercontent.com/Crew-Awesome/weekbox.featured/main/public/featured-manifest.json",
   featuredCacheKey: "weekbox-featured-v3",
   searchCache: new Map(),
+  ripeFeedCache: new Map(),
   modProfileCache: new Map(),
   modProfileRequests: new Map(),
   featuredService: null,
@@ -304,7 +306,76 @@ export const gameBananaApi = {
     };
   },
 
+  async getRipeMods(page = 1, categoryId = null, options = {}) {
+    try {
+      const targetEngine = categoryId
+        ? this.getEngineIdForCategory(categoryId)
+        : null;
+      const cacheKey = targetEngine || "all";
+      const feed = this.ripeFeedCache.get(cacheKey) || {
+        sourcePage: 1,
+        mods: [],
+        modIds: new Set(),
+        complete: false,
+      };
+      this.ripeFeedCache.set(cacheKey, feed);
+
+      const pageSize = 12;
+      const requiredMods = Math.max(1, Number(page) || 1) * pageSize;
+      while (!feed.complete && feed.mods.length < requiredMods) {
+        const params = new URLSearchParams({
+          _sSort: "default",
+          _nPage: String(feed.sourcePage),
+        });
+        const response = await fetch(
+          `${this.subfeedBaseUrl}/Game/${this.gameId}/Subfeed?${params}`,
+          { signal: options.signal },
+        );
+        if (!response.ok) throw new Error("Ripe Subfeed request failed");
+
+        const records = this.getValidRecords(await response.json());
+        feed.sourcePage += 1;
+        for (const mod of records) {
+          if (
+            mod?._sModelName !== "Mod" ||
+            this.isDeletedMod(mod) ||
+            this.isExcludedCategory(
+              mod._aCategory,
+              mod._aSuperCategory,
+              mod._aRootCategory,
+              mod._aSubCategory,
+            )
+          )
+            continue;
+
+          const engineId = this.getEngineIdForCategories(
+            mod._aCategory,
+            mod._aSuperCategory,
+            mod._aRootCategory,
+            mod._aSubCategory,
+            mod._idCategory,
+          );
+          if (!engineId || (targetEngine && engineId !== targetEngine)) continue;
+          if (feed.modIds.has(mod._idRow)) continue;
+          feed.modIds.add(mod._idRow);
+          feed.mods.push({ ...mod, __resolvedEngineId: engineId });
+        }
+
+        // Subfeed normally returns fifteen records. A short response is its last page.
+        if (records.length < 15) feed.complete = true;
+      }
+
+      const start = (Math.max(1, Number(page) || 1) - 1) * pageSize;
+      return feed.mods.slice(start, start + pageSize).map((mod) => this.toGridMod(mod));
+    } catch (error) {
+      if (error?.name === "AbortError") return [];
+      console.warn("Could not load GameBanana Ripe feed", error);
+      return [];
+    }
+  },
+
   async getGridMods(filter = "popular", page = 1, categoryId = null, options = {}) {
+    if (filter === "ripe") return this.getRipeMods(page, categoryId, options);
     return this.getCategoryFeed().getGridMods(filter, page, categoryId, options);
   },
 

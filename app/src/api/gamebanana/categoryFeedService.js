@@ -171,8 +171,10 @@ export class CategoryFeedService {
       return this.getDiscovery(page, categoryId, options);
     try {
       const sort =
-        { new: "Generic_Newest", updated: "Generic_LatestUpdated" }[filter] ||
-        "Generic_Newest";
+        {
+          new: "Generic_Newest",
+          updated: "Generic_LatestUpdated",
+        }[filter] || "Generic_Newest";
       return (await this.getCategoryRecords({ page, sort, categoryId }))
         .slice(0, this.config.pageSize)
         .map(this.toGridMod);
