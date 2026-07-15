@@ -48,8 +48,18 @@ p {
 }
 
 body.window-unfocused .app-layout {
-  filter: blur(7px) brightness(0.72);
-  pointer-events: none;
+  filter: brightness(0.72);
+}
+
+body.window-unfocused::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 2147483647;
+  background: rgba(0, 0, 0, 0.24);
+  backdrop-filter: blur(7px);
+  -webkit-backdrop-filter: blur(7px);
+  pointer-events: auto;
 }
 
 .content {
