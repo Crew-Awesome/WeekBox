@@ -51,11 +51,11 @@ export const homeCarousel = {
         slide.style.backgroundImage = `url('${mod.image}')`;
         slide.innerHTML = `
             <div class="carousel-overlay"></div>
+            ${engineBadgeHtml}
             <div class="carousel-content">
                 <span class="badge">${mod.label}</span>
                 <h1>${mod.title}</h1>
                 <p class="carousel-author">by ${mod.author}</p>
-                ${engineBadgeHtml}
                 <button class="action-btn download-mod-btn">
                     <i class="fa-solid fa-download"></i> Download
                 </button>

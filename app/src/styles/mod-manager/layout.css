@@ -115,20 +115,65 @@
     box-shadow 0.3s ease;
 }
 
-/* Efecto hover aplicando el color predominante y la sombra (resplandor) */
+/* Keep the lift on hover without a colored glow. */
 .mod-manager-card:hover {
   transform: translateY(-4px);
   border-color: var(--card-color);
-  box-shadow: 0 10px 40px -10px var(--card-color);
+}
+
+.mod-manager-cover-wrap {
+  position: relative;
+  width: 100%;
+  height: 140px;
+  overflow: hidden;
+  background-color: #000;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .mod-manager-cover {
   width: 100%;
-  height: 140px;
+  height: 100%;
   object-fit: cover;
-  background-color: #000;
-  border-bottom: 1px solid var(--border-color);
-  transition: all 0.35s cubic-bezier(0.25, 1, 0.5, 1);
+  transition: filter 0.25s ease, transform 0.35s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.mod-manager-launch-btn {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 0;
+  background: rgba(0, 0, 0, 0.42);
+  color: #fff;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+
+.mod-manager-card:hover .mod-manager-cover,
+.mod-manager-cover-wrap:focus-within .mod-manager-cover {
+  filter: blur(4px) brightness(0.65);
+  transform: scale(1.04);
+}
+
+.mod-manager-card:hover .mod-manager-launch-btn,
+.mod-manager-cover-wrap:focus-within .mod-manager-launch-btn {
+  opacity: 1;
+}
+
+.mod-manager-launch-btn:focus-visible {
+  opacity: 1;
+  outline: 2px solid #fff;
+  outline-offset: -4px;
+}
+
+.mod-manager-launch-btn:disabled {
+  cursor: wait;
 }
 
 .mod-manager-card-body {
@@ -230,11 +275,11 @@
   height: 110px;
 }
 
-.mod-manager-grid.list-view .mod-manager-cover {
+.mod-manager-grid.list-view .mod-manager-cover-wrap {
   width: 160px;
   height: 100%;
-  border-bottom: none;
   border-right: 1px solid var(--border-color);
+  flex-shrink: 0;
 }
 
 .mod-manager-grid.list-view .mod-manager-card-body {

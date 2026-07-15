@@ -95,7 +95,7 @@ class FileSystemService {
     return this.executables.find(directory);
   }
 
-  async runEngine(engineId, version, onStateChange) {
+  async runEngine(engineId, version, onStateChange, args = []) {
     const executable = await this.findExecutable(
       `${this.enginesPath}/${engineId}/${version}`,
     );
@@ -107,6 +107,7 @@ class FileSystemService {
       `${engineId}:${version}`,
       executable,
       onStateChange,
+      args,
     );
   }
 

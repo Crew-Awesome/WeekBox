@@ -4,7 +4,7 @@ export class ProcessService {
     this.activeProcesses = new Map();
   }
 
-  async launch(key, executablePath, onStateChange) {
+  async launch(key, executablePath, onStateChange, args = []) {
     if (this.activeProcesses.has(key)) {
       onStateChange?.("already_running");
       return false;
@@ -12,7 +12,11 @@ export class ProcessService {
 
     try {
       onStateChange?.("running");
-      const process = await Neutralino.os.spawnProcess(`"${executablePath}"`, {
+      const command = [
+        `"${executablePath}"`,
+        ...args.map((arg) => `"${String(arg).replaceAll('"', '\\"')}"`),
+      ].join(" ");
+      const process = await Neutralino.os.spawnProcess(command, {
         cwd: this.executables.getDirectory(executablePath),
       });
       this.activeProcesses.set(key, process);

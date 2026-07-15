@@ -101,6 +101,14 @@
   font-size: 14px;
   color: var(--text-muted);
 }
+
+.carousel-slide > .home-engine-badge {
+  position: absolute;
+  z-index: 2;
+  top: var(--spacing-lg);
+  right: var(--spacing-lg);
+  margin: 0;
+}
 /* ------------------------------------ */
 
 .action-btn {

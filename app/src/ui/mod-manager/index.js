@@ -1,5 +1,8 @@
 import { FS } from "../../utils/filesystem.js";
-import { sanitizePathSegment } from "../../utils/filesystem/pathUtils.js";
+import {
+  getModFolderName,
+  sanitizePathSegment,
+} from "../../utils/filesystem/pathUtils.js";
 import { gameBananaApi } from "../../api/gamebanana.js";
 import { ENGINE_DETAILS } from "../../config/engines.js";
 
@@ -201,9 +204,16 @@ export const modManagerModal = {
       const card = document.createElement("div");
       card.className = "mod-manager-card";
       card.style = isHidden;
+      const launchLabel =
+        isExecutable || mod.engineId === "codename" ? "Launch Mod" : "Launch Engine";
       // Aplicamos crossOrigin para poder leer el color
       card.innerHTML = `
-        <img class="mod-manager-cover" crossorigin="Anonymous" src="${imageUrl}" alt="Mod Cover" onerror="this.src='https://images.gamebanana.com/img/ss/mods/default.jpg'"/>
+        <div class="mod-manager-cover-wrap">
+          <img class="mod-manager-cover" crossorigin="Anonymous" src="${imageUrl}" alt="Mod Cover" onerror="this.src='https://images.gamebanana.com/img/ss/mods/default.jpg'"/>
+          <button class="mod-manager-launch-btn" type="button" aria-label="${launchLabel} ${mod.name}">
+            <i class="fa-solid fa-play" aria-hidden="true"></i><span>${launchLabel}</span>
+          </button>
+        </div>
         <div class="mod-manager-card-body">
             <div class="mod-manager-info">
               <h3 title="${mod.name}">${mod.name}</h3>
@@ -228,6 +238,28 @@ export const modManagerModal = {
       extractColor(imgEl, card);
 
       const deleteBtn = card.querySelector(".mod-manager-delete-btn");
+      const launchBtn = card.querySelector(".mod-manager-launch-btn");
+      launchBtn.addEventListener("click", async () => {
+        launchBtn.disabled = true;
+        try {
+          if (isExecutable) {
+            await FS.runStandaloneMod(mod.id);
+          } else {
+            const engine = (await FS.getInstalledEngines()).find(
+              (item) => item.id === mod.engineId,
+            );
+            if (!engine) throw new Error("Assigned engine is not installed");
+            await FS.injectModIntoEngine(mod.id, engine.id, engine.version);
+            const args =
+              engine.id === "codename" ? ["-mod", getModFolderName(mod)] : [];
+            await FS.runEngine(engine.id, engine.version, undefined, args);
+          }
+        } catch (error) {
+          console.error("Could not launch mod", error);
+        } finally {
+          launchBtn.disabled = false;
+        }
+      });
       deleteBtn.addEventListener("click", async () => {
         deleteBtn.disabled = true;
         deleteBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i>`;
