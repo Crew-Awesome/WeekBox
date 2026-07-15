@@ -303,12 +303,6 @@ export const engineManagerModal = {
         const deleteBtn = item.querySelector(".engine-delete-btn");
         deleteBtn.addEventListener("click", async (e) => {
           e.stopPropagation(); // Evita que se dispare el evento click de la tarjeta
-          if (
-            !confirm(
-              `Are you sure you want to uninstall ${details.name} (Version: ${version})?`,
-            )
-          )
-            return;
           deleteBtn.disabled = true;
           deleteBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i>`;
           const targetPath = `${FS.enginesPath}/${engineId}/${version}`;
@@ -318,12 +312,12 @@ export const engineManagerModal = {
               await Neutralino.os
                 .execCommand(
                   `rmdir /S /Q "${targetPath.replace(/\//g, "\\")}"`,
-                  { background: true },
+                  { background: false },
                 )
                 .catch(() => {});
             } else {
               await Neutralino.os
-                .execCommand(`rm -rf "${targetPath}"`, { background: true })
+                .execCommand(`rm -rf "${targetPath}"`, { background: false })
                 .catch(() => {});
             }
           } catch (e) {}
