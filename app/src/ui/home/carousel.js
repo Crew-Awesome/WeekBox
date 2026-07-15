@@ -5,6 +5,7 @@ const engineDetails = {
   vslice: { name: "Base Game", icon: "vslice.png" },
   psych: { name: "Psych Engine", icon: "psych.png" },
   codename: { name: "Codename Engine", icon: "codename.png" },
+  executable: { name: "Executable", icon: "exe.png" },
 };
 
 export const homeCarousel = {
@@ -38,7 +39,10 @@ export const homeCarousel = {
         `;
 
         // Si conocemos el engine, usar su icono y nombre
-        const engine = engineDetails[mod.engineId];
+        const engine =
+          mod.categoryId === 3827
+            ? engineDetails.executable
+            : engineDetails[mod.engineId];
         if (engine) {
           engineBadgeHtml = `
             <div class="home-engine-badge">

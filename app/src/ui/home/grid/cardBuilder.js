@@ -4,6 +4,7 @@ const engineDetails = {
   vslice: { name: "Base Game", icon: "vslice.png" },
   psych: { name: "Psych Engine", icon: "psych.png" },
   codename: { name: "Codename Engine", icon: "codename.png" },
+  executable: { name: "Executable", icon: "exe.png" },
 };
 
 // Función para obtener el color predominante y aplicarlo a la variable CSS

@@ -1,15 +1,16 @@
 export const gameBananaApi = {
   baseUrl: "https://gamebanana.com/apiv11",
   gameId: 8694,
-  categoryRoots: [34764, 28367, 29202],
+  categoryRoots: [34764, 28367, 29202, 3827],
   engineCategories: {
     29202: "vslice",
     28367: "psych",
     34764: "codename",
+    3827: "executable",
   },
   featuredUrl:
     "https://raw.githubusercontent.com/Crew-Awesome/weekbox.featured/main/public/featured.json",
-  featuredCacheKey: "weekbox-featured-v1",
+  featuredCacheKey: "weekbox-featured-v2",
   currentFreshCategoryId: undefined,
   freshPopularRecords: [],
   freshPopularNextPage: 1,
@@ -155,6 +156,7 @@ export const gameBananaApi = {
       const response = await fetch(this.featuredUrl, { cache: "no-store" });
       if (!response.ok) throw new Error();
       const featuredData = await response.json();
+      if (!this.isSupportedFeaturedData(featuredData)) throw new Error();
 
       // Auto-completar los engineId si el JSON no los trae
       if (Array.isArray(featuredData.rankings)) {
@@ -189,10 +191,28 @@ export const gameBananaApi = {
   getCachedFeatured() {
     try {
       const cached = localStorage.getItem(this.featuredCacheKey);
-      return cached ? JSON.parse(cached) : null;
+      const featuredData = cached ? JSON.parse(cached) : null;
+      return this.isSupportedFeaturedData(featuredData) ? featuredData : null;
     } catch (error) {
       return null;
     }
+  },
+
+  isSupportedFeaturedData(featuredData) {
+    if (
+      !featuredData ||
+      featuredData.schemaVersion !== 2 ||
+      !Array.isArray(featuredData.rankings)
+    )
+      return false;
+
+    // Schema v2 adds a categoryId to every featured mod, so the client can
+    // classify it without a follow-up GameBanana profile request.
+    return featuredData.rankings.every(
+      (ranking) =>
+        Array.isArray(ranking?.mods) &&
+        ranking.mods.every((mod) => Number.isFinite(Number(mod?.categoryId))),
+    );
   },
 
   flattenFeatured(featuredData) {
@@ -202,6 +222,7 @@ export const gameBananaApi = {
         ...mod,
         label: ranking.label,
         timeAgo: this.getTimeAgo(mod.publishedAt),
+        categoryId: Number(mod.categoryId) || null,
         engineId:
           mod.engineId || this.getEngineIdForCategory(mod.categoryId) || null,
       })),
