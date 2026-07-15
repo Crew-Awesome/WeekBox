@@ -216,7 +216,6 @@
   position: relative;
   width: calc(33.333% - (var(--spacing-lg) * 2 / 3));
   min-width: 240px;
-
   --card-color: rgba(255, 255, 255, 0.3);
   transition:
     transform 0.35s cubic-bezier(0.25, 1, 0.5, 1),
@@ -224,9 +223,18 @@
     box-shadow 0.3s ease;
 }
 
-/* Keep the lift on hover without a colored glow. */
+/* Efecto hover aplicando el color predominante y la sombra (resplandor) */
 .mod-manager-card:not(.is-hidden):hover {
   transform: translateY(-4px);
+  border-color: var(--card-color);
+  box-shadow: 0 10px 40px -10px var(--card-color);
+}
+
+.mod-manager-card:not(.is-hidden):focus-visible {
+  outline: 2px solid var(--text-main);
+  outline-offset: 2px;
+  border-color: var(--card-color);
+  box-shadow: 0 10px 40px -10px var(--card-color);
 }
 
 .mod-manager-cover-wrap {
@@ -353,7 +361,7 @@
   color: var(--text-muted);
   font-size: 0.75rem;
   font-weight: 600;
-  margin: 2px 0; /* Margen estricto de 2px arriba y abajo */
+  margin: 2px 0;
 }
 
 .mod-manager-engine-badge img {
@@ -429,15 +437,18 @@
   font-size: 0.62rem;
   transition: transform 0.16s ease;
 }
+
 .mod-manager-engine-pill[aria-expanded="true"] .fa-chevron-down,
 .mod-manager-version-pill[aria-expanded="true"] .fa-chevron-down {
   transform: rotate(180deg);
 }
+
 .mod-manager-engine-pill:hover,
 .mod-manager-version-pill:hover {
   border-color: #555;
   color: var(--text-main);
 }
+
 .mod-manager-engine-pill:focus-visible,
 .mod-manager-version-pill:focus-visible {
   outline: 2px solid var(--text-main);
