@@ -190,7 +190,7 @@ export const modManagerModal = {
           `${isRunning ? "Close" : canSwitchMod ? "Switch Mod" : button.dataset.launchLabel} ${button.dataset.modName}`,
         );
         button.innerHTML = isRunning
-          ? `<i class="fa-solid fa-play" aria-hidden="true"></i><span class="mod-manager-running-label">Running</span><span class="mod-manager-close-label">Close</span>`
+          ? `<i class="fa-solid fa-play mod-manager-running-icon" aria-hidden="true"></i><span class="mod-manager-running-label">Running</span><span class="mod-manager-close-label"><i class="fa-solid fa-xmark" aria-hidden="true"></i><span>Click to Close</span></span>`
           : canSwitchMod
             ? `<i class="fa-solid fa-right-left" aria-hidden="true"></i><span>Switch Mod</span>`
             : `<i class="fa-solid fa-play" aria-hidden="true"></i><span>${button.dataset.launchLabel}</span>`;

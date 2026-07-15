@@ -187,8 +187,15 @@
   display: none;
 }
 
+.mod-manager-launch-btn.is-running:hover .mod-manager-running-icon {
+  display: none;
+}
+
 .mod-manager-launch-btn.is-running:hover .mod-manager-close-label {
-  display: block;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
 }
 
 .mod-manager-card-body {
