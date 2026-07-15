@@ -256,17 +256,19 @@
   display: block;
 }
 
-.mod-manager-engine-compatibility {
+.mod-manager-engine-compatibility-picker {
   display: flex;
   align-items: center;
   gap: 6px;
   min-width: 0;
 }
 
+.mod-manager-engine-picker,
 .mod-manager-version-picker {
   position: relative;
 }
 
+.mod-manager-engine-pill,
 .mod-manager-version-pill {
   display: inline-flex;
   align-items: center;
@@ -284,28 +286,56 @@
   font-weight: 650;
 }
 
+.mod-manager-engine-pill {
+  max-width: 150px;
+  padding-left: 5px;
+}
+
+.mod-manager-engine-pill img,
+.mod-manager-engine-pill > .fa-question-circle {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+  flex: 0 0 auto;
+}
+
+.mod-manager-engine-pill > .fa-question-circle {
+  display: grid;
+  place-items: center;
+}
+
+.mod-manager-engine-pill > .fa-chevron-down {
+  margin-left: auto;
+}
+
+.mod-manager-engine-pill span,
 .mod-manager-version-pill span {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
+.mod-manager-engine-pill i,
 .mod-manager-version-pill i {
   font-size: 0.62rem;
   transition: transform 0.16s ease;
 }
-.mod-manager-version-pill[aria-expanded="true"] i {
+.mod-manager-engine-pill[aria-expanded="true"] .fa-chevron-down,
+.mod-manager-version-pill[aria-expanded="true"] .fa-chevron-down {
   transform: rotate(180deg);
 }
+.mod-manager-engine-pill:hover,
 .mod-manager-version-pill:hover {
   border-color: #555;
   color: var(--text-main);
 }
+.mod-manager-engine-pill:focus-visible,
 .mod-manager-version-pill:focus-visible {
   outline: 2px solid var(--text-main);
   outline-offset: 2px;
 }
 
+.mod-manager-engine-menu,
 .mod-manager-version-menu {
   position: absolute;
   z-index: 10;
@@ -326,6 +356,7 @@
   z-index: 2;
 }
 
+.mod-manager-engine-menu button,
 .mod-manager-version-menu button {
   width: 100%;
   padding: 7px 8px;
@@ -339,6 +370,25 @@
   text-align: left;
 }
 
+.mod-manager-engine-menu button {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.mod-manager-engine-menu img {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+}
+
+.mod-manager-engine-menu .fa-question-circle {
+  width: 16px;
+  text-align: center;
+}
+
+.mod-manager-engine-menu button:hover,
+.mod-manager-engine-menu button.selected,
 .mod-manager-version-menu button:hover,
 .mod-manager-version-menu button.selected {
   background: var(--bg-hover);

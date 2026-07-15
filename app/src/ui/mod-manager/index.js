@@ -159,37 +159,47 @@ export const modManagerModal = {
 
     container.appendChild(gridContainer);
 
-    const closeVersionPickers = async () => {
+    const closeCompatibilityPickers = async () => {
       const changes = [];
       gridContainer
-        .querySelectorAll(".mod-manager-version-picker")
+        .querySelectorAll(".mod-manager-engine-compatibility-picker")
         .forEach((picker) => {
-          picker.querySelector(".mod-manager-version-menu").hidden = true;
           picker
-            .querySelector(".mod-manager-version-pill")
-            .setAttribute("aria-expanded", "false");
+            .querySelectorAll(
+              ".mod-manager-engine-menu, .mod-manager-version-menu",
+            )
+            .forEach((menu) => (menu.hidden = true));
+          picker
+            .querySelectorAll(
+              ".mod-manager-engine-pill, .mod-manager-version-pill",
+            )
+            .forEach((pill) => pill.setAttribute("aria-expanded", "false"));
           picker
             .closest(".mod-manager-card")
             .classList.remove("version-menu-open");
-          if (picker.dataset.pendingVersion !== picker.dataset.savedVersion) {
+          if (
+            picker.dataset.pendingEngineId !== picker.dataset.savedEngineId ||
+            picker.dataset.pendingVersion !== picker.dataset.savedVersion
+          ) {
             changes.push({
               modId: picker.dataset.modId,
+              engineId: picker.dataset.pendingEngineId || null,
               engineVersion: picker.dataset.pendingVersion || null,
             });
           }
         });
       if (!changes.length) return;
       await Promise.all(
-        changes.map(({ modId, engineVersion }) =>
-          FS.setModEngineVersion(modId, engineVersion),
+        changes.map(({ modId, engineId, engineVersion }) =>
+          FS.setModEngineCompatibility(modId, engineId, engineVersion),
         ),
       );
       await this.loadInstalledMods();
     };
     this.versionPickerOutsideHandler = (event) => {
-      if (!event.target.closest(".mod-manager-version-picker")) {
-        closeVersionPickers().catch((error) =>
-          console.error("Could not save mod engine version", error),
+      if (!event.target.closest(".mod-manager-engine-compatibility-picker")) {
+        closeCompatibilityPickers().catch((error) =>
+          console.error("Could not save mod engine compatibility", error),
         );
       }
     };
@@ -272,7 +282,14 @@ export const modManagerModal = {
             <img src="assets/icons/exe.png" alt="Executable"/>
             <span>Executable</span>
           </div>`;
-      } else if (ENGINE_DETAILS[mod.engineId]) {
+      } else {
+        const engineOptions = [
+          ...new Map(
+            installedEngines
+              .filter((item) => ENGINE_DETAILS[item.id])
+              .map((item) => [item.id, ENGINE_DETAILS[item.id]]),
+          ).entries(),
+        ].map(([id, info]) => ({ id, ...info }));
         const engineInfo = ENGINE_DETAILS[mod.engineId];
         const versionOptions = [
           "Any version",
@@ -281,13 +298,26 @@ export const modManagerModal = {
             .map((item) => item.version),
         ];
         const selectedVersion = mod.engineVersion || "Any version";
+        const selectedEngineName = engineInfo?.name || "Unassigned";
+        const selectedEngineIcon = engineInfo?.icon;
         engineBadgeHtml = `
-          <div class="mod-manager-engine-compatibility">
-            <div class="mod-manager-engine-badge">
-              <img src="assets/icons/${engineInfo.icon}" alt=""/>
-              <span>${engineInfo.name}</span>
+          <div class="mod-manager-engine-compatibility-picker" data-mod-id="${mod.id}" data-saved-engine-id="${mod.engineId || ""}" data-pending-engine-id="${mod.engineId || ""}" data-saved-version="${mod.engineVersion || ""}" data-pending-version="${mod.engineVersion || ""}">
+            <div class="mod-manager-engine-picker">
+              <button class="mod-manager-engine-pill" type="button" aria-expanded="false">
+                ${selectedEngineIcon ? `<img src="assets/icons/${selectedEngineIcon}" alt=""/>` : `<i class="fa-solid fa-question-circle" aria-hidden="true"></i>`}
+                <span>${selectedEngineName}</span><i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
+              </button>
+              <div class="mod-manager-engine-menu" hidden>
+                <button type="button" data-engine-id="" class="${!mod.engineId ? "selected" : ""}"><i class="fa-solid fa-question-circle" aria-hidden="true"></i>Unassigned</button>
+                ${engineOptions
+                  .map(
+                    (option) =>
+                      `<button type="button" data-engine-id="${option.id}" data-engine-name="${option.name}" data-engine-icon="${option.icon}" class="${option.id === mod.engineId ? "selected" : ""}"><img src="assets/icons/${option.icon}" alt=""/>${option.name}</button>`,
+                  )
+                  .join("")}
+              </div>
             </div>
-            <div class="mod-manager-version-picker" data-mod-id="${mod.id}" data-saved-version="${mod.engineVersion || ""}" data-pending-version="${mod.engineVersion || ""}">
+            <div class="mod-manager-version-picker">
               <button class="mod-manager-version-pill" type="button" aria-expanded="false">
                 <span>${selectedVersion}</span><i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
               </button>
@@ -350,15 +380,73 @@ export const modManagerModal = {
       const launchBtn = card.querySelector(".mod-manager-launch-btn");
       const versionPill = card.querySelector(".mod-manager-version-pill");
       const versionMenu = card.querySelector(".mod-manager-version-menu");
+      const enginePill = card.querySelector(".mod-manager-engine-pill");
+      const engineMenu = card.querySelector(".mod-manager-engine-menu");
+      const compatibilityPicker = card.querySelector(
+        ".mod-manager-engine-compatibility-picker",
+      );
+      const closeOtherMenu = (menu, pill) => {
+        [engineMenu, versionMenu].forEach((otherMenu) => {
+          if (otherMenu && otherMenu !== menu) otherMenu.hidden = true;
+        });
+        [enginePill, versionPill].forEach((otherPill) => {
+          if (otherPill && otherPill !== pill)
+            otherPill.setAttribute("aria-expanded", "false");
+        });
+      };
+      enginePill?.addEventListener("click", (event) => {
+        event.stopPropagation();
+        const open = engineMenu.hidden;
+        closeOtherMenu(engineMenu, enginePill);
+        engineMenu.hidden = !open;
+        enginePill.setAttribute("aria-expanded", String(open));
+        card.classList.toggle("version-menu-open", open);
+      });
+      engineMenu?.addEventListener("click", (event) => {
+        const option = event.target.closest("button[data-engine-id]");
+        if (!option) return;
+        event.stopPropagation();
+        const engineId = option.dataset.engineId;
+        compatibilityPicker.dataset.pendingEngineId = engineId;
+        compatibilityPicker.dataset.pendingVersion = "";
+        enginePill.querySelector("span").textContent =
+          option.dataset.engineName || "Unassigned";
+        enginePill.querySelector("img, .fa-question-circle")?.remove();
+        enginePill.insertAdjacentHTML(
+          "afterbegin",
+          engineId
+            ? `<img src="assets/icons/${option.dataset.engineIcon}" alt=""/>`
+            : `<i class="fa-solid fa-question-circle" aria-hidden="true"></i>`,
+        );
+        versionPill.querySelector("span").textContent = "Any version";
+        versionMenu.innerHTML = [
+          `<button type="button" data-version="" class="selected">Any version</button>`,
+          ...installedEngines
+            .filter((item) => item.id === engineId)
+            .map(
+              (item) =>
+                `<button type="button" data-version="${item.version}">${item.version}</button>`,
+            ),
+        ].join("");
+        engineMenu
+          .querySelectorAll("button[data-engine-id]")
+          .forEach((button) =>
+            button.classList.toggle(
+              "selected",
+              button.dataset.engineId === engineId,
+            ),
+          );
+      });
       versionPill?.addEventListener("click", (event) => {
         event.stopPropagation();
         const open = versionMenu.hidden;
         if (!open) {
-          closeVersionPickers().catch((error) =>
-            console.error("Could not save mod engine version", error),
+          closeCompatibilityPickers().catch((error) =>
+            console.error("Could not save mod engine compatibility", error),
           );
           return;
         }
+        closeOtherMenu(versionMenu, versionPill);
         versionMenu.hidden = !open;
         versionPill.setAttribute("aria-expanded", String(open));
         card.classList.toggle("version-menu-open", open);
@@ -368,9 +456,7 @@ export const modManagerModal = {
         if (!option) return;
         event.stopPropagation();
         const selectedVersion = option.dataset.version;
-        versionMenu.closest(
-          ".mod-manager-version-picker",
-        ).dataset.pendingVersion = selectedVersion;
+        compatibilityPicker.dataset.pendingVersion = selectedVersion;
         versionPill.querySelector("span").textContent =
           selectedVersion || "Any version";
         versionMenu

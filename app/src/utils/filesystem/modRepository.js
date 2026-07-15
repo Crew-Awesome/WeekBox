@@ -47,6 +47,16 @@ export class ModRepository {
     return mod;
   }
 
+  async setEngineCompatibility(modId, engineId, engineVersion) {
+    const mods = await this.getAll();
+    const mod = mods.find((item) => item.id === modId);
+    if (!mod) return null;
+    mod.engineId = engineId || null;
+    mod.engineVersion = engineId ? engineVersion || null : null;
+    await this.saveAll(mods);
+    return mod;
+  }
+
   async remove(modId) {
     if (!(await this.api.exists(this.filePath))) return;
     const mods = await this.getAll();

@@ -315,6 +315,25 @@ class FileSystemService {
     return mod;
   }
 
+  async setModEngineCompatibility(modId, engineId, engineVersion) {
+    if (!this.isInitialized) return null;
+    const currentMod = (await this.mods.getAll()).find(
+      (item) => item.id === modId,
+    );
+    if (!currentMod) return null;
+    const engines = await this.getInstalledEngines();
+    await this.injection.unlinkFromInstalledEngines(currentMod, engines);
+    const mod = await this.mods.setEngineCompatibility(
+      modId,
+      engineId,
+      engineVersion,
+    );
+    if (mod?.engineId && !mod.hidden) {
+      await this.injection.injectIntoInstalledEngines(modId, engines);
+    }
+    return mod;
+  }
+
   async removeInstalledMod(modId) {
     if (!this.isInitialized) return false;
     const mod = (await this.mods.getAll()).find((item) => item.id === modId);
