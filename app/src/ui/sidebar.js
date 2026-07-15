@@ -13,13 +13,16 @@ export const sidebar = {
     this.tabButtons = document.querySelectorAll(".nav-btn[data-tab]");
     this.modManagerBtn = document.getElementById("mod-manager-btn");
     this.engineManagerBtn = document.getElementById("engine-manager-btn");
+
     this.isResizing = false;
 
     if (!this.sidebar) return;
+
     this.setupResizer();
     this.setupNavigation();
     await this.loadEngines();
     await this.loadStandaloneMods();
+
     engineUpdateService.check().catch((error) =>
       console.warn("Could not check engine updates:", error),
     );
@@ -32,11 +35,13 @@ export const sidebar = {
 
   setupResizer() {
     if (!this.resizer) return;
+
     this.resizer.addEventListener("mousedown", () => {
       this.isResizing = true;
       document.body.style.cursor = "ew-resize";
       this.resizer.classList.add("resizing");
     });
+
     document.addEventListener("mousemove", (e) => {
       if (!this.isResizing) return;
       let newWidth = e.clientX;
@@ -44,6 +49,7 @@ export const sidebar = {
       if (newWidth > 500) newWidth = 500;
       this.sidebar.style.width = `${newWidth}px`;
     });
+
     document.addEventListener("mouseup", () => {
       if (this.isResizing) {
         this.isResizing = false;
@@ -60,8 +66,10 @@ export const sidebar = {
         if (this.modManagerBtn) this.modManagerBtn.classList.remove("active");
         if (this.engineManagerBtn)
           this.engineManagerBtn.classList.remove("active");
+
         const engineBtns = document.querySelectorAll(".engine-btn");
         engineBtns.forEach((b) => b.classList.remove("active"));
+
         btn.classList.add("active");
         const viewToLoad = btn.getAttribute("data-tab");
         router.navigate(viewToLoad);
@@ -93,10 +101,12 @@ export const sidebar = {
   async loadEngines() {
     const wrapper = document.getElementById("engines-wrapper");
     if (!wrapper) return;
+
     try {
       const response = await fetch("src/data/engines-router.json");
       if (!response.ok) throw new Error("Failed to load engines-router.json");
       const enginesRouter = await response.json();
+
       wrapper.innerHTML = "";
 
       for (const engineDef of enginesRouter) {
@@ -125,8 +135,10 @@ export const sidebar = {
             const releaseVersions = await getEngineReleaseVersions(
               engineDef.versions,
             );
+
             if (releaseVersions.length === 0)
               throw new Error("No compatible releases available");
+
             const processedVersionsData = releaseVersions.map((item) => {
               const sampleLink =
                 item.win ||
@@ -142,6 +154,7 @@ export const sidebar = {
                 version: item.version || this.extractVersionFromUrl(sampleLink),
               };
             });
+
             processedVersionsData.sort((a, b) => {
               if (a.isNightly) return -1;
               if (b.isNightly) return 1;
@@ -150,6 +163,7 @@ export const sidebar = {
                 sensitivity: "base",
               });
             });
+
             btn.querySelector("span").textContent = originalText;
 
             setSelectedEngine({
@@ -157,6 +171,7 @@ export const sidebar = {
               meta: { name: engineDef.name, icon: engineDef.icon },
               versions: processedVersionsData,
             });
+
             router.navigate("engines");
           } catch (err) {
             console.error(err);
@@ -175,17 +190,19 @@ export const sidebar = {
   async loadStandaloneMods() {
     if (!FS.isInitialized) await FS.init();
 
-    // Limpiar elementos existentes si estamos recargando la vista
+    // Limpiar el nuevo contenedor si existe
+    const existingContainer = document.getElementById("standalone-mods-container");
+    if (existingContainer) existingContainer.remove();
+
+    // Limpiar elementos huérfanos anteriores por si acaso
     const existingWrapper = document.getElementById("standalone-mods-wrapper");
     const existingDivider = document.getElementById("standalone-mods-divider");
     const existingTitle = document.getElementById("standalone-mods-title");
-
     if (existingWrapper) existingWrapper.remove();
     if (existingDivider) existingDivider.remove();
     if (existingTitle) existingTitle.remove();
 
     const allStandaloneMods = await FS.getStandaloneMods();
-
     // FILTRADO IMPORTANTE: Ocultar los mods si `hidden` es verdadero
     const standaloneMods = allStandaloneMods.filter((mod) => !mod.hidden);
 
@@ -194,21 +211,26 @@ export const sidebar = {
     const sidebarNav = document.querySelector(".sidebar-nav");
     if (!sidebarNav) return;
 
+    // Envolvemos todo en un container .engines-list para compartir el flex space con los Engines
+    const container = document.createElement("div");
+    container.className = "engines-list";
+    container.id = "standalone-mods-container";
+
     const divider = document.createElement("div");
     divider.className = "nav-divider";
-    divider.id = "standalone-mods-divider";
-    sidebarNav.appendChild(divider);
+    container.appendChild(divider);
 
     const sectionTitle = document.createElement("p");
     sectionTitle.className = "section-title";
-    sectionTitle.id = "standalone-mods-title";
     sectionTitle.textContent = "Standalone Mods";
-    sidebarNav.appendChild(sectionTitle);
+    container.appendChild(sectionTitle);
 
     const wrapper = document.createElement("div");
     wrapper.className = "engines-wrapper";
     wrapper.id = "standalone-mods-wrapper";
-    sidebarNav.appendChild(wrapper);
+    container.appendChild(wrapper);
+
+    sidebarNav.appendChild(container);
 
     for (const mod of standaloneMods) {
       const btn = document.createElement("button");
@@ -242,12 +264,13 @@ export const sidebar = {
         if (this.modManagerBtn) this.modManagerBtn.classList.remove("active");
         if (this.engineManagerBtn)
           this.engineManagerBtn.classList.remove("active");
+
         const engineBtns = document.querySelectorAll(".engine-btn");
         engineBtns.forEach((b) => b.classList.remove("active"));
+
         btn.classList.add("active");
 
         const originalText = btn.querySelector(".marquee-text").textContent;
-
         btn.querySelector(".marquee-container").innerHTML = `
           <div style="display: flex; align-items: center; gap: 8px;">
             <i class="fa-solid fa-stop" style="color: #ff4a4a;" title="Stop"></i>
@@ -263,6 +286,7 @@ export const sidebar = {
           btn.classList.remove("active");
         });
       });
+
       wrapper.appendChild(btn);
     }
   },

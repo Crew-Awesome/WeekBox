@@ -10,17 +10,26 @@
   will-change: width;
   padding: 0;
 }
+
 .sidebar-top {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-xl);
   padding: var(--spacing-lg) var(--spacing-md);
+  /* Permite que el panel superior ocupe el espacio disponible arriba del botón Config */
+  flex: 1;
+  min-height: 0;
 }
+
 .sidebar-nav {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-sm);
+  /* Permite el acomodo dinámico de los hijos */
+  flex: 1;
+  min-height: 0;
 }
+
 .nav-btn {
   background: transparent;
   border: none;
@@ -40,38 +49,51 @@
   width: 100%;
   white-space: nowrap;
   overflow: hidden;
+  /* Evitar que los botones fijos se aplasten */
+  flex-shrink: 0; 
 }
+
 .nav-btn:hover,
 .nav-btn.active {
   background: var(--bg-hover);
   color: var(--text-main);
 }
+
 .nav-btn i {
   width: 20px;
   font-size: 1.1rem;
   text-align: center;
   flex-shrink: 0;
 }
+
 .nav-divider {
   height: 1px;
   background-color: var(--border-color);
   margin: var(--spacing-xs) 0;
+  /* Evitar aplastamiento */
+  flex-shrink: 0;
 }
+
 .play-btn {
   color: var(--play-color);
   background-color: var(--play-bg);
   border: 1px solid var(--border-color);
 }
+
 .play-btn:hover {
   background-color: var(--text-main);
   color: var(--bg-color);
 }
+
 .config-btn {
   border-radius: 0;
   border-top: 1px solid var(--border-color);
   padding: var(--spacing-md) var(--spacing-lg);
   background-color: var(--bg-panel);
+  /* Evitar aplastamiento */
+  flex-shrink: 0;
 }
+
 .sidebar-resizer {
   position: absolute;
   top: 0;
@@ -83,16 +105,23 @@
   background-color: transparent;
   transition: background-color 0.2s ease;
 }
+
 .sidebar-resizer:hover,
 .sidebar-resizer.resizing {
   background-color: var(--text-muted);
 }
+
+/* El contenedor principal de cada lista (Engines / Standalone Mods) */
 .engines-list {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-sm);
   margin-top: var(--spacing-sm);
+  /* Compartir el espacio entre las listas disponibles */
+  flex: 1 1 auto;
+  min-height: 0;
 }
+
 .section-title {
   font-size: 0.75rem;
   text-transform: uppercase;
@@ -100,19 +129,31 @@
   letter-spacing: 1px;
   margin: 0 var(--spacing-sm);
   font-weight: 800;
+  /* Evitar aplastamiento */
+  flex-shrink: 0;
 }
+
+/* El área específica con Overflow donde viven los botones dinámicos */
 .engines-wrapper {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-sm);
+  /* Propiedades de Scroll */
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 4px; /* Un poco de margen para que el scrollbar se vea limpio */
 }
+
 .engine-btn {
   border: 1px solid transparent;
 }
+
 .engine-btn:hover {
   border: 1px solid var(--border-color);
   background-color: var(--bg-hover);
 }
+
 .engine-icon {
   width: 20px;
   height: 20px;
@@ -120,7 +161,8 @@
   border-radius: 4px;
   flex-shrink: 0;
 }
-/* Agregado para el efecto marquee */
+
+/* Efecto marquee */
 .marquee-container {
   overflow: hidden;
   white-space: nowrap;
@@ -134,8 +176,6 @@
   display: inline-block;
 }
 
-/* Solo se anima si la caja en hover tiene un nombre lo suficientemente largo, 
-   o podemos animar por defecto para revelar texto escondido */
 .nav-btn:hover .marquee-text {
   animation: marquee 4s linear infinite;
 }
@@ -146,8 +186,25 @@
   }
   50% {
     transform: translateX(-50%);
-  } /* Ajustable dependiendo de longitud media */
+  }
   100% {
     transform: translateX(0);
   }
+}
+/* Scrollbar personalizado para la lista de Engines y Standalone Mods */
+.engines-wrapper::-webkit-scrollbar {
+  width: 2px; /* Super delgadito */
+}
+
+.engines-wrapper::-webkit-scrollbar-track {
+  background: transparent; /* Fondo invisible */
+}
+
+.engines-wrapper::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.15); /* Blanco casi transparente */
+  border-radius: 10px;
+}
+
+.engines-wrapper::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(255, 255, 255, 0.3); /* Un poquito más visible al pasar el mouse */
 }
