@@ -116,7 +116,7 @@
 }
 
 /* Keep the lift on hover without a colored glow. */
-.mod-manager-card:hover {
+.mod-manager-card:not(.is-hidden):hover {
   transform: translateY(-4px);
 }
 
@@ -177,6 +177,10 @@
 
 .mod-manager-launch-btn:disabled {
   cursor: wait;
+}
+
+.mod-manager-card.is-hidden .mod-manager-launch-btn:disabled {
+  cursor: not-allowed;
 }
 
 .mod-manager-launch-btn .mod-manager-close-label {

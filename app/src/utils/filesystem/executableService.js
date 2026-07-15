@@ -40,9 +40,19 @@ export class ExecutableService {
     try {
       const executableDir = this.getDirectory(executablePath);
       const entries = await Neutralino.filesystem.readDirectory(executableDir);
+      const iconMimeTypes = {
+        ".ico": "image/x-icon",
+        ".icns": "image/x-icns",
+        ".png": "image/png",
+        ".svg": "image/svg+xml",
+      };
       const icon = entries.find(
-        (entry) =>
-          entry.type === "FILE" && entry.entry.toLowerCase().endsWith(".ico"),
+        (entry) => {
+          const extension = entry.entry
+            .slice(entry.entry.lastIndexOf("."))
+            .toLowerCase();
+          return entry.type === "FILE" && extension in iconMimeTypes;
+        },
       );
       if (!icon) return "";
 
@@ -52,7 +62,10 @@ export class ExecutableService {
       const bytes = new Uint8Array(data);
       let binary = "";
       for (const byte of bytes) binary += String.fromCharCode(byte);
-      return `data:image/x-icon;base64,${window.btoa(binary)}`;
+      const extension = icon.entry
+        .slice(icon.entry.lastIndexOf("."))
+        .toLowerCase();
+      return `data:${iconMimeTypes[extension]};base64,${window.btoa(binary)}`;
     } catch (error) {
       return "";
     }
