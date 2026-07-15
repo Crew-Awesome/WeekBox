@@ -6,6 +6,7 @@ import {
   getEngineLaunchBehavior,
 } from "../../config/engines.js";
 import { applyDominantColor } from "../../utils/extractColor.js";
+import { engineUpdateToast } from "../engines/engineUpdateToast.js";
 
 export const modManagerModal = {
   versionPickerOutsideHandler: null,
@@ -522,6 +523,15 @@ export const modManagerModal = {
       launchBtn.addEventListener("click", async () => {
         launchBtn.disabled = true;
         try {
+          if (FS.getModLaunchState(mod, engine, isExecutable) === "unavailable") {
+            const engineInfo = ENGINE_DETAILS[mod.engineId];
+            engineUpdateToast.missingEngine(
+              mod.engineId,
+              engineInfo?.name || "the assigned engine",
+              engineInfo?.icon,
+            );
+            return;
+          }
           await FS.toggleModLaunch(
             mod,
             engine,
