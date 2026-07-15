@@ -96,6 +96,29 @@ export const gameBananaApi = {
     return false;
   },
 
+  isInCategory(categoryId, ...categories) {
+    const requestedId = Number(categoryId);
+    if (!Number.isFinite(requestedId)) return false;
+
+    const pending = categories.filter(Boolean);
+    const seen = new Set();
+    while (pending.length) {
+      const category = pending.shift();
+      if (Number(category) === requestedId) return true;
+      if (typeof category !== "object" || seen.has(category)) continue;
+      seen.add(category);
+      if (this.getCategoryId(category) === requestedId) return true;
+      pending.push(
+        category._aCategory,
+        category._aRootCategory,
+        category._aSubCategory,
+        category._aParentCategory,
+        category._aSuperCategory,
+      );
+    }
+    return false;
+  },
+
   // 1. Detección Inteligente y recursiva de categorías y motores
   getEngineIdForCategories(...categories) {
     const pending = categories.filter((c) => c !== null && c !== undefined);
@@ -308,10 +331,10 @@ export const gameBananaApi = {
 
   async getRipeMods(page = 1, categoryId = null, options = {}) {
     try {
-      const targetEngine = categoryId
-        ? this.getEngineIdForCategory(categoryId)
+      const targetCategoryId = Number.isFinite(Number(categoryId))
+        ? Number(categoryId)
         : null;
-      const cacheKey = targetEngine || "all";
+      const cacheKey = targetCategoryId || "all";
       const feed = this.ripeFeedCache.get(cacheKey) || {
         sourcePage: 1,
         mods: [],
@@ -355,7 +378,18 @@ export const gameBananaApi = {
             mod._aSubCategory,
             mod._idCategory,
           );
-          if (!engineId || (targetEngine && engineId !== targetEngine)) continue;
+          if (
+            !engineId ||
+            (targetCategoryId &&
+              !this.isInCategory(
+                targetCategoryId,
+                mod._aCategory,
+                mod._aSuperCategory,
+                mod._aRootCategory,
+                mod._aSubCategory,
+              ))
+          )
+            continue;
           if (feed.modIds.has(mod._idRow)) continue;
           feed.modIds.add(mod._idRow);
           feed.mods.push({ ...mod, __resolvedEngineId: engineId });
