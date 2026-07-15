@@ -162,15 +162,20 @@ export const enginesView = {
           this.currentVersion,
           downloadUrl,
           (progressInfo) => {
-            this.downloadProgress = progressInfo.progress;
-            const p = Math.floor(progressInfo.progress);
-            const progressText = progressInfo.status.startsWith("Extracting:")
-              ? progressInfo.status
-              : `${p}% - ${progressInfo.status}`;
+            const progress = Math.min(
+              100,
+              Math.max(0, Number(progressInfo?.progress) || 0),
+            );
+            const status = String(progressInfo?.status || "Working...");
+            this.downloadProgress = progress;
+            const p = Math.floor(progress);
+            const progressText = status.startsWith("Extracting:")
+              ? "Installing files..."
+              : `${p}% - ${status}`;
             if (dlText) dlText.textContent = progressText;
             if (dlTextSizer) dlTextSizer.textContent = progressText;
             if (dlActiveLayer) {
-              dlActiveLayer.style.clipPath = `inset(0 ${100 - progressInfo.progress}% 0 0)`;
+              dlActiveLayer.style.clipPath = `inset(0 ${100 - progress}% 0 0)`;
             }
           },
           (state) => this.updateInstallState(state, activeBtn),
