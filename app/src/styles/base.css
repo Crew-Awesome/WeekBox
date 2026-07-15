@@ -44,6 +44,12 @@ p {
   display: flex;
   height: 100vh;
   width: 100vw;
+  transition: filter 180ms ease;
+}
+
+body.window-unfocused .app-layout {
+  filter: blur(7px) brightness(0.72);
+  pointer-events: none;
 }
 
 .content {

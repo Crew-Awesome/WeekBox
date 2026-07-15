@@ -9,6 +9,13 @@ import { FS } from "../utils/filesystem.js";
 async function startApp() {
   try {
     Neutralino.init();
+    const syncWindowFocus = () => {
+      document.body.classList.toggle("window-unfocused", !document.hasFocus());
+    };
+    window.addEventListener("blur", syncWindowFocus);
+    window.addEventListener("focus", syncWindowFocus);
+    document.addEventListener("visibilitychange", syncWindowFocus);
+    syncWindowFocus();
     disableProductionRefreshShortcuts();
 
     Neutralino.events.on("windowClose", async () => {
