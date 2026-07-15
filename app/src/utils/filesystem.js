@@ -224,6 +224,29 @@ class FileSystemService extends EventTarget {
     );
   }
 
+  async cleanupEngineMods(engineId, version) {
+    const modsPath = `${this.enginesPath}/${engineId}/${version}/mods`;
+    if (!(await this.api.exists(modsPath))) return;
+
+    try {
+      const files = await Neutralino.filesystem.readDirectory(modsPath);
+      for (const file of files) {
+        if (file.entry !== '.' && file.entry !== '..') {
+          const linkPath = `${modsPath}/${file.entry}`;
+          if (window.NL_OS === "Windows") {
+            // rmdir es seguro para uniones (Junctions), remueve el enlace sin tocar el original
+            await Neutralino.os.execCommand(`cmd /c rmdir "${linkPath.replace(/\//g, '\\')}"`, { background: true }).catch(() => {});
+          } else {
+            // Para Linux/Mac borramos el symlink
+            await Neutralino.os.execCommand(`rm -rf "${linkPath}"`, { background: true }).catch(() => {});
+          }
+        }
+      }
+    } catch (error) {
+      console.warn("Could not clean up mods shortcuts", error);
+    }
+  }
+
   async injectModIntoInstalledEngines(modId) {
     const mod = (await this.getInstalledMods()).find(
       (item) => item.id === modId,

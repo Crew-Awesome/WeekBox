@@ -1,9 +1,8 @@
-// ui/engines/downloadEngine.js
 import { FS } from "../../utils/filesystem.js";
 
 export const downloadEngine = {
   activeTasks: new Map(),
-  
+
   getTaskKey(engineId, version) {
     return `${engineId}:${version}`;
   },
@@ -29,10 +28,8 @@ export const downloadEngine = {
   async cleanupTask(task) {
     await this.stopProcess(task);
     
-    // 1. Elimina el Zip temporal si existe
     await FS.api.remove(task.tempFilePath).catch(() => {});
     
-    // 2. Usamos comandos del OS para borrar recursivamente la carpeta y sus archivos
     const vPath = task.engineDir;
     try {
       if (window.NL_OS === 'Windows') {
@@ -61,8 +58,50 @@ export const downloadEngine = {
     );
   },
 
+  // Función inteligente para buscar el ejecutable y subir todo su contenido a la raíz de {version}
+  async flattenEngineDir(engineDir) {
+    const exePath = await FS.findExecutable(engineDir);
+    if (!exePath) return; // Si no hay ejecutable, la estructura se queda como está
+
+    const executableDir = exePath.slice(
+      0,
+      Math.max(exePath.lastIndexOf("/"), exePath.lastIndexOf("\\"))
+    ).replace(/\\/g, "/");
+    
+    const normalizedEngineDir = engineDir.replace(/\\/g, "/");
+
+    // Si el ejecutable está en una subcarpeta y no en la raíz
+    if (executableDir !== normalizedEngineDir && executableDir.startsWith(normalizedEngineDir)) {
+      try {
+        const files = await Neutralino.filesystem.readDirectory(executableDir);
+        for (const file of files) {
+          if (file.entry === "." || file.entry === "..") continue;
+          
+          const fromPath = `${executableDir}/${file.entry}`;
+          const toPath = `${normalizedEngineDir}/${file.entry}`;
+          
+          await Neutralino.filesystem.move(fromPath, toPath);
+        }
+
+        // Limpiar las subcarpetas vacías que quedaron después de mover los archivos
+        const relativePart = executableDir.substring(normalizedEngineDir.length + 1);
+        const topSubDir = relativePart.split("/")[0];
+        const dirToRemove = `${normalizedEngineDir}/${topSubDir}`;
+        
+        if (window.NL_OS === "Windows") {
+          await Neutralino.os.execCommand(`rmdir /S /Q "${dirToRemove.replace(/\//g, "\\")}"`, { background: true }).catch(() => {});
+        } else {
+          await Neutralino.os.execCommand(`rm -rf "${dirToRemove}"`, { background: true }).catch(() => {});
+        }
+      } catch (error) {
+        console.warn("Could not organize engine folder:", error);
+      }
+    }
+  },
+
   async install(engineId, version, downloadUrl, onProgress, onStateChange) {
     if (!FS.isInitialized) await FS.init();
+
     const enginesBasePath = FS.enginesPath;
     const engineDir = `${enginesBasePath}/${engineId}/${version}`;
     const tempFilePath = `${enginesBasePath}/temp_${engineId}_${version}.zip`;
@@ -93,12 +132,9 @@ export const downloadEngine = {
       await FS.api.ensureDir(`${enginesBasePath}/${engineId}`);
       await FS.api.ensureDir(engineDir);
       
-      // MARCADOR DE DESCARGA ACTIVA (Nos sirve para limpiar si se cierra bruscamente)
       await FS.api.write(`${engineDir}/.downloading`, "1");
-
       const os = window.NL_OS;
       
-      // 1. Fase de Descarga
       updateProgress("Connecting...", 2);
       await this.downloadWithProgress(
         downloadUrl,
@@ -106,7 +142,6 @@ export const downloadEngine = {
         updateProgress,
       );
       
-      // 2. Fase de Extracción
       task.phase = "extracting";
       this.notifyState(task, "installing");
       updateProgress("Installing...", 98);
@@ -116,11 +151,13 @@ export const downloadEngine = {
         os,
         updateProgress,
       );
+
+      updateProgress("Organizing files...", 99);
+      await this.flattenEngineDir(engineDir); // Usamos el nuevo método en lugar de flattenModFolder
       
-      // 3. Limpieza final
       updateProgress("Cleaning temporary files...", 99);
       await FS.api.remove(tempFilePath).catch(() => {});
-      await FS.api.remove(`${engineDir}/.downloading`).catch(() => {}); // Eliminamos el marcador
+      await FS.api.remove(`${engineDir}/.downloading`).catch(() => {});
 
       const injectionResults = await FS.injectModsIntoEngine(engineId, version);
       injectionResults
@@ -138,10 +175,8 @@ export const downloadEngine = {
       if (!task.cancelled)
         console.error(`Error installing engine ${engineId}:`, error);
         
-      // Intentamos eliminar el temporal
       await FS.api.remove(tempFilePath).catch(() => {});
       
-      // Si la descarga fracasó o se canceló, aseguramos borrar la carpeta de archivos parciales.
       try {
         if (window.NL_OS === 'Windows') {
           await Neutralino.os.execCommand(`rmdir /S /Q "${engineDir.replace(/\//g, '\\')}"`, { background: true });
@@ -170,6 +205,7 @@ export const downloadEngine = {
           (activeTask) => activeTask.tempFilePath === outPath,
         );
         if (task) task.pid = process.pid;
+
         const handler = (event) => {
           if (event.detail.id === process.id) {
             if (task?.cancelled) {
@@ -213,17 +249,18 @@ export const downloadEngine = {
     return new Promise(async (resolve, reject) => {
       let cmd = "";
       if (os === "Windows") {
-        // tar es mucho más rápido que PowerShell y nos permite ver los archivos
         cmd = `tar -xvf "${zipPath}" -C "${destPath}"`;
       } else {
         cmd = `unzip -o "${zipPath}" -d "${destPath}"`;
       }
+
       try {
         const process = await Neutralino.os.spawnProcess(cmd);
         const task = [...this.activeTasks.values()].find(
           (activeTask) => activeTask.engineDir === destPath,
         );
         if (task) task.pid = process.pid;
+
         const handler = (event) => {
           if (event.detail.id === process.id) {
             if (task?.cancelled) {
@@ -237,13 +274,13 @@ export const downloadEngine = {
               if (output) {
                 const lines = output.split("\n");
                 const lastLine = lines[lines.length - 1].trim();
-                // Limpiamos la salida dependiendo de si es tar o unzip
                 let fileName = lastLine
-                  .replace(/^x\s+/, "") // de 'tar'
-                  .replace(/^inflating:\s+/, "") // de 'unzip'
+                  .replace(/^x\s+/, "")
+                  .replace(/^inflating:\s+/, "")
                   .replace(/^extracting:\s+/, "")
                   .replace(/^creating:\s+/, "")
                   .trim();
+
                 const pathParts = fileName.split(/[/\\]/);
                 if (pathParts.length > 2) {
                   fileName = `.../${pathParts.slice(-2).join("/")}`;

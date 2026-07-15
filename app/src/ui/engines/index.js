@@ -26,11 +26,9 @@ export const enginesView = {
       this.updateButtonState();
     });
   },
-
   destroy() {
     engineDropdown.destroy();
   },
-
   async updateButtonState() {
     const launchBtn = document.getElementById("launch-engine-btn");
     const dlUI = document.getElementById("download-ui");
@@ -105,16 +103,14 @@ export const enginesView = {
         
         activeBtn.disabled = true;
         activeBtn.textContent = "Running...";
-
         await modsMaster.injectBeforeLaunch(
           this.currentEngine.id,
           this.currentVersion
         );
-
         await FS.runEngine(
           this.currentEngine.id,
           this.currentVersion,
-          (state) => {
+          async (state) => {
             if (state === "launched") {
               showLaunched();
             } else if (state === "already_running") {
@@ -128,6 +124,7 @@ export const enginesView = {
               activeBtn.classList.remove("engine-running");
               activeBtn.disabled = false;
               activeBtn.textContent = "Launch";
+              await modsMaster.cleanupAfterExit(this.currentEngine.id, this.currentVersion);
             }
           },
         );
@@ -197,7 +194,6 @@ export const enginesView = {
       });
     }
   },
-
   setupDownloadActions(activeBtn, downloadActions) {
     if (!downloadActions || !this.activeInstall) return;
     downloadActions.hidden = false;
@@ -211,7 +207,6 @@ export const enginesView = {
     };
     activeBtn.textContent = "Downloading...";
   },
-
   updateInstallState(state, activeBtn) {
     const cancelBtn = document.getElementById("cancel-engine-download-btn");
     if (state === "downloading") {
@@ -223,7 +218,6 @@ export const enginesView = {
       if (cancelBtn) cancelBtn.disabled = true;
     }
   },
-
   animateRollback() {
     const dlText = document.getElementById("dl-text");
     const dlTextSizer = document.getElementById("dl-text-sizer");
