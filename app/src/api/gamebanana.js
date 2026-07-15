@@ -21,8 +21,6 @@ export const gameBananaApi = {
     "https://raw.githubusercontent.com/Crew-Awesome/weekbox.featured/main/public/featured.json",
   featuredCacheKey: "weekbox-featured-v2",
   searchCache: new Map(),
-  categoryHierarchyCache: new Map(),
-  categoryHierarchyRequests: new Map(),
   modProfileCache: new Map(),
   modProfileRequests: new Map(),
   featuredService: null,
@@ -143,26 +141,6 @@ export const gameBananaApi = {
     );
   },
 
-  async getCategoryHierarchy(categoryId) {
-    const id = Number(categoryId);
-    if (!id) return null;
-    if (this.categoryHierarchyCache.has(id))
-      return this.categoryHierarchyCache.get(id);
-    if (this.categoryHierarchyRequests.has(id))
-      return this.categoryHierarchyRequests.get(id);
-    const request = fetch(`${this.baseUrl}/ModCategory/${id}/ProfilePage`)
-      .then(async (response) => {
-        if (!response.ok) return null;
-        const category = await response.json();
-        this.categoryHierarchyCache.set(id, category);
-        return category;
-      })
-      .catch(() => null)
-      .finally(() => this.categoryHierarchyRequests.delete(id));
-    this.categoryHierarchyRequests.set(id, request);
-    return request;
-  },
-
   async getModProfile(modId) {
     const id = Number(modId);
     if (!id) return null;
@@ -199,29 +177,6 @@ export const gameBananaApi = {
     );
     if (namedEngine) return namedEngine;
 
-    const seen = new Set();
-    let category =
-      mod._aCategory ||
-      mod._aSubCategory ||
-      mod._aSuperCategory ||
-      mod._aRootCategory ||
-      mod._idCategory;
-    while (category) {
-      const categoryId = this.getCategoryId(category) || Number(category);
-      if (!categoryId || seen.has(categoryId)) break;
-      seen.add(categoryId);
-      const hierarchy = await this.getCategoryHierarchy(categoryId);
-      if (!hierarchy) break;
-      const engine = this.getEngineIdForCategories(hierarchy);
-      if (engine) return engine;
-      const hierarchyNameEngine = this.getEngineIdForCategoryName(hierarchy);
-      if (hierarchyNameEngine) return hierarchyNameEngine;
-      category =
-        hierarchy._aSuperCategory ||
-        hierarchy._aParentCategory ||
-        hierarchy._aRootCategory ||
-        null;
-    }
     const profile = await this.getModProfile(mod._idRow);
     if (!profile) return null;
     return (
@@ -268,8 +223,8 @@ export const gameBananaApi = {
 
   async getModDetails(modId) {
     try {
-      const res = await fetch(`${this.baseUrl}/Mod/${modId}/ProfilePage`);
-      const data = await res.json();
+      const data = await this.getModProfile(modId);
+      if (!data) return null;
       let images = [];
       if (data._aPreviewMedia && data._aPreviewMedia._aImages) {
         images = data._aPreviewMedia._aImages.map(
