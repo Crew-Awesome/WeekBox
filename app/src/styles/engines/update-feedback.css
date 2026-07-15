@@ -203,21 +203,29 @@
   color: #fff;
 }
 .engine-update-toast.missing-engine {
+  overflow: visible;
   border-color: rgb(217 91 91 / 72%);
 }
 .engine-update-toast.missing-engine .engine-update-toast-icon {
+  position: relative;
+  z-index: 1;
+  overflow: visible !important;
   background: #242424;
   color: #fff;
 }
 .engine-missing-icon {
   position: relative;
   display: grid;
+  width: 24px;
+  height: 24px;
   place-items: center;
+  overflow: visible !important;
 }
 .engine-missing-icon i {
   position: absolute;
-  inset: 0;
-  margin: auto;
+  z-index: 3;
+  left: 0;
+  bottom: 0;
   display: grid;
   width: 18px;
   height: 18px;
@@ -227,6 +235,8 @@
   background: rgb(217 91 91 / 94%);
   color: #fff;
   font-size: 9px;
+  transform: translate(-50%, 50%);
+  box-shadow: 0 2px 5px rgb(0 0 0 / 45%);
 }
 
 @media (max-width: 480px) {
