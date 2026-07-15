@@ -1,4 +1,5 @@
 import { APIneuFileSystem } from "./filesystem/APIneuFileSystem.js";
+import { getEngineLaunchBehavior } from "../config/engines.js";
 import { ExecutableService } from "./filesystem/executableService.js";
 import { ModInjectionService } from "./filesystem/modInjectionService.js";
 import { ModRepository } from "./filesystem/modRepository.js";
@@ -149,6 +150,49 @@ class FileSystemService {
 
   getRunningEngineMod(engineId, version) {
     return this.activeEngineMods.get(`${engineId}:${version}`) || null;
+  }
+
+  getModLaunchState(mod, engine, isStandalone) {
+    if (isStandalone) {
+      return this.isStandaloneModRunning(mod.id) ? "running" : "launch";
+    }
+    if (!engine) return "unavailable";
+    if (!this.isEngineRunning(engine.id, engine.version)) return "launch";
+    const behavior = getEngineLaunchBehavior(engine.id);
+    if (behavior.scope !== "exclusive-mod") return "running";
+    const runningModId = this.getRunningEngineMod(engine.id, engine.version);
+    if (runningModId === null) return "switch";
+    return String(runningModId) === String(mod.id) ? "running" : "switch";
+  }
+
+  async toggleModLaunch(mod, engine, isStandalone, onStateChange) {
+    const state = this.getModLaunchState(mod, engine, isStandalone);
+    if (state === "unavailable") throw new Error("Assigned engine is not installed");
+    if (isStandalone) {
+      return state === "running"
+        ? this.closeStandaloneMod(mod.id)
+        : this.runStandaloneMod(mod.id, onStateChange);
+    }
+
+    const behavior = getEngineLaunchBehavior(engine.id);
+    const launch = async () => {
+      await this.injectModIntoEngine(mod.id, engine.id, engine.version);
+      const args = behavior.usesModArgument
+        ? ["-mod", getModFolderName(mod)]
+        : [];
+      return this.runEngine(
+        engine.id,
+        engine.version,
+        onStateChange,
+        args,
+        behavior.scope === "exclusive-mod" ? mod.id : null,
+      );
+    };
+
+    if (state === "launch") return launch();
+    if (state === "running") return this.closeEngine(engine.id, engine.version);
+    if (await this.closeEngineAndWait(engine.id, engine.version)) return launch();
+    return false;
   }
 
   async getInstalledEngines() {

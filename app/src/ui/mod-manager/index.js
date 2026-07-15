@@ -1,8 +1,5 @@
 import { FS } from "../../utils/filesystem.js";
-import {
-  getModFolderName,
-  sanitizePathSegment,
-} from "../../utils/filesystem/pathUtils.js";
+import { sanitizePathSegment } from "../../utils/filesystem/pathUtils.js";
 import { gameBananaApi } from "../../api/gamebanana.js";
 import { ENGINE_DETAILS } from "../../config/engines.js";
 
@@ -160,29 +157,20 @@ export const modManagerModal = {
     const refreshLaunchButtons = () => {
       gridContainer.querySelectorAll(".mod-manager-launch-btn").forEach((button) => {
         if (button.disabled) return;
-        const engineIsRunning =
-          button.dataset.launchKind === "standalone"
-            ? FS.isStandaloneModRunning(button.dataset.modId)
-            : FS.isEngineRunning(
-                button.dataset.engineId,
-                button.dataset.engineVersion,
-              );
-        const runningModId =
-          button.dataset.engineId === "codename"
-            ? FS.getRunningEngineMod(
-                button.dataset.engineId,
-                button.dataset.engineVersion,
-              )
-            : null;
-        const isRunning =
-          engineIsRunning &&
-          (button.dataset.engineId !== "codename" ||
-            String(runningModId) === button.dataset.modId);
-        const canSwitchMod =
-          engineIsRunning &&
-          button.dataset.engineId === "codename" &&
-          runningModId !== null &&
-          String(runningModId) !== button.dataset.modId;
+        const isStandalone = button.dataset.launchKind === "standalone";
+        const engine = isStandalone
+          ? null
+          : {
+              id: button.dataset.engineId,
+              version: button.dataset.engineVersion,
+            };
+        const state = FS.getModLaunchState(
+          { id: button.dataset.modId },
+          engine,
+          isStandalone,
+        );
+        const isRunning = state === "running";
+        const canSwitchMod = state === "switch";
         button.classList.toggle("is-running", isRunning);
         button.classList.toggle("is-switchable", canSwitchMod);
         button.setAttribute(
@@ -287,41 +275,12 @@ export const modManagerModal = {
       launchBtn.addEventListener("click", async () => {
         launchBtn.disabled = true;
         try {
-          if (isExecutable) {
-            if (FS.isStandaloneModRunning(mod.id)) {
-              await FS.closeStandaloneMod(mod.id);
-            } else {
-              await FS.runStandaloneMod(mod.id, refreshLaunchButtons);
-            }
-          } else {
-            if (!engine) throw new Error("Assigned engine is not installed");
-            const launchEngine = async () => {
-              await FS.injectModIntoEngine(mod.id, engine.id, engine.version);
-              const args =
-                engine.id === "codename"
-                  ? ["-mod", getModFolderName(mod)]
-                  : [];
-              await FS.runEngine(
-                engine.id,
-                engine.version,
-                refreshLaunchButtons,
-                args,
-                engine.id === "codename" ? mod.id : null,
-              );
-            };
-            if (!FS.isEngineRunning(engine.id, engine.version)) {
-              await launchEngine();
-            } else if (
-              engine.id === "codename" &&
-              FS.getRunningEngineMod(engine.id, engine.version) !== mod.id
-            ) {
-              if (await FS.closeEngineAndWait(engine.id, engine.version)) {
-                await launchEngine();
-              }
-            } else {
-              await FS.closeEngine(engine.id, engine.version);
-            }
-          }
+          await FS.toggleModLaunch(
+            mod,
+            engine,
+            isExecutable,
+            refreshLaunchButtons,
+          );
         } catch (error) {
           console.error("Could not launch mod", error);
         } finally {
