@@ -5,60 +5,11 @@ import {
   ENGINE_DETAILS,
   getEngineLaunchBehavior,
 } from "../../config/engines.js";
-import { engineUpdateToast } from "../engines/engineUpdateToast.js";
-
-function extractColor(img, card) {
-  const processColor = () => {
-    try {
-      const canvas = document.createElement("canvas");
-      const ctx = canvas.getContext("2d");
-      canvas.width = img.naturalWidth || 64;
-      canvas.height = img.naturalHeight || 64;
-      ctx.drawImage(img, 0, 0);
-      const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
-
-      let r = 0,
-        g = 0,
-        b = 0,
-        count = 0;
-      for (let i = 0; i < data.length; i += 16) {
-        const pr = data[i],
-          pg = data[i + 1],
-          pb = data[i + 2];
-        if (pr > 20 && pr < 240 && pg > 20 && pg < 240 && pb > 20 && pb < 240) {
-          r += pr;
-          g += pg;
-          b += pb;
-          count++;
-        }
-      }
-      if (count === 0) {
-        for (let i = 0; i < data.length; i += 16) {
-          r += data[i];
-          g += data[i + 1];
-          b += data[i + 2];
-          count++;
-        }
-      }
-      if (count > 0) {
-        r = Math.floor(r / count);
-        g = Math.floor(g / count);
-        b = Math.floor(b / count);
-        card.style.setProperty("--card-color", `rgba(${r}, ${g}, ${b}, 0.7)`);
-      }
-    } catch (e) {
-      card.style.setProperty("--card-color", "rgba(255, 255, 255, 0.3)");
-    }
-  };
-
-  if (img.complete) processColor();
-  else img.addEventListener("load", processColor);
-}
+import { applyDominantColor } from "../../utils/extractColor.js";
 
 export const modManagerModal = {
   versionPickerOutsideHandler: null,
   engineFilter: "all",
-
   async init() {
     if (!document.getElementById("mod-manager-modal")) {
       const response = await fetch("src/html/mod-manager.html");
@@ -67,7 +18,6 @@ export const modManagerModal = {
       const wrapper = document.createElement("div");
       wrapper.innerHTML = html;
       document.body.appendChild(wrapper.firstElementChild);
-
       document
         .getElementById("mod-manager-close-btn")
         .addEventListener("click", () => this.close());
@@ -76,7 +26,6 @@ export const modManagerModal = {
         .addEventListener("click", (e) => {
           if (e.target.id === "mod-manager-modal") this.close();
         });
-
       const toggleBtn = document.getElementById("mod-manager-view-toggle");
       toggleBtn.addEventListener("click", () => {
         const grid = document.getElementById("mod-manager-grid-container");
@@ -90,7 +39,6 @@ export const modManagerModal = {
           ? "fa-solid fa-table-cells-large"
           : "fa-solid fa-list";
       });
-
       const engineFilter = document.getElementById("mod-manager-engine-filter");
       const engineFilterTrigger = engineFilter.querySelector(
         ".mod-manager-filter-trigger",
@@ -122,7 +70,6 @@ export const modManagerModal = {
       });
     }
   },
-
   async open() {
     await this.init();
     if (!FS.isInitialized) await FS.init();
@@ -132,7 +79,6 @@ export const modManagerModal = {
     requestAnimationFrame(() => modal.classList.add("show"));
     await this.loadInstalledMods();
   },
-
   close() {
     const modal = document.getElementById("mod-manager-modal");
     if (!modal) return;
@@ -143,7 +89,6 @@ export const modManagerModal = {
       modal.style.display = "none";
     }, 300);
   },
-
   async getBase64FromUrl(url) {
     try {
       const res = await fetch(url);
@@ -157,13 +102,11 @@ export const modManagerModal = {
       return null;
     }
   },
-
   async loadInstalledMods() {
     const mods = await FS.getInstalledMods();
     const standaloneMods = await FS.getStandaloneMods();
     await this.render(mods, standaloneMods);
   },
-
   syncEngineFilterOptions(mods, standaloneMods) {
     const filter = document.getElementById("mod-manager-engine-filter");
     if (!filter) return;
@@ -184,7 +127,6 @@ export const modManagerModal = {
       ...engineIds,
     ]);
     if (!supportedFilters.has(this.engineFilter)) this.engineFilter = "all";
-
     const options = [
       { value: "all", label: "All mods", iconClass: "fa-layer-group" },
       ...(standaloneIds.size
@@ -244,11 +186,9 @@ export const modManagerModal = {
       }),
     );
   },
-
   async render(mods, standaloneMods) {
     const container = document.getElementById("mod-manager-modal-body");
     if (!container) return;
-
     document.removeEventListener("click", this.versionPickerOutsideHandler);
     this.versionPickerOutsideHandler = null;
     this.syncEngineFilterOptions(mods, standaloneMods);
@@ -259,7 +199,6 @@ export const modManagerModal = {
         return standaloneModIds.has(mod.id);
       return !standaloneModIds.has(mod.id) && mod.engineId === this.engineFilter;
     });
-
     container.innerHTML = "";
     if (filteredMods.length === 0) {
       const message =
@@ -269,11 +208,9 @@ export const modManagerModal = {
       container.innerHTML = `<div class="empty-mods-state">${message}</div>`;
       return;
     }
-
     const gridContainer = document.createElement("div");
     gridContainer.id = "mod-manager-grid-container";
     gridContainer.className = "mod-manager-grid";
-
     const isListView =
       localStorage.getItem("weekbox_mod_manager_view") === "list";
     if (isListView) gridContainer.classList.add("list-view");
@@ -282,9 +219,7 @@ export const modManagerModal = {
       toggleIcon.className = isListView
         ? "fa-solid fa-table-cells-large"
         : "fa-solid fa-list";
-
     container.appendChild(gridContainer);
-
     const closeCompatibilityPickers = async () => {
       const changes = [];
       gridContainer
@@ -330,10 +265,8 @@ export const modManagerModal = {
       }
     };
     document.addEventListener("click", this.versionPickerOutsideHandler);
-
     let needsJsonUpdate = false;
     const installedEngines = await FS.getInstalledEngines();
-
     const refreshLaunchButtons = () => {
       gridContainer
         .querySelectorAll(".mod-manager-launch-btn")
@@ -366,10 +299,8 @@ export const modManagerModal = {
               : `<i class="fa-solid fa-play" aria-hidden="true"></i><span>${button.dataset.launchLabel}</span>`;
         });
     };
-
     for (const mod of filteredMods) {
       let imageUrl = "assets/icons/default-mod.png";
-
       if (mod.imageBase64) {
         imageUrl = mod.imageBase64;
       } else {
@@ -380,7 +311,6 @@ export const modManagerModal = {
             remoteUrl = details.images[0];
           }
         }
-
         if (remoteUrl) {
           const b64 = await this.getBase64FromUrl(remoteUrl);
           if (b64) {
@@ -390,7 +320,6 @@ export const modManagerModal = {
           }
         }
       }
-
       const isExecutable = standaloneModIds.has(mod.id);
       const engine = isExecutable
         ? null
@@ -400,7 +329,6 @@ export const modManagerModal = {
               (!mod.engineVersion || item.version === mod.engineVersion),
           );
       let engineBadgeHtml = `<div class="mod-manager-engine-badge"><i class="fa-solid fa-question-circle"></i><span>Unassigned</span></div>`;
-
       if (isExecutable) {
         engineBadgeHtml = `
           <div class="mod-manager-engine-badge">
@@ -457,10 +385,8 @@ export const modManagerModal = {
             </div>
           </div>`;
       }
-
       const isHidden = mod.hidden ? "opacity: 0.5;" : "";
       const eyeIcon = mod.hidden ? "fa-eye-slash" : "fa-eye";
-
       const card = document.createElement("div");
       card.className = "mod-manager-card";
       card.classList.toggle("is-hidden", Boolean(mod.hidden));
@@ -470,7 +396,7 @@ export const modManagerModal = {
         getEngineLaunchBehavior(mod.engineId).scope === "exclusive-mod"
           ? "Launch Mod"
           : "Launch Engine";
-      // Aplicamos crossOrigin para poder leer el color
+
       card.innerHTML = `
         <div class="mod-manager-cover-wrap">
           <img class="mod-manager-cover" crossorigin="Anonymous" src="${imageUrl}" alt="Mod Cover" onerror="this.src='https://images.gamebanana.com/img/ss/mods/default.jpg'"/>
@@ -497,9 +423,9 @@ export const modManagerModal = {
         </div>
       `;
 
-      // Extraer color
+      // Aplicar color extraído con la nueva utilidad global
       const imgEl = card.querySelector(".mod-manager-cover");
-      extractColor(imgEl, card);
+      applyDominantColor(imgEl, card);
 
       const deleteBtn = card.querySelector(".mod-manager-delete-btn");
       const launchBtn = card.querySelector(".mod-manager-launch-btn");
@@ -603,16 +529,7 @@ export const modManagerModal = {
             refreshLaunchButtons,
           );
         } catch (error) {
-          if (error?.message === "Assigned engine is not installed") {
-            const engineInfo = ENGINE_DETAILS[mod.engineId];
-            engineUpdateToast.missingEngine(
-              mod.engineId,
-              engineInfo?.name || "the assigned engine",
-              engineInfo?.icon,
-            );
-          } else {
-            console.error("Could not launch mod", error);
-          }
+          console.error("Could not launch mod", error);
         } finally {
           launchBtn.disabled = false;
           refreshLaunchButtons();
@@ -638,7 +555,6 @@ export const modManagerModal = {
           deleteBtn.innerHTML = `<i class="fa-solid fa-trash"></i>`;
         }
       });
-
       const dirBtn = card.querySelector(".mod-manager-dir-btn");
       dirBtn.addEventListener("click", async () => {
         try {
@@ -648,7 +564,6 @@ export const modManagerModal = {
           console.error("Could not open mod directory", e);
         }
       });
-
       const visBtn = card.querySelector(".mod-manager-vis-btn");
       visBtn.addEventListener("click", async () => {
         visBtn.disabled = true;
@@ -669,12 +584,9 @@ export const modManagerModal = {
           visBtn.disabled = false;
         }
       });
-
       gridContainer.appendChild(card);
     }
-
     refreshLaunchButtons();
-
     if (needsJsonUpdate) {
       const jsonPath = `${FS.dataPath}/installedmods.json`;
       await FS.api.write(jsonPath, JSON.stringify(mods, null, 2));
