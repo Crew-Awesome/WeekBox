@@ -50,7 +50,7 @@
   white-space: nowrap;
   overflow: hidden;
   /* Evitar que los botones fijos se aplasten */
-  flex-shrink: 0; 
+  flex-shrink: 0;
 }
 
 .nav-btn:hover,
@@ -183,6 +183,39 @@
   animation: marquee 1.8s ease-in-out 350ms alternate infinite;
 }
 
+.sidebar-brand {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  color: var(--text-main);
+  cursor: pointer;
+  display: flex;
+  flex-shrink: 0;
+  font-family: var(--font-main);
+  font-size: 1.2rem;
+  font-weight: 800;
+  gap: var(--spacing-sm);
+  letter-spacing: 0.5px;
+  margin: 0 0 var(--spacing-xs);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  text-align: left;
+  width: 100%;
+}
+
+.sidebar-brand:focus-visible {
+  outline: 2px solid var(--text-main);
+  outline-offset: 2px;
+}
+
+.sidebar-brand-icon {
+  display: block;
+  flex-shrink: 0;
+  height: 28px;
+  object-fit: contain;
+  transform-origin: center;
+  width: 28px;
+}
+
 @keyframes marquee {
   to {
     transform: translateX(calc(-1 * var(--marquee-distance, 0px)));
@@ -209,5 +242,10 @@
 }
 
 .engines-wrapper::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(255, 255, 255, 0.3); /* Un poquito más visible al pasar el mouse */
+  background-color: rgba(
+    255,
+    255,
+    255,
+    0.3
+  ); /* Un poquito más visible al pasar el mouse */
 }

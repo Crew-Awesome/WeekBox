@@ -1,23 +1,54 @@
-# WeekBox
-<img width="1920" height="1017" alt="abannasn" src="https://github.com/user-attachments/assets/ce15bbd3-69cf-4baf-8f83-cdcc9c1e9293" />
+<p align="center">
+  <img src="./docs/brand/weekbox-banner.png" width="800" alt="WeekBox" />
+</p>
 
-A desktop app for discovering, downloading, installing, and FNF Mods.
-Still InDev
+<p align="center">
+  A desktop launcher for discovering, installing, and managing Friday Night Funkin' mods.
+</p>
 
-Made by ImMalloy and Britex
+## Screenshots
 
-## Run
+### Home
 
-(You will need the Neutralino CLI)
+![WeekBox Home screen showing featured and discoverable FNF mods](./docs/screenshots/home.png)
+
+### Choose a download
+
+![WeekBox download source chooser](./docs/screenshots/download-choice.png)
+
+### Mod Manager
+
+![WeekBox Mod Manager with installed mods](./docs/screenshots/mod-manager.png)
+
+### Engine Manager
+
+![WeekBox Engine Manager with installed engines](./docs/screenshots/engine-manager.png)
+
+### Settings and credits
+
+![WeekBox Settings](./docs/screenshots/settings.png)
+
+![WeekBox Credits screen](./docs/screenshots/credits.png)
+
+## Run and Build
+
 ```bash
+npm install -g @neutralinojs/neu
 neu run
 ```
-or
+
 ```bash
 neu build
 ```
-if you wanna make builds 
+
+The launcher icon, window icon, and Credits icon all come from the same source asset in `app/assets/icons/launcher-icon.png`.
+
+## Credits
+
+WeekBox is made by [ImMalloy](https://github.com/ImMalloy) and [Britex](https://github.com/expertyeti).
+
+It is built with [Neutralinojs](https://neutralino.js.org/) and uses [GameBanana](https://gamebanana.com/) and the Gamebanana API
 
 ## License
 
-[MIT](LICENSE)
+[MIT](./LICENSE)

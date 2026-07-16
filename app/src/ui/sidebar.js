@@ -31,10 +31,12 @@ export const sidebar = {
     this.modManagerBtn = document.getElementById("mod-manager-btn");
     this.engineManagerBtn = document.getElementById("engine-manager-btn");
     this.configBtn = document.getElementById("config-btn");
+    this.brandBtn = document.getElementById("sidebar-brand-btn");
     this.isResizing = false;
     if (!this.sidebar) return;
     this.setupResizer();
     this.setupNavigation();
+    this.setupBrandButton();
     await this.loadEngines();
     engineUpdateService.startScheduledChecks();
   },
@@ -91,6 +93,22 @@ export const sidebar = {
         configModal.open();
       });
     }
+  },
+  setupBrandButton() {
+    if (!this.brandBtn) return;
+    const brandIcon = this.brandBtn.querySelector(".sidebar-brand-icon");
+    if (!brandIcon) return;
+    this.brandBtn.addEventListener("click", () => {
+      brandIcon.animate(
+        [{ transform: "rotate(0deg)" }, { transform: "rotate(360deg)" }],
+        {
+          duration: 420,
+          easing: "linear",
+          composite: "add",
+          fill: "forwards",
+        },
+      );
+    });
   },
   openEngine(engineId) {
     const button = document.querySelector(
