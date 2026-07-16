@@ -8,6 +8,7 @@ import { toastDownloadMod } from "../ui/home/modal/toastDownloadMod.js";
 import { disableProductionRefreshShortcuts } from "./productionShortcuts.js";
 import { FS } from "../utils/filesystem.js";
 import { appSettings } from "./settings.js";
+import { openLaunchDeepLink, openWeekboxLink } from "./deepLinks.js";
 
 function clearTestToasts() {
   document
@@ -63,6 +64,7 @@ function testToasts() {
 window.weekboxDebug = {
   clearToasts: clearTestToasts,
   testToasts,
+  openLink: openWeekboxLink,
 };
 
 async function startApp() {
@@ -91,6 +93,7 @@ async function startApp() {
     registerHomeView();
     registerEnginesView();
     await router.init();
+    await openLaunchDeepLink();
     console.log("WeekBox: modules loaded.");
   } catch (error) {
     console.error("Startup error:", error);

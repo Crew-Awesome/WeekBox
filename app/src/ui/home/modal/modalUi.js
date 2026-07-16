@@ -2,7 +2,7 @@ import { ENGINE_DETAILS } from "../../../config/engines.js";
 
 export async function ensureModal(onClose) {
   if (!document.getElementById("mod-modal")) {
-    const response = await fetch("src/html/modal.html");
+    const response = await fetch("src/html/sections/modal.html");
     if (!response.ok) throw new Error("Could not load mod modal");
     const wrapper = document.createElement("div");
     wrapper.innerHTML = await response.text();

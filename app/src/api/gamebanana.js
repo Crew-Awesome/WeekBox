@@ -8,13 +8,15 @@ import {
   EXCLUDED_MOD_CATEGORY_IDS,
 } from "../config/engines.js";
 
-const NON_DEPENDENCY_REQUIREMENTS = new Set([
-  "mods:309789", // Psych Engine
-  "mods:44201", // FPS Plus
-  "wips:95612", // ALE Psych Engine
-  "mods:598553", // Codename Engine
-  "mods:535203",
+const EXCLUDED_ENGINE_SUBMISSIONS = new Map([
+  ["mods:309789", "psych"],
+  ["mods:44201", "fpsplus"],
+  ["wips:95612", "alepsych"],
+  ["mods:598553", "codename"],
+  ["mods:535203", "pslice"],
 ]);
+
+const NON_DEPENDENCY_REQUIREMENTS = new Set(EXCLUDED_ENGINE_SUBMISSIONS.keys());
 
 export const gameBananaApi = {
   baseUrl: "https://gamebanana.com/apiv11",
@@ -38,6 +40,10 @@ export const gameBananaApi = {
   featuredService: null,
   categoryFeedService: null,
   categoryTransport: null,
+
+  getEngineIdForSubmission(type, id) {
+    return EXCLUDED_ENGINE_SUBMISSIONS.get(`${type}:${id}`) || null;
+  },
   discoveryConfig: DISCOVERY_CONFIG,
 
   getImageUrl(mod) {
