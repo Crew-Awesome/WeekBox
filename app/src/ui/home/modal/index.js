@@ -60,7 +60,11 @@ export const modModal = {
         dependency.title,
         dependency.downloadUrl,
         data.engineId,
-        { kind: "dependency", sourceType: dependency.type },
+        {
+          kind: "dependency",
+          sourceType: dependency.type,
+          toastThumbnail: dependency.thumbnail,
+        },
       );
       if (!installedDependency) return;
     }

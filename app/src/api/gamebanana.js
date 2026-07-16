@@ -231,6 +231,7 @@ export const gameBananaApi = {
       const data = await response.json();
       const file = this.getPrimaryDownloadFile(data);
       if (!file) return null;
+      const preview = data._aPreviewMedia?._aImages?.[0];
       return {
         id: data._idRow,
         dependencyId: `tool:${data._idRow}`,
@@ -238,6 +239,7 @@ export const gameBananaApi = {
         title: data._sName || "Unknown Tool",
         downloadUrl: file._sDownloadUrl,
         fileSizeStr: this.formatBytes(file._nFilesize || 0),
+        thumbnail: preview ? `${preview._sBaseUrl}/${preview._sFile}` : null,
         gameBananaUrl: `https://gamebanana.com/tools/${data._idRow}`,
       };
     } catch (error) {
@@ -260,6 +262,7 @@ export const gameBananaApi = {
       title: mod.title,
       downloadUrl: mod.downloadUrl,
       fileSizeStr: mod.fileSizeStr,
+      thumbnail: mod.images?.[0] || null,
       gameBananaUrl: mod.gameBananaUrl,
     };
   },

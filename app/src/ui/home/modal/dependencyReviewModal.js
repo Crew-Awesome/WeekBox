@@ -39,8 +39,9 @@ export const dependencyReviewModal = {
         const name = document.createElement("strong");
         name.textContent = requirement.title;
         const meta = document.createElement("small");
-        meta.textContent = `${requirement.type === "tool" ? "Tool dependency" : "Mod dependency"}${requirement.fileSizeStr ? ` · ${requirement.fileSizeStr}` : ""}`;
-        copy.append(name, meta);
+        meta.textContent = requirement.fileSizeStr || "";
+        copy.append(name);
+        if (requirement.fileSizeStr) copy.append(meta);
         const open = document.createElement("button");
         open.type = "button";
         open.className = "dependency-review-open";
