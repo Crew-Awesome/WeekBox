@@ -84,15 +84,6 @@ export const downloadMod = {
     const tempFilePath = `${modsBasePath}/temp_${taskKey}.zip`;
     const downloadMarkerPath = `${targetModFolder}/.downloading`;
 
-    console.debug("[WeekBox install] started", {
-      modId,
-      modName,
-      downloadUrl,
-      engineId,
-      sourceType: metadata.sourceType,
-      targetModFolder,
-    });
-
     this.activeTasks.set(modId, {
       cancelled: false,
       pid: null,
@@ -125,11 +116,6 @@ export const downloadMod = {
       });
 
       const archiveStats = await Neutralino.filesystem.getStats(tempFilePath);
-      console.debug("[WeekBox install] archive downloaded", {
-        modId,
-        tempFilePath,
-        bytes: archiveStats.size,
-      });
       if (!archiveStats.size) throw new Error("Downloaded archive is empty");
 
       if (this.activeTasks.get(modId)?.cancelled) throw new Error("Cancelled");
@@ -246,11 +232,6 @@ export const downloadMod = {
       await FS.api.remove(tempFilePath);
 
       const hasExtractedFiles = await this.hasExtractedFiles(targetModFolder);
-      console.debug("[WeekBox install] extraction verification", {
-        modId,
-        targetModFolder,
-        hasExtractedFiles,
-      });
       if (!hasExtractedFiles) {
         throw new Error("Downloaded archive did not contain any files");
       }
@@ -285,13 +266,6 @@ export const downloadMod = {
       this.activeTasks.delete(modId);
       return true;
     } catch (error) {
-      console.error("[WeekBox install] failed", {
-        modId,
-        modName,
-        downloadUrl,
-        sourceType,
-        error: error.message || String(error),
-      });
       if (error.message !== "Cancelled") {
         await this.cleanupData(modId, tempFilePath, targetModFolder);
         toastDownloadMod.error(modId, error.message || "Installation failed");

@@ -12,10 +12,6 @@ function formatArchiveEntry(output) {
   return name;
 }
 
-function debugTransfer(stage, details = {}) {
-  console.debug(`[WeekBox transfer] ${stage}`, details);
-}
-
 function listenForProcess(process, getTask, onEvent) {
   return new Promise(async (resolve, reject) => {
     const handler = (event) => {
@@ -160,7 +156,6 @@ function getWindowsMergeCommand(parts, outPath) {
 
 async function runCurlDownload(command, getTask, onProgress, getProgress) {
   const process = await Neutralino.os.spawnProcess(command);
-  debugTransfer("curl started", { processId: process.id, command });
   const task = getTask();
   if (task) task.pid = process.id ?? process.pid;
 
@@ -191,10 +186,6 @@ async function runCurlDownload(command, getTask, onProgress, getProgress) {
       getTask,
       (event, handler, resolve, reject) => {
         if (event.action === "stdErr" || event.action === "stdOut") {
-          debugTransfer(`curl ${event.action}`, {
-            processId: process.id,
-            output: event.data,
-          });
           if (getProgress) return;
           const matches = event.data.match(/(\d+\.?\d*)%/g);
           if (!matches?.length) return;
@@ -202,11 +193,6 @@ async function runCurlDownload(command, getTask, onProgress, getProgress) {
           return;
         }
         if (event.action !== "exit") return;
-        debugTransfer("curl exited", {
-          processId: process.id,
-          exitCode: event.data,
-          exitCodeType: typeof event.data,
-        });
         Neutralino.events.off("spawnedProcess", handler);
         if (event.data === 0) resolve();
         else reject(new Error(`Download failed with exit code ${event.data}`));
@@ -272,20 +258,12 @@ async function downloadSegmentedArchive({
         }
       }),
     );
-    debugTransfer("parallel parts completed", {
-      parts: parts.map((part, index) => ({
-        path: part.path,
-        expectedBytes: part.size,
-        actualBytes: partSizes[index],
-      })),
-    });
     if (partSizes.some((size, index) => size !== parts[index].size)) {
       throw new Error("Parallel download returned incomplete file parts");
     }
 
     await mergeParts(parts, outPath);
     const mergedBytes = (await Neutralino.filesystem.getStats(outPath)).size;
-    debugTransfer("parallel parts merged", { totalBytes, mergedBytes });
     if (mergedBytes !== totalBytes) {
       throw new Error("Parallel download merged to an incomplete archive");
     }
@@ -301,27 +279,19 @@ export async function downloadArchive({
   onProgress,
   sourceType,
 }) {
-  debugTransfer("download requested", { url, outPath, sourceType });
   if (sourceType === "external") {
     onProgress?.("Preparing external download...", 2);
     url = await resolveExternalDownloadUrl(url);
-    debugTransfer("external URL resolved", { url });
   }
   let remoteFileSize = 0;
   try {
     onProgress?.("Checking download server...", 2);
     remoteFileSize = await getRangeSupportedFileSize(url);
-    debugTransfer("range check completed", { url, remoteFileSize });
   } catch (error) {
-    debugTransfer("range check failed; using single download", {
-      url,
-      error: error.message,
-    });
     if (getTask()?.cancelled) throw error;
   }
 
   if (remoteFileSize >= MIN_SEGMENTED_DOWNLOAD_BYTES) {
-    debugTransfer("using parallel download", { remoteFileSize });
     try {
       await downloadSegmentedArchive({
         url,
@@ -332,9 +302,6 @@ export async function downloadArchive({
       });
     } catch (error) {
       if (getTask()?.cancelled) throw error;
-      debugTransfer("parallel download failed; retrying single download", {
-        error: error.message,
-      });
       await Neutralino.filesystem.remove(outPath).catch(() => {});
       onProgress?.("Retrying download...", 2);
       await downloadSingleArchive({ url, outPath, getTask, onProgress });
@@ -342,7 +309,6 @@ export async function downloadArchive({
     return;
   }
 
-  debugTransfer("using single download", { remoteFileSize });
   await downloadSingleArchive({ url, outPath, getTask, onProgress });
 }
 
@@ -357,12 +323,6 @@ export async function extractArchive({
     ? `tar -xvf "${archivePath}" -C "${destinationPath}"`
     : `unzip -o "${archivePath}" -d "${destinationPath}"`;
   const process = await Neutralino.os.spawnProcess(command);
-  debugTransfer("extraction started", {
-    processId: process.id,
-    archivePath,
-    destinationPath,
-    command,
-  });
   const task = getTask();
   if (task) task.pid = process.id ?? process.pid;
 
@@ -372,21 +332,10 @@ export async function extractArchive({
     (event, handler, resolve, reject) => {
       if (event.action === "stdOut" || event.action === "stdErr") {
         const output = event.data.trim();
-        if (output) {
-          debugTransfer(`extract ${event.action}`, {
-            processId: process.id,
-            output,
-          });
-        }
         if (output) onEntry?.(formatArchiveEntry(output));
         return;
       }
       if (event.action !== "exit") return;
-      debugTransfer("extraction exited", {
-        processId: process.id,
-        exitCode: event.data,
-        exitCodeType: typeof event.data,
-      });
       Neutralino.events.off("spawnedProcess", handler);
       // Windows tar can return 1 for recoverable archive warnings. The caller
       // verifies that real files were extracted before recording an install.
