@@ -6,10 +6,12 @@ import { FS } from "../../utils/filesystem.js";
 import { downloadEngine } from "./downloadEngine.js";
 import { modsMaster } from "./modsMasterClass.js";
 import { rememberInstalledEngineBuild } from "./engineUpdateService.js";
+import { engineInstallToast } from "./engineInstallToast.js";
 import { appSettings } from "../../core/settings.js";
 
 export const enginesView = {
   async init() {
+    this.isVisible = true;
     const engine = getSelectedEngine();
     if (!engine) return;
     this.currentEngine = engine;
@@ -29,6 +31,15 @@ export const enginesView = {
     });
   },
   destroy() {
+    this.isVisible = false;
+    if (this.activeInstall) {
+      const task = downloadEngine.getActiveTask(
+        this.activeInstall.engineId,
+        this.activeInstall.version,
+      );
+      if (task)
+        engineInstallToast.update(this.activeInstall, task.progressInfo);
+    }
     engineDropdown.destroy();
   },
   async updateButtonState() {
@@ -40,10 +51,25 @@ export const enginesView = {
     const dlActiveLayer = document.getElementById("dl-active-layer");
     const downloadActions = document.getElementById("engine-download-actions");
     if (!launchBtn) return;
-    if (this.activeInstall) {
+    const activeTask = downloadEngine.getActiveTask(
+      this.currentEngine.id,
+      this.currentVersion,
+    );
+    if (activeTask) {
+      this.activeInstall = {
+        engineId: this.currentEngine.id,
+        version: this.currentVersion,
+        name: this.currentEngine.meta.name,
+      };
       launchBtn.disabled = true;
+      this.setupDownloadActions(launchBtn, downloadActions);
+      if (activeTask.state === "installing")
+        launchBtn.textContent = "Installing...";
+      this.renderDownloadProgress(activeTask.progressInfo);
+      engineInstallToast.hide(this.activeInstall);
       return;
     }
+    this.activeInstall = null;
     if (downloadActions) downloadActions.hidden = true;
     const versionData = this.currentEngine.versions.find(
       (v) => v.version === this.currentVersion,
@@ -61,7 +87,7 @@ export const enginesView = {
     const newBtn = launchBtn.cloneNode(true);
     launchBtn.parentNode.replaceChild(newBtn, launchBtn);
     const activeBtn = document.getElementById("launch-engine-btn");
-    
+
     if (isInstalled) {
       activeBtn.textContent = "Launch";
       activeBtn.disabled = false;
@@ -94,17 +120,17 @@ export const enginesView = {
           );
           return;
         }
-        
+
         activeBtn.disabled = true;
         activeBtn.textContent = "Running...";
         await modsMaster.injectBeforeLaunch(
           this.currentEngine.id,
           this.currentVersion,
         );
-        
+
         // Settings: Hide on launch
         if (appSettings.get("hideOnLaunch")) {
-            Neutralino.window.hide();
+          Neutralino.window.hide();
         }
 
         await FS.runEngine(
@@ -120,10 +146,10 @@ export const enginesView = {
             ) {
               // Settings: Show back when closed
               if (appSettings.get("hideOnLaunch")) {
-                  Neutralino.window.show();
-                  Neutralino.window.focus();
+                Neutralino.window.show();
+                Neutralino.window.focus();
               }
-              
+
               isLaunched = false;
               activeBtn.classList.remove("engine-running");
               activeBtn.disabled = false;
@@ -151,17 +177,14 @@ export const enginesView = {
         this.activeInstall = {
           engineId: this.currentEngine.id,
           version: this.currentVersion,
+          name: this.currentEngine.meta.name,
         };
         const installKey = `${this.activeInstall.engineId}:${this.activeInstall.version}`;
         this.setupDownloadActions(activeBtn, downloadActions);
-        if (dlUI) {
-          dlUI.style.display = "block";
-          const initialText = "0% - Starting download...";
-          if (dlText) dlText.textContent = initialText;
-          if (dlTextSizer) dlTextSizer.textContent = initialText;
-          if (dlTrackTextSizer) dlTrackTextSizer.textContent = initialText;
-          if (dlActiveLayer) dlActiveLayer.style.clipPath = `inset(0 100% 0 0)`;
-        }
+        this.renderDownloadProgress({
+          progress: 0,
+          status: "Starting download...",
+        });
         const success = await downloadEngine.install(
           this.currentEngine.id,
           this.currentVersion,
@@ -173,44 +196,49 @@ export const enginesView = {
             );
             const status = String(progressInfo?.status || "Working...");
             this.downloadProgress = progress;
-            const p = Math.floor(progress);
-            const progressText = status.startsWith("Extracting:")
-              ? "Installing files..."
-              : `${p}% - ${status}`;
-            if (dlText) dlText.textContent = progressText;
-            if (dlTextSizer) dlTextSizer.textContent = progressText;
-            if (dlTrackTextSizer) dlTrackTextSizer.textContent = progressText;
-            if (dlActiveLayer) {
-              dlActiveLayer.style.clipPath = `inset(0 ${100 - progress}% 0 0)`;
-            }
+            this.renderDownloadProgress({ progress, status });
+            if (!this.isVisible)
+              engineInstallToast.update(this.activeInstall, {
+                progress,
+                status,
+              });
           },
-          (state) => this.updateInstallState(state, activeBtn),
+          (state) => this.updateInstallState(state),
         );
         const wasCancelled = this.cancelledInstall === installKey;
         if (wasCancelled && this.rollbackPromise) await this.rollbackPromise;
+        const finishedInstall = this.activeInstall;
         this.activeInstall = null;
         if (downloadActions) downloadActions.hidden = true;
         if (wasCancelled) {
+          engineInstallToast.hide(finishedInstall);
           this.cancelledInstall = null;
           if (dlUI) dlUI.style.display = "none";
           this.updateButtonState();
           return;
         }
         if (success) {
+          if (!this.isVisible) engineInstallToast.complete(finishedInstall);
           rememberInstalledEngineBuild(this.currentEngine.id, versionData);
           if (dlUI) dlUI.style.display = "none";
           await this.updateButtonState(); // Actualiza a "Launch"
-          
+
           // Settings: Autostart Engine after download!
           if (appSettings.get("autoStartAfterDownload")) {
-              setTimeout(() => {
-                  const freshBtn = document.getElementById("launch-engine-btn");
-                  if (freshBtn && !freshBtn.disabled && freshBtn.textContent === "Launch") {
-                      freshBtn.click();
-                  }
-              }, 500); // Pequeño retraso para evitar bugs de la UI
+            setTimeout(() => {
+              const freshBtn = document.getElementById("launch-engine-btn");
+              if (
+                freshBtn &&
+                !freshBtn.disabled &&
+                freshBtn.textContent === "Launch"
+              ) {
+                freshBtn.click();
+              }
+            }, 500); // Pequeño retraso para evitar bugs de la UI
           }
         } else {
+          if (!this.isVisible)
+            engineInstallToast.error(finishedInstall, "Installation failed");
           if (dlText) dlText.textContent = "0% - Download failed";
           if (dlTextSizer) dlTextSizer.textContent = "0% - Download failed";
           if (dlTrackTextSizer)
@@ -220,6 +248,27 @@ export const enginesView = {
         }
       });
     }
+  },
+  renderDownloadProgress(progressInfo) {
+    const dlUI = document.getElementById("download-ui");
+    const dlText = document.getElementById("dl-text");
+    const dlTextSizer = document.getElementById("dl-text-sizer");
+    const dlTrackTextSizer = document.getElementById("dl-track-text-sizer");
+    const dlActiveLayer = document.getElementById("dl-active-layer");
+    const progress = Math.min(
+      100,
+      Math.max(0, Number(progressInfo?.progress) || 0),
+    );
+    const status = String(progressInfo?.status || "Working...");
+    const progressText = status.startsWith("Extracting:")
+      ? "Installing files..."
+      : `${Math.floor(progress)}% - ${status}`;
+    if (dlUI) dlUI.style.display = "block";
+    if (dlText) dlText.textContent = progressText;
+    if (dlTextSizer) dlTextSizer.textContent = progressText;
+    if (dlTrackTextSizer) dlTrackTextSizer.textContent = progressText;
+    if (dlActiveLayer)
+      dlActiveLayer.style.clipPath = `inset(0 ${100 - progress}% 0 0)`;
   },
   setupDownloadActions(activeBtn, downloadActions) {
     if (!downloadActions || !this.activeInstall) return;
@@ -234,8 +283,10 @@ export const enginesView = {
     };
     activeBtn.textContent = "Downloading...";
   },
-  updateInstallState(state, activeBtn) {
+  updateInstallState(state) {
+    const activeBtn = document.getElementById("launch-engine-btn");
     const cancelBtn = document.getElementById("cancel-engine-download-btn");
+    if (!activeBtn) return;
     if (state === "downloading") {
       activeBtn.textContent = "Downloading...";
     } else if (state === "installing") {

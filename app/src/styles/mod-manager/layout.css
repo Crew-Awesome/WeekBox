@@ -51,10 +51,61 @@
   color: var(--text-main);
 }
 
+.mod-manager-title-group {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  min-width: 0;
+}
+
+.mod-manager-view-tabs {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-color);
+}
+
+.mod-manager-view-tab {
+  min-height: 28px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.76rem;
+  font-weight: 650;
+  transition:
+    background 0.16s ease,
+    color 0.16s ease;
+}
+
+.mod-manager-view-tab:hover,
+.mod-manager-view-tab:focus-visible {
+  color: var(--text-main);
+}
+
+.mod-manager-view-tab:focus-visible {
+  outline: 2px solid var(--text-main);
+  outline-offset: 1px;
+}
+
+.mod-manager-view-tab.active {
+  background: var(--accent-color);
+  color: var(--bg-color);
+}
+
 .mod-manager-header-actions {
   display: flex;
   align-items: center;
   gap: var(--spacing-sm);
+}
+
+.mod-manager-header-actions.dependencies-view > :not(.mod-manager-close-btn) {
+  display: none;
 }
 
 .mod-manager-filter {
@@ -76,7 +127,10 @@
   font: inherit;
   font-size: 0.8rem;
   font-weight: 650;
-  transition: border-color 0.16s ease, color 0.16s ease, background 0.16s ease;
+  transition:
+    border-color 0.16s ease,
+    color 0.16s ease,
+    background 0.16s ease;
 }
 
 .mod-manager-filter-label {
@@ -226,15 +280,15 @@
 /* Efecto hover aplicando el color predominante y la sombra (resplandor) */
 .mod-manager-card:not(.is-hidden):hover {
   transform: translateY(-4px);
-  border-color: var(--card-color);
-  box-shadow: 0 10px 40px -10px var(--card-color);
+  border-color: rgb(255 255 255 / 38%);
+  box-shadow: 0 10px 40px -10px rgb(255 255 255 / 18%);
 }
 
 .mod-manager-card:not(.is-hidden):focus-visible {
   outline: 2px solid var(--text-main);
   outline-offset: 2px;
-  border-color: var(--card-color);
-  box-shadow: 0 10px 40px -10px var(--card-color);
+  border-color: rgb(255 255 255 / 38%);
+  box-shadow: 0 10px 40px -10px rgb(255 255 255 / 18%);
 }
 
 .mod-manager-cover-wrap {
@@ -601,4 +655,70 @@
   border-radius: var(--border-radius);
   border: 2px dashed var(--border-color);
   width: 100%;
+}
+
+.mod-manager-dependencies {
+  margin-bottom: var(--spacing-xl);
+}
+
+.mod-manager-dependencies h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 var(--spacing-sm);
+  color: var(--text-main);
+  font-size: 1rem;
+}
+
+.mod-manager-dependencies h3 i {
+  color: var(--text-muted);
+}
+.mod-manager-dependency-list {
+  display: grid;
+  gap: 8px;
+}
+.mod-manager-dependency {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 10px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-color);
+}
+.mod-manager-dependency > div:first-child {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+.mod-manager-dependency strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.mod-manager-dependency small {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
+.mod-manager-dependency-actions {
+  display: flex;
+  gap: 6px;
+}
+.mod-manager-dependency-actions button {
+  width: 34px;
+  height: 32px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+.mod-manager-dependency-actions button:hover:not(:disabled) {
+  color: var(--text-main);
+  border-color: var(--text-muted);
+}
+.mod-manager-dependency-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
 }

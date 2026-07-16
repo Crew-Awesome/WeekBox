@@ -11,6 +11,10 @@ export const downloadEngine = {
     return `${engineId}:${version}`;
   },
 
+  getActiveTask(engineId, version) {
+    return this.activeTasks.get(this.getTaskKey(engineId, version)) || null;
+  },
+
   async stopProcess(task) {
     if (!task?.pid) return;
     const command =
@@ -151,11 +155,13 @@ export const downloadEngine = {
       tempFilePath,
       engineDir,
       phase: "downloading",
+      progressInfo: { status: "Preparing environment...", progress: 0 },
       onStateChange,
     };
     this.activeTasks.set(taskKey, task);
 
     const updateProgress = (status, progress) => {
+      task.progressInfo = { status, progress };
       if (typeof onProgress === "function") {
         onProgress({ status, progress });
       }
@@ -195,7 +201,9 @@ export const downloadEngine = {
       this.throwIfCancelled(task);
 
       if (!(await FS.findExecutable(engineDir))) {
-        throw new Error("The downloaded archive does not contain a runnable engine");
+        throw new Error(
+          "The downloaded archive does not contain a runnable engine",
+        );
       }
       this.throwIfCancelled(task);
 

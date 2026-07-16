@@ -12,7 +12,7 @@ import { engineUpdateToast } from "../engines/engineUpdateToast.js";
 export const modManagerModal = {
   engineFilter: "all",
   filterDropdownCtrl: null,
-  
+  activeView: "mods",
   async init() {
     if (!document.getElementById("mod-manager-modal")) {
       const response = await fetch("src/html/mod-manager.html");
@@ -21,7 +21,7 @@ export const modManagerModal = {
       const wrapper = document.createElement("div");
       wrapper.innerHTML = html;
       document.body.appendChild(wrapper.firstElementChild);
-      
+
       document
         .getElementById("mod-manager-close-btn")
         .addEventListener("click", () => this.close());
@@ -30,7 +30,7 @@ export const modManagerModal = {
         .addEventListener("click", (e) => {
           if (e.target.id === "mod-manager-modal") this.close();
         });
-        
+
       const toggleBtn = document.getElementById("mod-manager-view-toggle");
       toggleBtn.addEventListener("click", () => {
         const grid = document.getElementById("mod-manager-grid-container");
@@ -46,13 +46,31 @@ export const modManagerModal = {
       });
 
       // Configuración del Dropdown de Filtro General
-      const engineFilter = document.getElementById("mod-manager-engine-filter");
-      const engineFilterTrigger = engineFilter.querySelector(".mod-manager-filter-trigger");
-      const engineFilterMenu = engineFilter.querySelector(".mod-manager-filter-menu");
 
-      this.filterDropdownCtrl = setupDropdown(engineFilterTrigger, engineFilter, {
-        menuElement: engineFilterMenu
-      });
+      document.querySelectorAll("[data-mod-manager-view]").forEach((button) =>
+        button.addEventListener("click", () => {
+          const view = button.dataset.modManagerView;
+          if (view === this.activeView) return;
+          this.activeView = view;
+          this.loadInstalledMods();
+        }),
+      );
+
+      const engineFilter = document.getElementById("mod-manager-engine-filter");
+      const engineFilterTrigger = engineFilter.querySelector(
+        ".mod-manager-filter-trigger",
+      );
+      const engineFilterMenu = engineFilter.querySelector(
+        ".mod-manager-filter-menu",
+      );
+
+      this.filterDropdownCtrl = setupDropdown(
+        engineFilterTrigger,
+        engineFilter,
+        {
+          menuElement: engineFilterMenu,
+        },
+      );
 
       engineFilterMenu.addEventListener("click", (event) => {
         const option = event.target.closest("button[data-engine-filter]");
@@ -63,7 +81,7 @@ export const modManagerModal = {
       });
     }
   },
-  
+
   async open() {
     await this.init();
     if (!FS.isInitialized) await FS.init();
@@ -73,7 +91,7 @@ export const modManagerModal = {
     requestAnimationFrame(() => modal.classList.add("show"));
     await this.loadInstalledMods();
   },
-  
+
   close() {
     const modal = document.getElementById("mod-manager-modal");
     if (!modal) return;
@@ -82,7 +100,7 @@ export const modManagerModal = {
       modal.style.display = "none";
     }, 300);
   },
-  
+
   async getBase64FromUrl(url) {
     try {
       const res = await fetch(url);
@@ -96,20 +114,94 @@ export const modManagerModal = {
       return null;
     }
   },
-  
+
   async loadInstalledMods() {
     const mods = await FS.getInstalledMods();
     const standaloneMods = await FS.getStandaloneMods();
     await this.render(mods, standaloneMods);
   },
-  
+  syncActiveView() {
+    const isModsView = this.activeView === "mods";
+    document.querySelectorAll("[data-mod-manager-view]").forEach((button) => {
+      const isActive = button.dataset.modManagerView === this.activeView;
+      button.classList.toggle("active", isActive);
+      button.setAttribute("aria-pressed", String(isActive));
+    });
+    document
+      .querySelector(".mod-manager-header-actions")
+      ?.classList.toggle("dependencies-view", !isModsView);
+  },
+  renderDependencies(container, dependencies, allMods) {
+    if (!dependencies.length) return;
+    const section = document.createElement("section");
+    section.className = "mod-manager-dependencies";
+    const list = document.createElement("div");
+    list.className = "mod-manager-dependency-list";
+    for (const dependency of dependencies) {
+      const row = document.createElement("article");
+      row.className = "mod-manager-dependency";
+      const copy = document.createElement("div");
+      const name = document.createElement("strong");
+      name.textContent = dependency.name;
+      const users = allMods.filter(
+        (mod) =>
+          mod.kind !== "dependency" &&
+          Array.isArray(mod.dependencies) &&
+          mod.dependencies.includes(dependency.id),
+      );
+      const details = document.createElement("small");
+      details.textContent = users.length
+        ? `Used by ${users.map((mod) => mod.name).join(", ")}`
+        : dependency.sourceType === "tool"
+          ? "GameBanana tool dependency"
+          : "GameBanana mod dependency";
+      copy.append(name, details);
+      const actions = document.createElement("div");
+      actions.className = "mod-manager-dependency-actions";
+      const directory = document.createElement("button");
+      directory.type = "button";
+      directory.title = "Open Directory";
+      directory.innerHTML =
+        '<i class="fa-solid fa-folder-open" aria-hidden="true"></i>';
+      directory.addEventListener("click", () =>
+        Neutralino.os
+          .open(
+            `${FS.modsPath}/${dependency.folderName || sanitizePathSegment(dependency.name)}`,
+          )
+          .catch(() => {}),
+      );
+      const remove = document.createElement("button");
+      remove.type = "button";
+      remove.title = users.length
+        ? "Remove dependent mods first"
+        : "Remove Dependency";
+      remove.disabled = users.length > 0;
+      remove.innerHTML = '<i class="fa-solid fa-trash" aria-hidden="true"></i>';
+      remove.addEventListener("click", async () => {
+        remove.disabled = true;
+        try {
+          await FS.removeInstalledMod(dependency.id);
+          await this.loadInstalledMods();
+          document.dispatchEvent(new CustomEvent("mods-updated"));
+        } catch (error) {
+          console.error("Could not remove dependency", error);
+          remove.disabled = false;
+        }
+      });
+      actions.append(directory, remove);
+      row.append(copy, actions);
+      list.append(row);
+    }
+    section.append(list);
+    container.append(section);
+  },
   syncEngineFilterOptions(mods, standaloneMods) {
     const filter = document.getElementById("mod-manager-engine-filter");
     if (!filter) return;
     const triggerLabel = filter.querySelector(".mod-manager-filter-label");
     const triggerIcon = filter.querySelector(".mod-manager-filter-icon");
     const menu = filter.querySelector(".mod-manager-filter-menu");
-    
+
     const standaloneIds = new Set(standaloneMods.map((mod) => mod.id));
     const engineIds = [
       ...new Set(
@@ -118,14 +210,19 @@ export const modManagerModal = {
           .map((mod) => mod.engineId),
       ),
     ];
-    
     const supportedFilters = new Set(["all", "executable", ...engineIds]);
     if (!supportedFilters.has(this.engineFilter)) this.engineFilter = "all";
-    
+
     const options = [
       { value: "all", label: "All mods", iconClass: "fa-layer-group" },
       ...(standaloneIds.size
-        ? [{ value: "executable", label: "Executables", iconPath: "assets/icons/exe.png" }]
+        ? [
+            {
+              value: "executable",
+              label: "Executables",
+              iconPath: "assets/icons/exe.png",
+            },
+          ]
         : []),
       ...engineIds.map((engineId) => ({
         value: engineId,
@@ -136,20 +233,24 @@ export const modManagerModal = {
         iconClass: "fa-microchip",
       })),
     ];
-    
-    const selected = options.find((option) => option.value === this.engineFilter);
+    const selected = options.find(
+      (option) => option.value === this.engineFilter,
+    );
     if (triggerLabel) triggerLabel.textContent = selected?.label || "All mods";
     if (triggerIcon) {
       triggerIcon.replaceChildren();
       const icon = selected?.iconPath
-        ? Object.assign(document.createElement("img"), { src: selected.iconPath, alt: "" })
+        ? Object.assign(document.createElement("img"), {
+            src: selected.iconPath,
+            alt: "",
+          })
         : document.createElement("i");
       if (!selected?.iconPath) {
         icon.className = `fa-solid ${selected?.iconClass || "fa-layer-group"}`;
       }
       triggerIcon.append(icon);
     }
-    
+
     menu.replaceChildren(
       ...options.map((option) => {
         const button = document.createElement("button");
@@ -158,7 +259,10 @@ export const modManagerModal = {
         button.setAttribute("role", "menuitem");
         button.classList.toggle("selected", option.value === this.engineFilter);
         const icon = option.iconPath
-          ? Object.assign(document.createElement("img"), { src: option.iconPath, alt: "" })
+          ? Object.assign(document.createElement("img"), {
+              src: option.iconPath,
+              alt: "",
+            })
           : document.createElement("i");
         if (!option.iconPath) {
           icon.className = `fa-solid ${option.iconClass || "fa-microchip"}`;
@@ -171,38 +275,63 @@ export const modManagerModal = {
       }),
     );
   },
-  
+
   async render(mods, standaloneMods) {
     const container = document.getElementById("mod-manager-modal-body");
     if (!container) return;
-    
-    this.syncEngineFilterOptions(mods, standaloneMods);
+    const dependencies = mods.filter((mod) => mod.kind === "dependency");
+    const playableMods = mods.filter((mod) => mod.kind !== "dependency");
+    this.syncActiveView();
+    this.syncEngineFilterOptions(playableMods, standaloneMods);
     const standaloneModIds = new Set(standaloneMods.map((m) => m.id));
-    const filteredMods = mods.filter((mod) => {
+    const filteredMods = playableMods.filter((mod) => {
       if (this.engineFilter === "all") return true;
-      if (this.engineFilter === "executable") return standaloneModIds.has(mod.id);
-      return !standaloneModIds.has(mod.id) && mod.engineId === this.engineFilter;
+      if (this.engineFilter === "executable")
+        return standaloneModIds.has(mod.id);
+      return (
+        !standaloneModIds.has(mod.id) && mod.engineId === this.engineFilter
+      );
     });
-    
+
     container.innerHTML = "";
-    if (filteredMods.length === 0) {
-      const message = mods.length === 0 ? "No mods installed yet." : "No mods match this engine filter.";
-      container.innerHTML = `<div class="empty-mods-state">${message}</div>`;
+    if (this.activeView === "dependencies") {
+      if (dependencies.length) {
+        this.renderDependencies(container, dependencies, mods);
+      } else {
+        const empty = document.createElement("div");
+        empty.className = "empty-mods-state";
+        empty.textContent = "No dependencies installed yet.";
+        container.append(empty);
+      }
       return;
     }
-    
+    if (filteredMods.length === 0) {
+      const message =
+        playableMods.length === 0
+          ? "No mods installed yet."
+          : "No mods match this engine filter.";
+      const empty = document.createElement("div");
+      empty.className = "empty-mods-state";
+      empty.textContent = message;
+      container.append(empty);
+      return;
+    }
+
     const gridContainer = document.createElement("div");
     gridContainer.id = "mod-manager-grid-container";
     gridContainer.className = "mod-manager-grid";
-    const isListView = localStorage.getItem("weekbox_mod_manager_view") === "list";
+    const isListView =
+      localStorage.getItem("weekbox_mod_manager_view") === "list";
     if (isListView) gridContainer.classList.add("list-view");
-    
+
     const toggleIcon = document.querySelector("#mod-manager-view-toggle i");
     if (toggleIcon)
-      toggleIcon.className = isListView ? "fa-solid fa-table-cells-large" : "fa-solid fa-list";
-      
+      toggleIcon.className = isListView
+        ? "fa-solid fa-table-cells-large"
+        : "fa-solid fa-list";
+
     container.appendChild(gridContainer);
-    
+
     const savePendingCompatibilities = async () => {
       const changes = [];
       gridContainer
@@ -230,7 +359,7 @@ export const modManagerModal = {
 
     let needsJsonUpdate = false;
     const installedEngines = await FS.getInstalledEngines();
-    
+
     const refreshLaunchButtons = () => {
       gridContainer
         .querySelectorAll(".mod-manager-launch-btn")
@@ -243,14 +372,21 @@ export const modManagerModal = {
                 id: button.dataset.engineId,
                 version: button.dataset.engineVersion,
               };
-          const state = FS.getModLaunchState({ id: button.dataset.modId }, engine, isStandalone);
+          const state = FS.getModLaunchState(
+            { id: button.dataset.modId },
+            engine,
+            isStandalone,
+          );
           const isRunning = state === "running";
           const canSwitchMod = state === "switch";
-          
+
           button.classList.toggle("is-running", isRunning);
           button.classList.toggle("is-switchable", canSwitchMod);
-          button.setAttribute("aria-label", `${isRunning ? "Close" : canSwitchMod ? "Switch Mod" : button.dataset.launchLabel} ${button.dataset.modName}`);
-          
+          button.setAttribute(
+            "aria-label",
+            `${isRunning ? "Close" : canSwitchMod ? "Switch Mod" : button.dataset.launchLabel} ${button.dataset.modName}`,
+          );
+
           button.innerHTML = isRunning
             ? `<i class="fa-solid fa-play mod-manager-running-icon" aria-hidden="true"></i><span class="mod-manager-running-label">Running</span><span class="mod-manager-close-label"><i class="fa-solid fa-xmark" aria-hidden="true"></i><span>Click to Close</span></span>`
             : canSwitchMod
@@ -258,7 +394,7 @@ export const modManagerModal = {
               : `<i class="fa-solid fa-play" aria-hidden="true"></i><span>${button.dataset.launchLabel}</span>`;
         });
     };
-    
+
     for (const mod of filteredMods) {
       let imageUrl = "assets/icons/default-mod.png";
       if (mod.imageBase64) {
@@ -280,12 +416,16 @@ export const modManagerModal = {
           }
         }
       }
-      
+
       const isExecutable = standaloneModIds.has(mod.id);
       const engine = isExecutable
         ? null
-        : installedEngines.find((item) => item.id === mod.engineId && (!mod.engineVersion || item.version === mod.engineVersion));
-          
+        : installedEngines.find(
+            (item) =>
+              item.id === mod.engineId &&
+              (!mod.engineVersion || item.version === mod.engineVersion),
+          );
+
       let engineBadgeHtml = `<div class="mod-manager-engine-badge"><i class="fa-solid fa-question-circle"></i><span>Unassigned</span></div>`;
       if (isExecutable) {
         engineBadgeHtml = `
@@ -296,20 +436,24 @@ export const modManagerModal = {
       } else {
         const engineOptions = [
           ...new Map(
-            installedEngines.filter((item) => ENGINE_DETAILS[item.id]).map((item) => [item.id, ENGINE_DETAILS[item.id]]),
+            installedEngines
+              .filter((item) => ENGINE_DETAILS[item.id])
+              .map((item) => [item.id, ENGINE_DETAILS[item.id]]),
           ).entries(),
         ].map(([id, info]) => ({ id, ...info }));
-        
+
         const engineInfo = ENGINE_DETAILS[mod.engineId];
         const versionOptions = [
           "Any version",
-          ...installedEngines.filter((item) => item.id === mod.engineId).map((item) => item.version),
+          ...installedEngines
+            .filter((item) => item.id === mod.engineId)
+            .map((item) => item.version),
         ];
-        
+
         const selectedVersion = mod.engineVersion || "Any version";
         const selectedEngineName = engineInfo?.name || "Unassigned";
         const selectedEngineIcon = engineInfo?.icon;
-        
+
         engineBadgeHtml = `
           <div class="mod-manager-engine-compatibility-picker" data-mod-id="${mod.id}" data-saved-engine-id="${mod.engineId || ""}" data-pending-engine-id="${mod.engineId || ""}" data-saved-version="${mod.engineVersion || ""}" data-pending-version="${mod.engineVersion || ""}">
             <div class="mod-manager-engine-picker">
@@ -332,15 +476,19 @@ export const modManagerModal = {
             </div>
           </div>`;
       }
-      
+
       const isHidden = mod.hidden ? "opacity: 0.5;" : "";
       const eyeIcon = mod.hidden ? "fa-eye-slash" : "fa-eye";
       const card = document.createElement("div");
       card.className = "mod-manager-card";
       card.classList.toggle("is-hidden", Boolean(mod.hidden));
       card.style = isHidden;
-      
-      const launchLabel = isExecutable || getEngineLaunchBehavior(mod.engineId).scope === "exclusive-mod" ? "Launch Mod" : "Launch Engine";
+
+      const launchLabel =
+        isExecutable ||
+        getEngineLaunchBehavior(mod.engineId).scope === "exclusive-mod"
+          ? "Launch Mod"
+          : "Launch Engine";
 
       card.innerHTML = `
         <div class="mod-manager-cover-wrap">
@@ -372,35 +520,45 @@ export const modManagerModal = {
 
       const deleteBtn = card.querySelector(".mod-manager-delete-btn");
       const launchBtn = card.querySelector(".mod-manager-launch-btn");
-      
+
       const enginePill = card.querySelector(".mod-manager-engine-pill");
       const engineMenu = card.querySelector(".mod-manager-engine-menu");
       const versionPill = card.querySelector(".mod-manager-version-pill");
       const versionMenu = card.querySelector(".mod-manager-version-menu");
-      const compatibilityPicker = card.querySelector(".mod-manager-engine-compatibility-picker");
-      
+      const compatibilityPicker = card.querySelector(
+        ".mod-manager-engine-compatibility-picker",
+      );
+
       let engineDropdownCtrl, versionDropdownCtrl;
 
       if (enginePill && engineMenu) {
-        engineDropdownCtrl = setupDropdown(enginePill, engineMenu.parentElement, {
-          menuElement: engineMenu,
-          onToggle: (isOpen) => {
-            if (isOpen) versionDropdownCtrl?.close();
-            else savePendingCompatibilities();
-            card.classList.toggle("version-menu-open", isOpen);
-          }
-        });
+        engineDropdownCtrl = setupDropdown(
+          enginePill,
+          engineMenu.parentElement,
+          {
+            menuElement: engineMenu,
+            onToggle: (isOpen) => {
+              if (isOpen) versionDropdownCtrl?.close();
+              else savePendingCompatibilities();
+              card.classList.toggle("version-menu-open", isOpen);
+            },
+          },
+        );
       }
 
       if (versionPill && versionMenu) {
-        versionDropdownCtrl = setupDropdown(versionPill, versionMenu.parentElement, {
-          menuElement: versionMenu,
-          onToggle: (isOpen) => {
-            if (isOpen) engineDropdownCtrl?.close();
-            else savePendingCompatibilities();
-            card.classList.toggle("version-menu-open", isOpen);
-          }
-        });
+        versionDropdownCtrl = setupDropdown(
+          versionPill,
+          versionMenu.parentElement,
+          {
+            menuElement: versionMenu,
+            onToggle: (isOpen) => {
+              if (isOpen) engineDropdownCtrl?.close();
+              else savePendingCompatibilities();
+              card.classList.toggle("version-menu-open", isOpen);
+            },
+          },
+        );
       }
 
       engineMenu?.addEventListener("click", (event) => {
@@ -410,8 +568,9 @@ export const modManagerModal = {
         const engineId = option.dataset.engineId;
         compatibilityPicker.dataset.pendingEngineId = engineId;
         compatibilityPicker.dataset.pendingVersion = "";
-        
-        enginePill.querySelector("span").textContent = option.dataset.engineName || "Unassigned";
+
+        enginePill.querySelector("span").textContent =
+          option.dataset.engineName || "Unassigned";
         enginePill.querySelector("img, .fa-question-circle")?.remove();
         enginePill.insertAdjacentHTML(
           "afterbegin",
@@ -422,10 +581,22 @@ export const modManagerModal = {
         versionPill.querySelector("span").textContent = "Any version";
         versionMenu.innerHTML = [
           `<button type="button" data-version="" class="selected">Any version</button>`,
-          ...installedEngines.filter((item) => item.id === engineId).map((item) => `<button type="button" data-version="${item.version}">${item.version}</button>`),
+          ...installedEngines
+            .filter((item) => item.id === engineId)
+            .map(
+              (item) =>
+                `<button type="button" data-version="${item.version}">${item.version}</button>`,
+            ),
         ].join("");
-        engineMenu.querySelectorAll("button[data-engine-id]").forEach((button) => button.classList.toggle("selected", button.dataset.engineId === engineId));
-          
+        engineMenu
+          .querySelectorAll("button[data-engine-id]")
+          .forEach((button) =>
+            button.classList.toggle(
+              "selected",
+              button.dataset.engineId === engineId,
+            ),
+          );
+
         engineDropdownCtrl?.close();
       });
 
@@ -435,16 +606,26 @@ export const modManagerModal = {
         event.stopPropagation();
         const selectedVersion = option.dataset.version;
         compatibilityPicker.dataset.pendingVersion = selectedVersion;
-        versionPill.querySelector("span").textContent = selectedVersion || "Any version";
-        versionMenu.querySelectorAll("button[data-version]").forEach((button) => button.classList.toggle("selected", button.dataset.version === selectedVersion));
-          
+        versionPill.querySelector("span").textContent =
+          selectedVersion || "Any version";
+        versionMenu
+          .querySelectorAll("button[data-version]")
+          .forEach((button) =>
+            button.classList.toggle(
+              "selected",
+              button.dataset.version === selectedVersion,
+            ),
+          );
+
         versionDropdownCtrl?.close();
       });
 
       launchBtn.addEventListener("click", async () => {
         launchBtn.disabled = true;
         try {
-          if (FS.getModLaunchState(mod, engine, isExecutable) === "unavailable") {
+          if (
+            FS.getModLaunchState(mod, engine, isExecutable) === "unavailable"
+          ) {
             const engineInfo = ENGINE_DETAILS[mod.engineId];
             engineUpdateToast.missingEngine(
               mod.engineId,
@@ -453,7 +634,12 @@ export const modManagerModal = {
             );
             return;
           }
-          await FS.toggleModLaunch(mod, engine, isExecutable, refreshLaunchButtons);
+          await FS.toggleModLaunch(
+            mod,
+            engine,
+            isExecutable,
+            refreshLaunchButtons,
+          );
         } catch (error) {
           console.error("Could not launch mod", error);
         } finally {
@@ -461,7 +647,7 @@ export const modManagerModal = {
           refreshLaunchButtons();
         }
       });
-      
+
       deleteBtn.addEventListener("click", async () => {
         deleteBtn.disabled = true;
         deleteBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i>`;
@@ -482,7 +668,7 @@ export const modManagerModal = {
           deleteBtn.innerHTML = `<i class="fa-solid fa-trash"></i>`;
         }
       });
-      
+
       const dirBtn = card.querySelector(".mod-manager-dir-btn");
       dirBtn.addEventListener("click", async () => {
         try {
@@ -492,7 +678,7 @@ export const modManagerModal = {
           console.error("Could not open mod directory", e);
         }
       });
-      
+
       const visBtn = card.querySelector(".mod-manager-vis-btn");
       visBtn.addEventListener("click", async () => {
         visBtn.disabled = true;
@@ -503,7 +689,9 @@ export const modManagerModal = {
           card.classList.toggle("is-hidden", mod.hidden);
           launchBtn.disabled = mod.hidden;
           card.style.opacity = mod.hidden ? "0.5" : "1";
-          visBtn.querySelector("i").className = mod.hidden ? "fa-solid fa-eye-slash" : "fa-solid fa-eye";
+          visBtn.querySelector("i").className = mod.hidden
+            ? "fa-solid fa-eye-slash"
+            : "fa-solid fa-eye";
           document.dispatchEvent(new CustomEvent("mods-updated"));
         } catch (error) {
           console.error("Could not update mod visibility", error);

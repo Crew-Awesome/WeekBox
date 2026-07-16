@@ -334,10 +334,31 @@ class FileSystemService {
     return mod;
   }
 
+  async addDependencyConsumer(dependencyId, consumerId) {
+    if (!this.isInitialized) return null;
+    return this.mods.addDependencyConsumer(dependencyId, consumerId);
+  }
+
+  async removeDependencyConsumer(dependencyId, consumerId) {
+    if (!this.isInitialized) return null;
+    return this.mods.removeDependencyConsumer(dependencyId, consumerId);
+  }
+
   async removeInstalledMod(modId) {
     if (!this.isInitialized) return false;
     const mod = (await this.mods.getAll()).find((item) => item.id === modId);
     if (!mod) return false;
+    if (mod.kind === "dependency") {
+      const consumers = (await this.mods.getAll()).filter(
+        (item) =>
+          Array.isArray(item.dependencies) && item.dependencies.includes(modId),
+      );
+      if (consumers.length) {
+        throw new Error(
+          `Remove ${consumers.map((item) => item.name).join(", ")} before removing ${mod.name}`,
+        );
+      }
+    }
     const unlinkResults = await this.injection.unlinkFromInstalledEngines(
       mod,
       await this.getInstalledEngines(),
@@ -371,6 +392,13 @@ class FileSystemService {
       }
     }
     await this.mods.remove(modId);
+    if (Array.isArray(mod.dependencies)) {
+      await Promise.all(
+        mod.dependencies.map((dependencyId) =>
+          this.removeDependencyConsumer(dependencyId, modId),
+        ),
+      );
+    }
     return true;
   }
 

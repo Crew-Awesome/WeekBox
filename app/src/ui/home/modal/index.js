@@ -1,6 +1,7 @@
 import { gameBananaApi } from "../../../api/gamebanana.js";
 import { modModalCarousel } from "./carousel.js";
 import { downloadMod } from "./downloadMod.js";
+import { dependencyReviewModal } from "./dependencyReviewModal.js";
 import { FS } from "../../../utils/filesystem.js";
 import {
   ensureModal,
@@ -39,10 +40,46 @@ export const modModal = {
 
   async populateData(data) {
     const isInstalled = await FS.isModInstalled(data.id);
-    showModData(data, isInstalled, () =>
-      downloadMod.install(data.id, data.title, data.downloadUrl, data.engineId),
-    );
+    showModData(data, isInstalled, () => this.installWithDependencies(data));
 
     modModalCarousel.setup(data.images);
+  },
+
+  async installWithDependencies(data) {
+    const requirements = data.requirements || [];
+    const selected = requirements.length
+      ? await dependencyReviewModal.review(requirements)
+      : [];
+    if (selected === null) return;
+
+    for (const dependency of selected) {
+      const installed = await FS.isModInstalled(dependency.dependencyId);
+      if (installed) continue;
+      const installedDependency = await downloadMod.install(
+        dependency.dependencyId,
+        dependency.title,
+        dependency.downloadUrl,
+        data.engineId,
+        { kind: "dependency", sourceType: dependency.type },
+      );
+      if (!installedDependency) return;
+    }
+
+    const installedMod = await downloadMod.install(
+      data.id,
+      data.title,
+      data.downloadUrl,
+      data.engineId,
+      {
+        dependencies: selected.map((dependency) => dependency.dependencyId),
+        toastThumbnail: data.images?.[0],
+      },
+    );
+    if (!installedMod) return;
+    await Promise.all(
+      selected.map((dependency) =>
+        FS.addDependencyConsumer(dependency.dependencyId, data.id),
+      ),
+    );
   },
 };

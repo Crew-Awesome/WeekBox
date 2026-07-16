@@ -57,6 +57,28 @@ export class ModRepository {
     return mod;
   }
 
+  async addDependencyConsumer(dependencyId, consumerId) {
+    const mods = await this.getAll();
+    const dependency = mods.find((mod) => mod.id === dependencyId);
+    if (!dependency) return null;
+    const consumers = new Set(dependency.consumers || []);
+    consumers.add(consumerId);
+    dependency.consumers = [...consumers];
+    await this.saveAll(mods);
+    return dependency;
+  }
+
+  async removeDependencyConsumer(dependencyId, consumerId) {
+    const mods = await this.getAll();
+    const dependency = mods.find((mod) => mod.id === dependencyId);
+    if (!dependency) return null;
+    dependency.consumers = (dependency.consumers || []).filter(
+      (id) => id !== consumerId,
+    );
+    await this.saveAll(mods);
+    return dependency;
+  }
+
   async remove(modId) {
     if (!(await this.api.exists(this.filePath))) return;
     const mods = await this.getAll();

@@ -1,11 +1,41 @@
 <div class="mod-manager-overlay" id="mod-manager-modal" style="display: none">
   <div class="mod-manager-content">
     <header class="mod-manager-header">
-      <h2>Mod Manager</h2>
+      <div class="mod-manager-title-group">
+        <h2>Mod Manager</h2>
+        <div
+          class="mod-manager-view-tabs"
+          role="group"
+          aria-label="Mod manager content"
+        >
+          <button
+            class="mod-manager-view-tab active"
+            type="button"
+            data-mod-manager-view="mods"
+            aria-pressed="true"
+          >
+            Mods
+          </button>
+          <button
+            class="mod-manager-view-tab"
+            type="button"
+            data-mod-manager-view="dependencies"
+            aria-pressed="false"
+          >
+            Dependencies
+          </button>
+        </div>
+      </div>
       <div class="mod-manager-header-actions">
         <div class="mod-manager-filter" id="mod-manager-engine-filter">
-          <button class="mod-manager-filter-trigger" type="button" aria-expanded="false">
-            <span class="mod-manager-filter-icon" aria-hidden="true"><i class="fa-solid fa-layer-group"></i></span>
+          <button
+            class="mod-manager-filter-trigger"
+            type="button"
+            aria-expanded="false"
+          >
+            <span class="mod-manager-filter-icon" aria-hidden="true"
+              ><i class="fa-solid fa-layer-group"></i
+            ></span>
             <span class="mod-manager-filter-label">All mods</span>
             <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
           </button>

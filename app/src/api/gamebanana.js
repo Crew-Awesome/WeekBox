@@ -8,6 +8,14 @@ import {
   EXCLUDED_MOD_CATEGORY_IDS,
 } from "../config/engines.js";
 
+const NON_DEPENDENCY_REQUIREMENTS = new Set([
+  "mods:309789", // Psych Engine
+  "mods:44201", // FPS Plus
+  "wips:95612", // ALE Psych Engine
+  "mods:598553", // Codename Engine
+  "mods:535203",
+]);
+
 export const gameBananaApi = {
   baseUrl: "https://gamebanana.com/apiv11",
   subfeedBaseUrl: "https://gamebanana.com/apiv12",
@@ -170,8 +178,8 @@ export const gameBananaApi = {
   isDeletedMod(mod) {
     return Boolean(
       mod?._bIsTrashed ||
-        mod?._bIsDeleted ||
-        mod?._sInitialVisibility === "hide",
+      mod?._bIsDeleted ||
+      mod?._sInitialVisibility === "hide",
     );
   },
 
@@ -191,6 +199,91 @@ export const gameBananaApi = {
       .finally(() => this.modProfileRequests.delete(id));
     this.modProfileRequests.set(id, request);
     return request;
+  },
+
+  getGameBananaSubmission(url) {
+    const match = String(url || "").match(
+      /^https?:\/\/(?:www\.)?gamebanana\.com\/(mods|tools)\/(\d+)(?:\/|$|\?)/i,
+    );
+    if (!match) return null;
+    return {
+      type: match[1].toLowerCase() === "tools" ? "tool" : "mod",
+      id: Number(match[2]),
+      url: `https://gamebanana.com/${match[1].toLowerCase()}/${match[2]}`,
+    };
+  },
+
+  getPrimaryDownloadFile(data) {
+    const files = Array.isArray(data?._aFiles)
+      ? data._aFiles
+      : Object.values(data?._aFiles || {});
+    return (
+      files.find((file) => !file._bIsArchived && file._sDownloadUrl) || null
+    );
+  },
+
+  async getToolDetails(toolId) {
+    try {
+      const response = await fetch(
+        `${this.baseUrl}/Tool/${Number(toolId)}/ProfilePage`,
+      );
+      if (!response.ok) return null;
+      const data = await response.json();
+      const file = this.getPrimaryDownloadFile(data);
+      if (!file) return null;
+      return {
+        id: data._idRow,
+        dependencyId: `tool:${data._idRow}`,
+        type: "tool",
+        title: data._sName || "Unknown Tool",
+        downloadUrl: file._sDownloadUrl,
+        fileSizeStr: this.formatBytes(file._nFilesize || 0),
+        gameBananaUrl: `https://gamebanana.com/tools/${data._idRow}`,
+      };
+    } catch (error) {
+      return null;
+    }
+  },
+
+  async getRequirementDetails(requirement) {
+    const submission = this.getGameBananaSubmission(requirement?.url);
+    if (!submission) return null;
+    if (submission.type === "tool") return this.getToolDetails(submission.id);
+    const mod = await this.getModDetails(submission.id, {
+      includeRequirements: false,
+    });
+    if (!mod?.downloadUrl) return null;
+    return {
+      id: mod.id,
+      dependencyId: `mod:${mod.id}`,
+      type: "mod",
+      title: mod.title,
+      downloadUrl: mod.downloadUrl,
+      fileSizeStr: mod.fileSizeStr,
+      gameBananaUrl: mod.gameBananaUrl,
+    };
+  },
+
+  async getRequirements(data) {
+    const requirements = Array.isArray(data?._aRequirements)
+      ? data._aRequirements
+      : [];
+    const resolved = await Promise.all(
+      requirements
+        .filter(([, url]) => {
+          const match = String(url || "").match(
+            /^https?:\/\/(?:www\.)?gamebanana\.com\/(mods|tools|wips)\/(\d+)(?:\/|$|\?)/i,
+          );
+          return (
+            !match ||
+            !NON_DEPENDENCY_REQUIREMENTS.has(
+              `${match[1].toLowerCase()}:${match[2]}`,
+            )
+          );
+        })
+        .map(([name, url]) => this.getRequirementDetails({ name, url })),
+    );
+    return resolved.filter(Boolean);
   },
 
   async resolveEngineIdForMod(mod) {
@@ -255,7 +348,7 @@ export const gameBananaApi = {
     return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;
   },
 
-  async getModDetails(modId) {
+  async getModDetails(modId, { includeRequirements = true } = {}) {
     try {
       const data = await this.getModProfile(modId);
       if (!data) return null;
@@ -267,15 +360,12 @@ export const gameBananaApi = {
       }
       if (images.length === 0)
         images.push("https://images.gamebanana.com/img/ss/mods/default.jpg");
-      let fileSize = 0;
-      let downloadUrl = "";
-      if (data._aFiles) {
-        const filesArray = Object.values(data._aFiles);
-        if (filesArray.length > 0) {
-          fileSize = filesArray[0]._nFilesize || 0;
-          downloadUrl = filesArray[0]._sDownloadUrl || "";
-        }
-      }
+      const file = this.getPrimaryDownloadFile(data);
+      const fileSize = file?._nFilesize || 0;
+      const downloadUrl = file?._sDownloadUrl || "";
+      const requirements = includeRequirements
+        ? await this.getRequirements(data)
+        : [];
       return {
         id: data._idRow,
         title: data._sName,
@@ -287,6 +377,7 @@ export const gameBananaApi = {
         images: images,
         fileSizeStr: this.formatBytes(fileSize),
         downloadUrl: downloadUrl,
+        requirements,
         gameBananaUrl: `https://gamebanana.com/mods/${data._idRow}`,
         gameId: Number(data._aGame?._idRow || data._idGame || 0),
         isDeleted: this.isDeletedMod(data),
@@ -326,14 +417,16 @@ export const gameBananaApi = {
       likes: mod._nLikeCount || 0,
       views: mod._nViewCount || 0,
       timeAgo: this.getTimeAgo(mod._tsDateAdded),
-      engineId: mod.__resolvedEngineId || this.getEngineIdForCategories(
-        mod.__injectedCategoryId, // Pasamos el ID inyectado primero para prioridad
-        mod._aCategory,
-        mod._aSuperCategory,
-        mod._aRootCategory,
-        mod._aSubCategory,
-        mod._idCategory,
-      ),
+      engineId:
+        mod.__resolvedEngineId ||
+        this.getEngineIdForCategories(
+          mod.__injectedCategoryId, // Pasamos el ID inyectado primero para prioridad
+          mod._aCategory,
+          mod._aSuperCategory,
+          mod._aRootCategory,
+          mod._aSubCategory,
+          mod._idCategory,
+        ),
     };
   },
 
@@ -408,7 +501,9 @@ export const gameBananaApi = {
       }
 
       const start = (Math.max(1, Number(page) || 1) - 1) * pageSize;
-      return feed.mods.slice(start, start + pageSize).map((mod) => this.toGridMod(mod));
+      return feed.mods
+        .slice(start, start + pageSize)
+        .map((mod) => this.toGridMod(mod));
     } catch (error) {
       if (error?.name === "AbortError") return [];
       console.warn("Could not load GameBanana Ripe feed", error);
@@ -416,9 +511,19 @@ export const gameBananaApi = {
     }
   },
 
-  async getGridMods(filter = "popular", page = 1, categoryId = null, options = {}) {
+  async getGridMods(
+    filter = "popular",
+    page = 1,
+    categoryId = null,
+    options = {},
+  ) {
     if (filter === "ripe") return this.getRipeMods(page, categoryId, options);
-    return this.getCategoryFeed().getGridMods(filter, page, categoryId, options);
+    return this.getCategoryFeed().getGridMods(
+      filter,
+      page,
+      categoryId,
+      options,
+    );
   },
 
   getCategoryFeed() {
@@ -433,7 +538,15 @@ export const gameBananaApi = {
         categoryRoots: this.categoryRoots,
         getRecords: this.getValidRecords.bind(this),
         toGridMod: this.toGridMod.bind(this),
-        getEngineId: (mod, categoryId) => this.getEngineIdForCategories(categoryId, mod._aCategory, mod._aSuperCategory, mod._aRootCategory, mod._aSubCategory, mod._idCategory),
+        getEngineId: (mod, categoryId) =>
+          this.getEngineIdForCategories(
+            categoryId,
+            mod._aCategory,
+            mod._aSuperCategory,
+            mod._aRootCategory,
+            mod._aSubCategory,
+            mod._idCategory,
+          ),
       });
     }
     return this.categoryFeedService;
@@ -525,17 +638,16 @@ export const gameBananaApi = {
 
       const sortedRecords = [
         ...new Map(records.map((mod) => [mod._idRow, mod])).values(),
-      ]
-        .sort(
-          (left, right) =>
-            this.getSearchMatchCount(right, normalizedQuery) -
-              this.getSearchMatchCount(left, normalizedQuery) ||
-            Number(right._nViewCount || 0) - Number(left._nViewCount || 0) ||
-            Number(right._nLikeCount || 0) - Number(left._nLikeCount || 0) ||
-            this.getSearchRelevance(right, normalizedQuery) -
-              this.getSearchRelevance(left, normalizedQuery) ||
-            Number(right._idRow || 0) - Number(left._idRow || 0),
-        );
+      ].sort(
+        (left, right) =>
+          this.getSearchMatchCount(right, normalizedQuery) -
+            this.getSearchMatchCount(left, normalizedQuery) ||
+          Number(right._nViewCount || 0) - Number(left._nViewCount || 0) ||
+          Number(right._nLikeCount || 0) - Number(left._nLikeCount || 0) ||
+          this.getSearchRelevance(right, normalizedQuery) -
+            this.getSearchRelevance(left, normalizedQuery) ||
+          Number(right._idRow || 0) - Number(left._idRow || 0),
+      );
       const visibleRecords = sortedRecords.slice(
         sourceOffset,
         sourceOffset + perPage,

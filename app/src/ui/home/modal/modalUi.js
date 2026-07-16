@@ -45,6 +45,7 @@ export function resetModal() {
   document.getElementById("modal-main-image").classList.remove("fade-anim");
   const gameBananaLink = document.getElementById("modal-gamebanana-link");
   gameBananaLink.href = "";
+  gameBananaLink.onclick = null;
   gameBananaLink.hidden = true;
   document.getElementById("modal-thumbnails").replaceChildren();
   const progressBar = document.getElementById("modal-progress-bar");
@@ -75,6 +76,11 @@ export function showModData(data, isInstalled, onDownload) {
   const gameBananaLink = document.getElementById("modal-gamebanana-link");
   gameBananaLink.href = data.gameBananaUrl;
   gameBananaLink.hidden = !data.gameBananaUrl;
+  gameBananaLink.onclick = (event) => {
+    event.preventDefault();
+    if (data.gameBananaUrl)
+      Neutralino.os.open(data.gameBananaUrl).catch(() => {});
+  };
 
   const engine = ENGINE_DETAILS[data.engineId];
   const engineBadge = document.getElementById("modal-engine-badge");

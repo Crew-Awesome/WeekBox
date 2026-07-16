@@ -54,12 +54,13 @@ export const downloadMod = {
     } catch (error) {}
   },
 
-  async install(modId, modName, downloadUrl, engineId = null) {
+  async install(modId, modName, downloadUrl, engineId = null, metadata = {}) {
     if (!FS.isInitialized) await FS.init();
     const modsBasePath = FS.modsPath;
     const sanitizedModName = sanitizePathSegment(modName);
     const targetModFolder = `${modsBasePath}/${sanitizedModName}`;
-    const tempFilePath = `${modsBasePath}/temp_${modId}.zip`;
+    const taskKey = String(modId).replace(/[^a-z0-9_-]/gi, "_");
+    const tempFilePath = `${modsBasePath}/temp_${taskKey}.zip`;
 
     this.activeTasks.set(modId, {
       cancelled: false,
@@ -68,7 +69,12 @@ export const downloadMod = {
       targetModFolder,
     });
 
-    toastDownloadMod.show(modId, modName, () => this.cancel(modId));
+    const { toastThumbnail, ...installMetadata } = metadata;
+    toastDownloadMod.show(modId, modName, () => this.cancel(modId), {
+      iconHtml: toastThumbnail
+        ? `<img class="toast-system-thumbnail" src="${toastThumbnail}" alt="" />`
+        : undefined,
+    });
 
     try {
       await FS.api.ensureDir(modsBasePath);
@@ -199,6 +205,7 @@ export const downloadMod = {
       await FS.saveInstalledMod(modId, modName, {
         engineId,
         folderName: sanitizedModName,
+        ...installMetadata,
       });
 
       const injectionResults = await FS.injectModIntoInstalledEngines(modId);
@@ -221,12 +228,15 @@ export const downloadMod = {
         modalBtn.innerHTML =
           '<i class="fa-solid fa-check"></i> Already Installed';
       }
+      this.activeTasks.delete(modId);
+      return true;
     } catch (error) {
       if (error.message !== "Cancelled") {
         await this.cleanupData(modId, tempFilePath, targetModFolder);
         toastDownloadMod.error(modId, error.message || "Installation failed");
         this.activeTasks.delete(modId);
       }
+      return false;
     }
   },
 };
