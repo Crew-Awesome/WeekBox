@@ -285,16 +285,19 @@ export async function downloadArchive({
     onProgress?.("Preparing external download...", 2);
     url = await resolveExternalDownloadUrl(url);
   }
+  const useMultithreadDownloads = appSettings.get("multithreadDownloads");
   let remoteFileSize = 0;
-  try {
-    onProgress?.("Checking download server...", 2);
-    remoteFileSize = await getRangeSupportedFileSize(url);
-  } catch (error) {
-    if (getTask()?.cancelled) throw error;
+  if (useMultithreadDownloads) {
+    try {
+      onProgress?.("Checking download server...", 2);
+      remoteFileSize = await getRangeSupportedFileSize(url);
+    } catch (error) {
+      if (getTask()?.cancelled) throw error;
+    }
   }
 
   if (
-    appSettings.get("multithreadDownloads") &&
+    useMultithreadDownloads &&
     remoteFileSize >= MIN_SEGMENTED_DOWNLOAD_BYTES
   ) {
     try {
