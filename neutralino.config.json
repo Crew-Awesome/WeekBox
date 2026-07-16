@@ -30,7 +30,7 @@
       "minWidth": 800,
       "minHeight": 500,
       "center": true,
-      "enableInspector": true,
+      "enableInspector": false,
       "resizable": true,
       "exitProcessOnClose": true,
       "processArgs": "--disable-web-security",
