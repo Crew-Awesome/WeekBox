@@ -254,7 +254,8 @@ export const downloadEngine = {
       this.throwIfCancelled(task);
 
       updateProgress("Checking for a runnable engine...", 99);
-      if (!(await FS.findExecutable(engineDir))) {
+      const executablePath = await FS.findExecutable(engineDir);
+      if (!executablePath) {
         const searchError = FS.getExecutableSearchError();
         if (searchError) {
           throw new Error(
@@ -265,6 +266,15 @@ export const downloadEngine = {
         throw new Error(
           `The downloaded archive does not contain a runnable engine. Extracted files: ${extractedFiles}`,
         );
+      }
+
+      // Zip/tar extraction on macOS/Linux does not preserve the executable
+      // bit, so the engine (e.g. PsychEngine) cannot be launched until its
+      // permissions are restored.
+      if (window.NL_OS !== "Windows") {
+        await Neutralino.os
+          .execCommand(`chmod 755 "${executablePath}"`, { background: true })
+          .catch(() => {});
       }
       this.throwIfCancelled(task);
 
