@@ -66,6 +66,7 @@ export const modManagerModal = {
         });
         this.eventBound = true;
       }
+
     }
   },
 
@@ -137,7 +138,6 @@ export const modManagerModal = {
     this.engineFilter = filterManager.syncEngineFilterOptions(this.engineFilter, playableMods, standaloneMods);
 
     const standaloneModIds = new Set(standaloneMods.map((m) => String(m.id)));
-    
     const filteredMods = playableMods.filter((mod) => {
       if (this.engineFilter === "all") return true;
       if (this.engineFilter === "executable")
@@ -175,7 +175,6 @@ export const modManagerModal = {
     const gridContainer = document.createElement("div");
     gridContainer.id = "mod-manager-grid-container";
     gridContainer.className = "mod-manager-grid";
-    
     const isListView = localStorage.getItem("weekbox_mod_manager_view") === "list";
     if (isListView) gridContainer.classList.add("list-view");
     
@@ -209,3 +208,4 @@ export const modManagerModal = {
     }
   }
 };
+

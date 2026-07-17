@@ -18,6 +18,12 @@ function isOneDrivePath(path) {
   return /(?:^|[\\/])OneDrive(?:[\\/]|$)/i.test(String(path));
 }
 
+function isICloudPath(path) {
+  return /(?:^|\/)Library\/Mobile Documents\/com~apple~CloudDocs(?:\/|$)/i.test(
+    String(path),
+  );
+}
+
 class FileSystemService {
   constructor() {
     this.basePath = "";
@@ -26,6 +32,7 @@ class FileSystemService {
     this.modsPath = "";
     this.dataPath = "";
     this.isInitialized = false;
+    this.isStorageMoveInProgress = false;
     this.activeDownload = null;
     this.abortController = null;
     this.isPaused = false;
@@ -49,20 +56,20 @@ class FileSystemService {
 
   async init() {
     if (typeof Neutralino !== "undefined") {
-      const documentsPath = await Neutralino.os.getPath("documents");
-      let defaultStoragePath = documentsPath;
-      if (window.NL_OS === "Windows" && isOneDrivePath(documentsPath)) {
-        try {
-          defaultStoragePath = await Neutralino.os.getPath("appData");
-        } catch (error) {
-          console.warn(
-            "Could not use the local application-data folder for WeekBox storage",
-            error,
-          );
+      const defaultStoragePath = await this.getDefaultStorageParentPath();
+      const savedPath = appSettings.get("storageParentPath");
+      let storagePath = savedPath || defaultStoragePath;
+
+      // Keep the old default exactly where it is. Existing libraries only move
+      // when the user explicitly chooses a new location in Settings.
+      if (!savedPath) {
+        const legacyBasePath = await Neutralino.os.getPath("documents");
+        if (await this.api.exists(`${legacyBasePath}/WeekBox`)) {
+          storagePath = legacyBasePath;
         }
       }
-      const savedPath = appSettings.get("storageParentPath");
-      this.setStoragePaths(savedPath || defaultStoragePath);
+
+      this.setStoragePaths(storagePath);
       try {
         await this.ensureStorageDirectories();
       } catch (error) {
@@ -77,6 +84,19 @@ class FileSystemService {
     }
     this.isInitialized = true;
     await this.cleanupHiddenModLinks();
+  }
+
+  async getDefaultStorageParentPath() {
+    if (window.NL_OS === "Windows") {
+      const localAppDataPath = await Neutralino.os.getEnv("LOCALAPPDATA");
+      if (localAppDataPath) return localAppDataPath;
+    }
+    const documentsPath = await Neutralino.os.getPath("documents");
+    if (window.NL_OS === "Darwin" && isICloudPath(documentsPath)) {
+      const homePath = await Neutralino.os.getEnv("HOME");
+      if (homePath) return homePath;
+    }
+    return documentsPath;
   }
 
   setStoragePaths(basePath) {
@@ -102,7 +122,14 @@ class FileSystemService {
     return this.activeEngineProcesses.size > 0;
   }
 
-  async moveStorageTo(basePath) {
+  assertStorageUnlocked() {
+    if (this.isStorageMoveInProgress) {
+      throw new Error("Wait for WeekBox files to finish moving first");
+    }
+  }
+
+  async moveStorageTo(basePath, onProgress = () => {}) {
+    this.assertStorageUnlocked();
     const destinationBasePath = String(basePath || "").replace(/[\\/]+$/, "");
     if (!destinationBasePath) throw new Error("Choose a storage folder first");
     if (destinationBasePath.toLowerCase() === this.basePath.toLowerCase()) {
@@ -116,52 +143,142 @@ class FileSystemService {
     }
     const destinationWeekboxPath = `${destinationBasePath}/WeekBox`;
     if (await this.api.exists(destinationWeekboxPath)) {
-      throw new Error("The selected folder already contains a WeekBox folder");
-    }
-    const mods = await this.mods.getAll();
-    const engines = await this.getInstalledEngines();
-    await Promise.all(
-      mods.map((mod) =>
-        this.injection.unlinkFromInstalledEngines(mod, engines),
-      ),
-    );
-    try {
-      await Neutralino.filesystem.copy(
-        this.weekboxPath,
-        destinationWeekboxPath,
-        {
-          recursive: true,
-          overwrite: false,
-          skip: false,
-        },
+      const entries = getRealEntries(
+        await Neutralino.filesystem.readDirectory(destinationWeekboxPath),
       );
-      await Neutralino.filesystem.remove(this.weekboxPath);
-    } catch (error) {
+      if (entries.length > 0) {
+        throw new Error(
+          "The selected folder already contains a non-empty WeekBox folder",
+        );
+      }
+      await Neutralino.filesystem.remove(destinationWeekboxPath);
+    }
+    this.isStorageMoveInProgress = true;
+    try {
+      const mods = await this.mods.getAll();
+      const engines = await this.getInstalledEngines();
       await Promise.all(
         mods.map((mod) =>
-          this.injection.injectIntoInstalledEngines(mod.id, engines),
+          this.injection.unlinkFromInstalledEngines(mod, engines),
         ),
-      ).catch(() => {});
-      throw new Error(
-        "Could not move WeekBox files. The original location was kept.",
       );
+      try {
+        await this.copyDirectoryWithProgress(
+          this.weekboxPath,
+          destinationWeekboxPath,
+          onProgress,
+        );
+        await Neutralino.filesystem.remove(this.weekboxPath);
+      } catch (error) {
+        await Promise.all(
+          mods.map((mod) =>
+            this.injection.injectIntoInstalledEngines(mod.id, engines),
+          ),
+        ).catch(() => {});
+        throw new Error(
+          "Could not move WeekBox files. The original location was kept.",
+        );
+      }
+      this.setStoragePaths(destinationBasePath);
+      appSettings.set("storageParentPath", destinationBasePath);
+      const [movedMods, movedEngines] = await Promise.all([
+        this.mods.getAll(),
+        this.getInstalledEngines(),
+      ]);
+      await Promise.all(
+        movedMods.map((mod) =>
+          this.injection.injectIntoInstalledEngines(mod.id, movedEngines),
+        ),
+      );
+      return this.weekboxPath;
+    } finally {
+      this.isStorageMoveInProgress = false;
     }
-    this.setStoragePaths(destinationBasePath);
-    appSettings.set("storageParentPath", destinationBasePath);
-    const [movedMods, movedEngines] = await Promise.all([
-      this.mods.getAll(),
-      this.getInstalledEngines(),
-    ]);
+  }
+
+  async copyDirectoryWithProgress(sourcePath, destinationPath, onProgress) {
+    const files = [];
+    const directories = [];
+    const collectFiles = async (directoryPath) => {
+      directories.push(directoryPath);
+      const entries = getRealEntries(
+        await Neutralino.filesystem.readDirectory(directoryPath),
+      );
+      for (const entry of entries) {
+        const entryPath = `${directoryPath}/${entry.entry}`;
+        if (entry.type === "DIRECTORY") {
+          await collectFiles(entryPath);
+        } else if (entry.type === "FILE") {
+          const stats = await Neutralino.filesystem.getStats(entryPath);
+          files.push({ path: entryPath, size: Number(stats.size) || 0 });
+        }
+      }
+    };
+    await collectFiles(sourcePath);
+
+    const totalBytes = files.reduce((total, file) => total + file.size, 0);
+    const fileSizes = new Map(files.map((file) => [file.path, file.size]));
+    let copiedBytes = 0;
+    let copiedFiles = 0;
+    const reportProgress = () => {
+      const progress = totalBytes
+        ? (copiedBytes / totalBytes) * 100
+        : files.length
+          ? (copiedFiles / files.length) * 100
+          : 100;
+      onProgress({ progress, copiedFiles, totalFiles: files.length });
+    };
+
+    reportProgress();
+    for (const sourceDirectory of directories) {
+      const relativePath = sourceDirectory.slice(sourcePath.length);
+      await this.api.ensureDir(`${destinationPath}${relativePath}`);
+    }
+
+    const concurrency = appSettings.get("multithreadStorageMoves") ? 4 : 1;
+    let nextFileIndex = 0;
+    const copyNextFile = async () => {
+      while (nextFileIndex < files.length) {
+        const file = files[nextFileIndex++];
+        const relativePath = file.path.slice(sourcePath.length);
+        await Neutralino.filesystem.copy(
+          file.path,
+          `${destinationPath}${relativePath}`,
+          { recursive: false, overwrite: false, skip: false },
+        );
+        copiedBytes += fileSizes.get(file.path) || 0;
+        copiedFiles += 1;
+        reportProgress();
+      }
+    };
     await Promise.all(
-      movedMods.map((mod) =>
-        this.injection.injectIntoInstalledEngines(mod.id, movedEngines),
-      ),
+      Array.from({ length: Math.min(concurrency, files.length) }, copyNextFile),
     );
-    return this.weekboxPath;
+  }
+
+  async shouldRecommendDefaultStorage() {
+    if (window.NL_OS !== "Windows" && window.NL_OS !== "Darwin") {
+      return false;
+    }
+    if (appSettings.get("storageMoveRecommendationDismissed")) return false;
+    if (window.NL_OS === "Darwin") return this.isICloudStorage();
+    const defaultPath = await this.getDefaultStorageParentPath();
+    const usingDefault =
+      this.basePath.toLowerCase() === String(defaultPath).toLowerCase();
+    if (usingDefault) return false;
+    const documentsPath = await Neutralino.os.getPath("documents");
+    return (
+      this.basePath.toLowerCase() === documentsPath.toLowerCase() ||
+      this.isOneDriveStorage()
+    );
   }
 
   isOneDriveStorage() {
     return window.NL_OS === "Windows" && isOneDrivePath(this.basePath);
+  }
+
+  isICloudStorage() {
+    return window.NL_OS === "Darwin" && isICloudPath(this.basePath);
   }
 
   async cleanupHiddenModLinks() {
@@ -394,20 +511,21 @@ class FileSystemService {
   async getInstalledMods() {
     if (!this.isInitialized) return [];
     const mods = await this.mods.getAll();
-    
+
+    // OPTIMIZACIÓN: Leer el directorio entero en lugar de archivo por archivo (evita bloqueos/lentitud)
     let validFolders = new Set();
     try {
       const entries = await Neutralino.filesystem.readDirectory(this.modsPath);
       for (const e of entries) {
-        if (e.type === 'DIRECTORY') validFolders.add(e.entry);
+        if (e.type === "DIRECTORY") validFolders.add(e.entry);
       }
     } catch (error) {}
 
-    const available = mods.filter(mod => {
+    const available = mods.filter((mod) => {
       const folderName = getModFolderName(mod);
       return folderName && validFolders.has(folderName);
     });
-    
+
     return available;
   }
 
@@ -534,6 +652,7 @@ class FileSystemService {
   }
 
   async removeInstalledMod(modId) {
+    this.assertStorageUnlocked();
     if (!this.isInitialized) return false;
     const mod = (await this.mods.getAll()).find((item) =>
       sameId(item.id, modId),
