@@ -78,7 +78,7 @@ while ($true) {
 Copy-Item -LiteralPath $sourceResources -Destination (Join-Path $target 'resources.neu') -Force
 Remove-Item -LiteralPath $archive -Force -ErrorAction SilentlyContinue
 Remove-Item -LiteralPath $staging -Force -Recurse -ErrorAction SilentlyContinue
-Start-Process -FilePath $targetBinary -WorkingDirectory $target`;
+`;
 }
 
 function createUnixApplyScript({
@@ -119,7 +119,7 @@ chmod 755 "$target_binary"
 cp "$source_resources" ${targetResources}
 rm -f "$archive"
 rm -rf "$staging"
-"$target_binary" >/dev/null 2>&1 &`;
+`;
 }
 
 async function getCurrentVersion() {
@@ -233,13 +233,13 @@ export const appUpdater = {
     if (actualDigest !== expectedDigest) {
       throw new Error("Downloaded update failed its integrity check.");
     }
-    onProgress("Restarting WeekBox to apply update…");
+    onProgress("Closing WeekBox to apply update…");
     const command =
       window.NL_OS === "Windows"
-        ? `powershell -NoProfile -NonInteractive -WindowStyle Hidden -ExecutionPolicy Bypass -EncodedCommand ${encodePowerShellScript(createWindowsApplyScript({ appPath: window.NL_PATH, archivePath, expectedDigest }))}`
+        ? `cmd /c start "" /b powershell -NoProfile -NonInteractive -WindowStyle Hidden -ExecutionPolicy Bypass -EncodedCommand ${encodePowerShellScript(createWindowsApplyScript({ appPath: window.NL_PATH, archivePath, expectedDigest }))}`
         : `/bin/sh -c ${quoteShellString(createUnixApplyScript({ appPath: window.NL_PATH, archivePath, expectedDigest, binaryName: platform.binary }))} >/dev/null 2>&1 &`;
     await Neutralino.os.execCommand(command, {
-      background: true,
+      background: window.NL_OS !== "Windows",
     });
     await Neutralino.app.exit();
   },

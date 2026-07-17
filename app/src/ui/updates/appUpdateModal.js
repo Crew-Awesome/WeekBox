@@ -23,11 +23,11 @@ export const appUpdateModal = {
         <div class="app-update-main">
           <p class="app-update-label">New version available</p>
           <h2 id="app-update-title">Update WeekBox</h2>
-          <p class="app-update-copy">WeekBox <strong data-update-version></strong> is ready. The app will restart to finish the update.</p>
+          <p class="app-update-copy">WeekBox <strong data-update-version></strong> is ready. The app will close to finish the update; reopen it when complete.</p>
           <p class="app-update-progress" aria-live="polite"></p>
           <div class="app-update-actions">
             <button class="app-update-later" type="button">Later</button>
-            <button class="app-update-install" type="button"><i class="fa-solid fa-download" aria-hidden="true"></i> Install and restart</button>
+            <button class="app-update-install" type="button"><i class="fa-solid fa-download" aria-hidden="true"></i> Install and close</button>
           </div>
         </div>
       </div>`;
