@@ -1,3 +1,5 @@
+import { downloadArchive } from "../utils/downloads/archiveTransfer.js";
+
 const RELEASES_API =
   "https://api.github.com/repos/Crew-Awesome/Weekbox/releases/latest";
 const UPDATE_DIRECTORY = ".weekbox-update";
@@ -217,20 +219,19 @@ export const appUpdater = {
     await Neutralino.filesystem.createDirectory(updatePath).catch(() => {});
 
     onProgress("Downloading update…");
-    const response = await fetch(update.asset.browser_download_url);
-    if (!response.ok)
-      throw new Error(
-        `Update download failed: GitHub returned ${response.status}`,
-      );
-    const data = await response.arrayBuffer();
+    await downloadArchive({
+      url: update.asset.browser_download_url,
+      outPath: archivePath,
+      getTask: () => null,
+      onProgress: (status) => onProgress(status),
+    });
+    const data = await Neutralino.filesystem.readBinaryFile(archivePath);
 
     onProgress("Verifying update…");
     const actualDigest = toHex(await crypto.subtle.digest("SHA-256", data));
     if (actualDigest !== expectedDigest) {
       throw new Error("Downloaded update failed its integrity check.");
     }
-    await Neutralino.filesystem.writeBinaryFile(archivePath, data);
-
     onProgress("Restarting WeekBox to apply update…");
     const command =
       window.NL_OS === "Windows"
