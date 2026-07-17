@@ -114,12 +114,10 @@ class FileSystemService {
     if (!(await this.api.exists(destinationBasePath))) {
       throw new Error("Selected storage folder is unavailable");
     }
-
     const destinationWeekboxPath = `${destinationBasePath}/WeekBox`;
     if (await this.api.exists(destinationWeekboxPath)) {
       throw new Error("The selected folder already contains a WeekBox folder");
     }
-
     const mods = await this.mods.getAll();
     const engines = await this.getInstalledEngines();
     await Promise.all(
@@ -127,7 +125,6 @@ class FileSystemService {
         this.injection.unlinkFromInstalledEngines(mod, engines),
       ),
     );
-
     try {
       await Neutralino.filesystem.copy(
         this.weekboxPath,
@@ -149,7 +146,6 @@ class FileSystemService {
         "Could not move WeekBox files. The original location was kept.",
       );
     }
-
     this.setStoragePaths(destinationBasePath);
     appSettings.set("storageParentPath", destinationBasePath);
     const [movedMods, movedEngines] = await Promise.all([
@@ -216,7 +212,6 @@ class FileSystemService {
   async hasModFiles(mod) {
     const folderName = getModFolderName(mod);
     if (!folderName || /[\\/]/.test(folderName)) return false;
-
     const hasFilesIn = async (path) => {
       const entries = getRealEntries(
         await Neutralino.filesystem.readDirectory(path),
@@ -233,7 +228,6 @@ class FileSystemService {
       }
       return false;
     };
-
     try {
       return await hasFilesIn(`${this.modsPath}/${folderName}`);
     } catch (error) {
@@ -244,7 +238,6 @@ class FileSystemService {
   async cleanupInvalidInstalledMods() {
     for (const mod of await this.mods.getAll()) {
       if (await this.hasModFiles(mod)) continue;
-
       const folderName = getModFolderName(mod);
       if (folderName && !/[\\/]/.test(folderName)) {
         await this.api.remove(`${this.modsPath}/${folderName}`).catch(() => {});
@@ -336,7 +329,6 @@ class FileSystemService {
         ? this.closeStandaloneMod(mod.id)
         : this.runStandaloneMod(mod.id, onStateChange);
     }
-
     const behavior = getEngineLaunchBehavior(engine.id);
     const launch = async () => {
       await this.injectModIntoEngine(mod.id, engine.id, engine.version);
@@ -349,7 +341,6 @@ class FileSystemService {
         behavior.scope === "exclusive-mod" ? mod.id : null,
       );
     };
-
     if (state === "launch") return launch();
     if (state === "running") return this.closeEngine(engine.id, engine.version);
     if (await this.closeEngineAndWait(engine.id, engine.version))
@@ -403,16 +394,31 @@ class FileSystemService {
   async getInstalledMods() {
     if (!this.isInitialized) return [];
     const mods = await this.mods.getAll();
-    const available = await Promise.all(
-      mods.map(async (mod) => ((await this.hasModFiles(mod)) ? mod : null)),
-    );
-    return available.filter(Boolean);
+    
+    // OPTIMIZACIÓN: Leer el directorio entero en lugar de archivo por archivo (evita bloqueos/lentitud)
+    let validFolders = new Set();
+    try {
+      const entries = await Neutralino.filesystem.readDirectory(this.modsPath);
+      for (const e of entries) {
+        if (e.type === 'DIRECTORY') validFolders.add(e.entry);
+      }
+    } catch (error) {}
+
+    const available = mods.filter(mod => {
+      const folderName = getModFolderName(mod);
+      return folderName && validFolders.has(folderName);
+    });
+    
+    return available;
   }
 
   async getStandaloneMods() {
     if (!this.isInitialized) return [];
     const standaloneMods = [];
     for (const mod of await this.mods.getAll()) {
+      // OPTIMIZACIÓN: Si el mod ya está asignado a un engine o es una dependencia, nos saltamos la pesada búsqueda del archivo ejecutable.
+      if (mod.engineId || mod.kind === "dependency") continue;
+
       const executable = await this.findExecutable(
         `${this.modsPath}/${getModFolderName(mod)}`,
       );

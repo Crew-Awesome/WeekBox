@@ -4,53 +4,52 @@ export function applyDominantColor(img, targetElement, options = {}) {
     alpha = 0.5,
     fallback = "rgba(128, 128, 128, 0.3)",
   } = options;
-
+  
   const processColor = () => {
-    try {
-      const canvas = document.createElement("canvas");
-      const ctx = canvas.getContext("2d");
-      const sourceWidth = img.naturalWidth || 64;
-      const sourceHeight = img.naturalHeight || 64;
-
-      const scale = Math.min(1, 64 / Math.max(sourceWidth, sourceHeight));
-      canvas.width = Math.max(1, Math.round(sourceWidth * scale));
-      canvas.height = Math.max(1, Math.round(sourceHeight * scale));
-
-      ctx.drawImage(img, 0, 0);
-      const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
-
-      let r = 0, g = 0, b = 0, count = 0;
-
-      for (let i = 0; i < data.length; i += 16) {
-        const pr = data[i];
-        const pg = data[i + 1];
-        const pb = data[i + 2];
+    // OPTIMIZACIÓN: Se usa setTimeout para evitar bloquear el hilo principal (UI) al cambiar de pestaña
+    setTimeout(() => {
+      try {
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
+        const sourceWidth = img.naturalWidth || 64;
+        const sourceHeight = img.naturalHeight || 64;
+        const scale = Math.min(1, 64 / Math.max(sourceWidth, sourceHeight));
+        canvas.width = Math.max(1, Math.round(sourceWidth * scale));
+        canvas.height = Math.max(1, Math.round(sourceHeight * scale));
         
-        const luma = 0.299 * pr + 0.587 * pg + 0.114 * pb;
-
-        if (luma > 50 && luma < 190) {
-          r += pr;
-          g += pg;
-          b += pb;
-          count++;
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+        
+        let r = 0, g = 0, b = 0, count = 0;
+        for (let i = 0; i < data.length; i += 16) {
+          const pr = data[i];
+          const pg = data[i + 1];
+          const pb = data[i + 2];
+          
+          const luma = 0.299 * pr + 0.587 * pg + 0.114 * pb;
+          if (luma > 50 && luma < 190) {
+            r += pr;
+            g += pg;
+            b += pb;
+            count++;
+          }
         }
-      }
-
-      if (count > 0) {
-        r = Math.floor(r / count);
-        g = Math.floor(g / count);
-        b = Math.floor(b / count);
-
-        targetElement.style.setProperty(
-          cssVar,
-          `rgba(${r}, ${g}, ${b}, ${alpha})`
-        );
-      } else {
+        
+        if (count > 0) {
+          r = Math.floor(r / count);
+          g = Math.floor(g / count);
+          b = Math.floor(b / count);
+          targetElement.style.setProperty(
+            cssVar,
+            `rgba(${r}, ${g}, ${b}, ${alpha})`
+          );
+        } else {
+          targetElement.style.setProperty(cssVar, fallback);
+        }
+      } catch (e) {
         targetElement.style.setProperty(cssVar, fallback);
       }
-    } catch (e) {
-      targetElement.style.setProperty(cssVar, fallback);
-    }
+    }, 0);
   };
 
   if (img.complete) processColor();
