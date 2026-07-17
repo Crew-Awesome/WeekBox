@@ -219,6 +219,13 @@ export const configModal = {
   },
 
   showStorageMoveToast() {
+    if (!document.getElementById("storage-move-lock")) {
+      const lock = document.createElement("div");
+      lock.id = "storage-move-lock";
+      lock.className = "storage-move-lock";
+      lock.setAttribute("aria-hidden", "true");
+      document.body.appendChild(lock);
+    }
     toastSystem.show("weekbox-storage-move", {
       title: "Moving WeekBox files",
       message: "Preparing files…",
@@ -235,6 +242,7 @@ export const configModal = {
   },
 
   completeStorageMoveToast() {
+    document.getElementById("storage-move-lock")?.remove();
     toastSystem.setState("weekbox-storage-move", "complete", {
       badgeHtml: '<i class="fa-solid fa-check" aria-hidden="true"></i>',
     });
@@ -246,6 +254,7 @@ export const configModal = {
   },
 
   failStorageMoveToast(message) {
+    document.getElementById("storage-move-lock")?.remove();
     toastSystem.setState("weekbox-storage-move", "error", {
       badgeHtml: '<i class="fa-solid fa-xmark" aria-hidden="true"></i>',
     });

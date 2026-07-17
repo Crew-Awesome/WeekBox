@@ -177,6 +177,7 @@ export const downloadEngine = {
 
   async install(engineId, version, downloadUrl, onProgress, onStateChange) {
     if (!FS.isInitialized) await FS.init();
+    FS.assertStorageUnlocked();
 
     if (FS.isOneDriveStorage()) {
       throw new Error(

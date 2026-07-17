@@ -122,6 +122,11 @@ async function recommendSaferStorageLocation() {
   if (choice !== "move") return;
 
   const toastId = "weekbox-storage-recommendation";
+  const lock = document.createElement("div");
+  lock.id = "storage-move-lock";
+  lock.className = "storage-move-lock";
+  lock.setAttribute("aria-hidden", "true");
+  document.body.appendChild(lock);
   toastSystem.show(toastId, {
     title: "Moving WeekBox files",
     message: "Preparing files…",
@@ -155,6 +160,8 @@ async function recommendSaferStorageLocation() {
       message: error.message || "Could not move WeekBox files.",
       progress: 100,
     });
+  } finally {
+    lock.remove();
   }
 }
 

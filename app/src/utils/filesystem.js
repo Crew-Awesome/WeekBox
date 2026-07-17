@@ -32,6 +32,7 @@ class FileSystemService {
     this.modsPath = "";
     this.dataPath = "";
     this.isInitialized = false;
+    this.isStorageMoveInProgress = false;
     this.activeDownload = null;
     this.abortController = null;
     this.isPaused = false;
@@ -121,7 +122,14 @@ class FileSystemService {
     return this.activeEngineProcesses.size > 0;
   }
 
+  assertStorageUnlocked() {
+    if (this.isStorageMoveInProgress) {
+      throw new Error("Wait for WeekBox files to finish moving first");
+    }
+  }
+
   async moveStorageTo(basePath, onProgress = () => {}) {
+    this.assertStorageUnlocked();
     const destinationBasePath = String(basePath || "").replace(/[\\/]+$/, "");
     if (!destinationBasePath) throw new Error("Choose a storage folder first");
     if (destinationBasePath.toLowerCase() === this.basePath.toLowerCase()) {
@@ -145,42 +153,47 @@ class FileSystemService {
       }
       await Neutralino.filesystem.remove(destinationWeekboxPath);
     }
-    const mods = await this.mods.getAll();
-    const engines = await this.getInstalledEngines();
-    await Promise.all(
-      mods.map((mod) =>
-        this.injection.unlinkFromInstalledEngines(mod, engines),
-      ),
-    );
+    this.isStorageMoveInProgress = true;
     try {
-      await this.copyDirectoryWithProgress(
-        this.weekboxPath,
-        destinationWeekboxPath,
-        onProgress,
-      );
-      await Neutralino.filesystem.remove(this.weekboxPath);
-    } catch (error) {
+      const mods = await this.mods.getAll();
+      const engines = await this.getInstalledEngines();
       await Promise.all(
         mods.map((mod) =>
-          this.injection.injectIntoInstalledEngines(mod.id, engines),
+          this.injection.unlinkFromInstalledEngines(mod, engines),
         ),
-      ).catch(() => {});
-      throw new Error(
-        "Could not move WeekBox files. The original location was kept.",
       );
+      try {
+        await this.copyDirectoryWithProgress(
+          this.weekboxPath,
+          destinationWeekboxPath,
+          onProgress,
+        );
+        await Neutralino.filesystem.remove(this.weekboxPath);
+      } catch (error) {
+        await Promise.all(
+          mods.map((mod) =>
+            this.injection.injectIntoInstalledEngines(mod.id, engines),
+          ),
+        ).catch(() => {});
+        throw new Error(
+          "Could not move WeekBox files. The original location was kept.",
+        );
+      }
+      this.setStoragePaths(destinationBasePath);
+      appSettings.set("storageParentPath", destinationBasePath);
+      const [movedMods, movedEngines] = await Promise.all([
+        this.mods.getAll(),
+        this.getInstalledEngines(),
+      ]);
+      await Promise.all(
+        movedMods.map((mod) =>
+          this.injection.injectIntoInstalledEngines(mod.id, movedEngines),
+        ),
+      );
+      return this.weekboxPath;
+    } finally {
+      this.isStorageMoveInProgress = false;
     }
-    this.setStoragePaths(destinationBasePath);
-    appSettings.set("storageParentPath", destinationBasePath);
-    const [movedMods, movedEngines] = await Promise.all([
-      this.mods.getAll(),
-      this.getInstalledEngines(),
-    ]);
-    await Promise.all(
-      movedMods.map((mod) =>
-        this.injection.injectIntoInstalledEngines(mod.id, movedEngines),
-      ),
-    );
-    return this.weekboxPath;
   }
 
   async copyDirectoryWithProgress(sourcePath, destinationPath, onProgress) {
@@ -619,6 +632,7 @@ class FileSystemService {
   }
 
   async removeInstalledMod(modId) {
+    this.assertStorageUnlocked();
     if (!this.isInitialized) return false;
     const mod = (await this.mods.getAll()).find((item) =>
       sameId(item.id, modId),

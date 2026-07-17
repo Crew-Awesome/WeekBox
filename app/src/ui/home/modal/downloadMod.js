@@ -78,6 +78,7 @@ export const downloadMod = {
 
   async install(modId, modName, downloadUrl, engineId = null, metadata = {}) {
     if (!FS.isInitialized) await FS.init();
+    FS.assertStorageUnlocked();
     const modsBasePath = FS.modsPath;
     const sanitizedModName = sanitizePathSegment(modName);
     const targetModFolder = `${modsBasePath}/${sanitizedModName}`;

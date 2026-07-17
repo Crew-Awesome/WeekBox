@@ -213,6 +213,13 @@
   gap: 8px;
 }
 
+.storage-move-lock {
+  position: fixed;
+  inset: 0;
+  z-index: 9000;
+  cursor: wait;
+}
+
 .setting-item-storage .setting-info p {
   overflow: hidden;
   text-overflow: ellipsis;
