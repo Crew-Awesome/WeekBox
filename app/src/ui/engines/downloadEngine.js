@@ -234,7 +234,7 @@ export const downloadEngine = {
 
       task.phase = "extracting";
       this.notifyState(task, "installing");
-      updateProgress("Installing...", 98);
+      updateProgress("Download complete. Extracting archive...", 98);
       await extractArchive({
         archivePath: tempFilePath,
         destinationPath: engineDir,
@@ -243,10 +243,11 @@ export const downloadEngine = {
       });
       this.throwIfCancelled(task);
 
-      updateProgress("Organizing files...", 99);
+      updateProgress("Extracted. Organizing engine files...", 99);
       await this.flattenEngineDir(engineDir, () => task.cancelled);
       this.throwIfCancelled(task);
 
+      updateProgress("Checking for a runnable engine...", 99);
       if (!(await FS.findExecutable(engineDir))) {
         const searchError = FS.getExecutableSearchError();
         if (searchError) {
@@ -266,6 +267,7 @@ export const downloadEngine = {
       await FS.api.remove(`${engineDir}/.downloading`).catch(() => {});
       this.throwIfCancelled(task);
 
+      updateProgress("Setting up installed mods...", 99);
       const injectionResults = await FS.injectModsIntoEngine(engineId, version);
       this.throwIfCancelled(task);
       injectionResults

@@ -260,9 +260,7 @@ export const enginesView = {
       Math.max(0, Number(progressInfo?.progress) || 0),
     );
     const status = String(progressInfo?.status || "Working...");
-    const progressText = status.startsWith("Extracting:")
-      ? "Installing files..."
-      : `${Math.floor(progress)}% - ${status}`;
+    const progressText = `${Math.floor(progress)}% - ${status}`;
     if (dlUI) dlUI.style.display = "block";
     if (dlText) dlText.textContent = progressText;
     if (dlTextSizer) dlTextSizer.textContent = progressText;
