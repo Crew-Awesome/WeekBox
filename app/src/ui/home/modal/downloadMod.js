@@ -218,13 +218,30 @@ export const downloadMod = {
             (f) => f.entry !== "." && f.entry !== "..",
           );
 
+          // Stage entries outside the wrapper before removing it. This also
+          // handles archives with repeated wrapper names (for example,
+          // `Mod/Mod/...`) without trying to move a folder into itself.
+          const flattenTempPath = `${targetModFolder}/.flatten_${taskKey}`;
+          await FS.api.ensureDir(flattenTempPath);
           for (const sf of realSubFiles) {
             await Neutralino.filesystem.move(
               `${subDirPath}/${sf.entry}`,
-              `${targetModFolder}/${sf.entry}`,
+              `${flattenTempPath}/${sf.entry}`,
             );
           }
           await Neutralino.filesystem.remove(subDirPath).catch(() => {});
+
+          const stagedFiles =
+            await Neutralino.filesystem.readDirectory(flattenTempPath);
+          for (const sf of stagedFiles) {
+            if (sf.entry !== "." && sf.entry !== "..") {
+              await Neutralino.filesystem.move(
+                `${flattenTempPath}/${sf.entry}`,
+                `${targetModFolder}/${sf.entry}`,
+              );
+            }
+          }
+          await Neutralino.filesystem.remove(flattenTempPath).catch(() => {});
         }
       }
 

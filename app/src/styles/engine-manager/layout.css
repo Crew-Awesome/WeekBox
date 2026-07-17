@@ -144,7 +144,7 @@
   transition:
     opacity 0.3s ease,
     transform 0.3s ease,
-    box-shadow 0.3s ease;
+    filter 0.3s ease;
 }
 
 .em-index-icon:hover {
@@ -155,7 +155,7 @@
 .em-index-icon.active {
   opacity: 1;
   transform: scale(1.15) translateY(-2px);
-  box-shadow: 0 4px 12px rgba(255, 255, 255, 0.2);
+  filter: drop-shadow(0 4px 12px rgba(255, 255, 255, 0.35));
 }
 
 /* === LISTAS DE VERSIONES (Transparente y Líneas top/bottom) === */
