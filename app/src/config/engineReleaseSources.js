@@ -4,7 +4,7 @@ export const ENGINE_RELEASE_SOURCES = {
     assets: {
       win: [/^funkin-windows-(?:64bit|x64)\.zip$/i],
       lin: [/linux/i],
-      mac: [/macos|osx|\.dmg$/i],
+      mac: [/macos|osx/i],
     },
     exclude: [/debug/i, /html5/i],
   },

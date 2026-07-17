@@ -168,6 +168,24 @@ function getWindowsMergeCommand(parts, outPath) {
   return `powershell -NoProfile -NonInteractive -EncodedCommand ${encodePowerShellScript(script)}`;
 }
 
+function getWindowsExtractionCommand(archivePath, destinationPath) {
+  const archive = archivePath.replace(/\//g, "\\");
+  const destination = destinationPath.replace(/\//g, "\\");
+  const archiveMatch = archive.match(/^([A-Za-z]):\\(.+)$/);
+  const destinationMatch = destination.match(/^([A-Za-z]):\\(.+)$/);
+
+  if (
+    archiveMatch &&
+    destinationMatch &&
+    archiveMatch[1].toLowerCase() === destinationMatch[1].toLowerCase()
+  ) {
+    const script = `Set-Location ${quotePowerShellString(`${archiveMatch[1]}:\\`)};& tar.exe -xvf ${quotePowerShellString(archiveMatch[2])} -C ${quotePowerShellString(destinationMatch[2])}`;
+    return `powershell -NoProfile -NonInteractive -EncodedCommand ${encodePowerShellScript(script)}`;
+  }
+
+  return `tar -xvf "${archive}" -C "${destination}"`;
+}
+
 async function runCurlDownload(command, getTask, onProgress, getProgress) {
   const process = await Neutralino.os.spawnProcess(command);
   const task = getTask();
@@ -342,10 +360,8 @@ export async function extractArchive({
   onEntry,
 }) {
   const isWindows = window.NL_OS === "Windows";
-  const windowsArchivePath = archivePath.replace(/\//g, "\\");
-  const windowsDestinationPath = destinationPath.replace(/\//g, "\\");
   const command = isWindows
-    ? `tar -xvf "${windowsArchivePath}" -C "${windowsDestinationPath}"`
+    ? getWindowsExtractionCommand(archivePath, destinationPath)
     : `unzip -o "${archivePath}" -d "${destinationPath}"`;
   const process = await Neutralino.os.spawnProcess(command);
   const task = getTask();

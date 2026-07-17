@@ -2,6 +2,7 @@ import { appSettings } from "../../core/settings.js";
 import { FS } from "../../utils/filesystem.js";
 import { downloadEngine } from "../engines/downloadEngine.js";
 import { downloadMod } from "../home/modal/downloadMod.js";
+import { appUpdater } from "../../core/appUpdater.js";
 
 export const configModal = {
   async init() {
@@ -48,6 +49,17 @@ export const configModal = {
       .getElementById("choose-storage-location")
       ?.addEventListener("click", () => this.chooseStorageLocation());
 
+    document
+      .getElementById("check-app-update")
+      ?.addEventListener("click", () => {
+        if (this.pendingAppUpdate) return this.installAppUpdate();
+        return this.checkForAppUpdate();
+      });
+
+    document.addEventListener("app-update-available", (event) => {
+      this.showAvailableAppUpdate(event.detail);
+    });
+
     // Cambiar Tabs (Pestañas)
     const tabBtns = document.querySelectorAll(".config-tab-btn");
     tabBtns.forEach((btn) => {
@@ -84,6 +96,7 @@ export const configModal = {
       "multithreadDownloads",
       "checkUpdatesOnStartup",
       "checkUpdatesInBackground",
+      "checkAppUpdatesOnStartup",
     ];
 
     toggleIds.forEach((settingKey) => {
@@ -113,6 +126,7 @@ export const configModal = {
       "multithreadDownloads",
       "checkUpdatesOnStartup",
       "checkUpdatesInBackground",
+      "checkAppUpdatesOnStartup",
     ];
 
     toggleIds.forEach((settingKey) => {
@@ -122,11 +136,73 @@ export const configModal = {
       }
     });
     this.updateStorageLocationLabel();
+    try {
+      const update = JSON.parse(
+        sessionStorage.getItem("weekbox_available_app_update") || "null",
+      );
+      if (update?.asset) this.showAvailableAppUpdate(update);
+    } catch {}
   },
 
   updateStorageLocationLabel() {
     const label = document.getElementById("storage-location-path");
     if (label) label.textContent = FS.weekboxPath || "Documents/WeekBox";
+  },
+
+  showAvailableAppUpdate(update) {
+    const button = document.getElementById("check-app-update");
+    const status = document.getElementById("app-update-status");
+    if (!button || !status || !update?.latestVersion) return;
+    this.pendingAppUpdate = update;
+    status.textContent = `WeekBox ${update.latestVersion} is ready to install.`;
+    button.textContent = "Install and restart";
+    button.disabled = false;
+  },
+
+  async checkForAppUpdate() {
+    const button = document.getElementById("check-app-update");
+    const status = document.getElementById("app-update-status");
+    if (!button || !status) return;
+    button.disabled = true;
+    this.pendingAppUpdate = null;
+    status.textContent = "Checking for updates…";
+    try {
+      const update = await appUpdater.check();
+      if (update.status === "current") {
+        sessionStorage.removeItem("weekbox_available_app_update");
+        status.textContent = `WeekBox ${update.currentVersion} is up to date.`;
+        button.textContent = "Up to date";
+        return;
+      }
+      if (update.status === "unsupported") {
+        status.textContent = update.message;
+        button.textContent = "Unavailable";
+        return;
+      }
+      this.showAvailableAppUpdate(update);
+    } catch (error) {
+      status.textContent = error.message || "Could not check for updates.";
+      button.textContent = "Try again";
+      button.disabled = false;
+    }
+  },
+
+  async installAppUpdate() {
+    const button = document.getElementById("check-app-update");
+    const status = document.getElementById("app-update-status");
+    const update = this.pendingAppUpdate;
+    if (!button || !status || !update) return;
+    button.disabled = true;
+    try {
+      await appUpdater.install(update, (message) => {
+        status.textContent = message;
+      });
+    } catch (error) {
+      status.textContent = error.message || "Could not install the update.";
+      button.textContent = "Try again";
+      this.pendingAppUpdate = null;
+      button.disabled = false;
+    }
   },
 
   hasActiveDownloads() {

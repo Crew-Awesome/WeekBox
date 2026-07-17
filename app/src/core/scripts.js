@@ -9,6 +9,9 @@ import { disableProductionRefreshShortcuts } from "./productionShortcuts.js";
 import { FS } from "../utils/filesystem.js";
 import { appSettings } from "./settings.js";
 import { openLaunchDeepLink, openWeekboxLink } from "./deepLinks.js";
+import { errorHandler } from "../ui/errors/errorHandler.js";
+import { appUpdater } from "./appUpdater.js";
+import { appUpdateModal } from "../ui/updates/appUpdateModal.js";
 
 function clearTestToasts() {
   document
@@ -72,15 +75,27 @@ function installGlobalErrorReporter() {
   window.__weekboxErrorReporterInstalled = true;
 
   window.addEventListener("error", (event) => {
-    console.error("[WeekBox] Unhandled error", event.error || event.message, {
+    const error = event.error || event.message;
+    console.error("[WeekBox] Unhandled error", error, {
       filename: event.filename,
       line: event.lineno,
       column: event.colno,
+    });
+    if (!error) return;
+    errorHandler.show({
+      error,
+      action: "Run WeekBox",
+      storagePath: FS.weekboxPath,
     });
   });
 
   window.addEventListener("unhandledrejection", (event) => {
     console.error("[WeekBox] Unhandled promise rejection", event.reason);
+    errorHandler.show({
+      error: event.reason,
+      action: "Run WeekBox",
+      storagePath: FS.weekboxPath,
+    });
   });
 }
 
@@ -113,6 +128,24 @@ async function startApp() {
     registerEnginesView();
     await router.init();
     await openLaunchDeepLink();
+    if (appSettings.get("checkAppUpdatesOnStartup")) {
+      appUpdater
+        .check()
+        .then((update) => {
+          if (update.status !== "available") return;
+          try {
+            sessionStorage.setItem(
+              "weekbox_available_app_update",
+              JSON.stringify(update),
+            );
+          } catch {}
+          document.dispatchEvent(
+            new CustomEvent("app-update-available", { detail: update }),
+          );
+          appUpdateModal.show(update);
+        })
+        .catch(() => {});
+    }
     console.log("WeekBox: modules loaded.");
   } catch (error) {
     console.error("Startup error:", error);

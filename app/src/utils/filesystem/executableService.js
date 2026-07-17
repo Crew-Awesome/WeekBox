@@ -1,35 +1,75 @@
 import { getParentPath, getRealEntries } from "./pathUtils.js";
 
+function describeFileSystemError(error) {
+  if (error instanceof Error) return error.message;
+  if (error && typeof error === "object") {
+    return (
+      error.message || error.description || error.code || JSON.stringify(error)
+    );
+  }
+  return String(error || "Unknown filesystem error");
+}
+
 export class ExecutableService {
   async find(dir) {
-    try {
-      const isWindows = window.NL_OS === "Windows";
-      const directories = [dir];
+    this.lastError = null;
+    const isWindows = window.NL_OS === "Windows";
+    const directories = [dir];
 
-      while (directories.length > 0) {
-        const currentDir = directories.pop();
+    while (directories.length > 0) {
+      const currentDir = directories.pop();
+      try {
         const entries = getRealEntries(
           await Neutralino.filesystem.readDirectory(currentDir),
         );
 
         for (const entry of entries) {
           const fullPath = `${currentDir}/${entry.entry}`;
-          if (entry.type === "DIRECTORY") {
+          if (String(entry.type).toUpperCase() === "DIRECTORY") {
             directories.push(fullPath);
             continue;
           }
           if (
-            entry.type === "FILE" &&
-            (entry.entry.toLowerCase().endsWith(".exe") ||
-              (!isWindows && !entry.entry.includes(".")))
+            entry.entry.toLowerCase().endsWith(".exe") ||
+            (!isWindows && !entry.entry.includes("."))
           ) {
             return fullPath;
           }
         }
+      } catch (error) {
+        this.lastError = describeFileSystemError(error);
+        console.warn(
+          "Could not inspect engine directory:",
+          currentDir,
+          this.lastError,
+        );
       }
-    } catch (error) {}
+    }
+
+    if (isWindows) {
+      try {
+        const result = await Neutralino.os.execCommand(
+          `where.exe /r "${dir.replace(/\//g, "\\")}" *.exe`,
+          { background: false },
+        );
+        if (result.exitCode === 0) {
+          return (
+            (result.stdOut || "")
+              .split(/\r?\n/)
+              .map((path) => path.trim())
+              .find(Boolean) || null
+          );
+        }
+      } catch (error) {
+        console.warn("Could not search for a Windows executable:", dir, error);
+      }
+    }
 
     return null;
+  }
+
+  getLastError() {
+    return this.lastError;
   }
 
   getDirectory(executablePath) {
@@ -46,14 +86,12 @@ export class ExecutableService {
         ".png": "image/png",
         ".svg": "image/svg+xml",
       };
-      const icon = entries.find(
-        (entry) => {
-          const extension = entry.entry
-            .slice(entry.entry.lastIndexOf("."))
-            .toLowerCase();
-          return entry.type === "FILE" && extension in iconMimeTypes;
-        },
-      );
+      const icon = entries.find((entry) => {
+        const extension = entry.entry
+          .slice(entry.entry.lastIndexOf("."))
+          .toLowerCase();
+        return entry.type === "FILE" && extension in iconMimeTypes;
+      });
       if (!icon) return "";
 
       const data = await Neutralino.filesystem.readBinaryFile(

@@ -8,6 +8,7 @@ export const appSettings = {
     storageParentPath: null,
     checkUpdatesOnStartup: true,
     checkUpdatesInBackground: true,
+    checkAppUpdatesOnStartup: true,
   },
   get(key) {
     try {

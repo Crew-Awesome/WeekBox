@@ -14,6 +14,10 @@ function sameId(left, right) {
   return String(left) === String(right);
 }
 
+function isOneDrivePath(path) {
+  return /(?:^|[\\/])OneDrive(?:[\\/]|$)/i.test(String(path));
+}
+
 class FileSystemService {
   constructor() {
     this.basePath = "";
@@ -46,15 +50,26 @@ class FileSystemService {
   async init() {
     if (typeof Neutralino !== "undefined") {
       const documentsPath = await Neutralino.os.getPath("documents");
+      let defaultStoragePath = documentsPath;
+      if (window.NL_OS === "Windows" && isOneDrivePath(documentsPath)) {
+        try {
+          defaultStoragePath = await Neutralino.os.getPath("appData");
+        } catch (error) {
+          console.warn(
+            "Could not use the local application-data folder for WeekBox storage",
+            error,
+          );
+        }
+      }
       const savedPath = appSettings.get("storageParentPath");
-      this.setStoragePaths(savedPath || documentsPath);
+      this.setStoragePaths(savedPath || defaultStoragePath);
       try {
         await this.ensureStorageDirectories();
       } catch (error) {
         if (!savedPath) throw error;
         console.warn("Could not access saved WeekBox storage location", error);
         appSettings.set("storageParentPath", null);
-        this.setStoragePaths(documentsPath);
+        this.setStoragePaths(defaultStoragePath);
         await this.ensureStorageDirectories();
       }
       await this.cleanupIncompleteDownloads();
@@ -137,8 +152,20 @@ class FileSystemService {
 
     this.setStoragePaths(destinationBasePath);
     appSettings.set("storageParentPath", destinationBasePath);
-    await this.injectModsIntoInstalledEngines();
+    const [movedMods, movedEngines] = await Promise.all([
+      this.mods.getAll(),
+      this.getInstalledEngines(),
+    ]);
+    await Promise.all(
+      movedMods.map((mod) =>
+        this.injection.injectIntoInstalledEngines(mod.id, movedEngines),
+      ),
+    );
     return this.weekboxPath;
+  }
+
+  isOneDriveStorage() {
+    return window.NL_OS === "Windows" && isOneDrivePath(this.basePath);
   }
 
   async cleanupHiddenModLinks() {
@@ -229,6 +256,7 @@ class FileSystemService {
   async isEngineInstalled(engineId, version) {
     if (!this.isInitialized) return false;
     const path = `${this.enginesPath}/${engineId}/${version}`;
+    if (!(await this.api.exists(path))) return false;
     return (
       !(await this.api.exists(`${path}/.downloading`)) &&
       Boolean(await this.findExecutable(path))
@@ -237,6 +265,10 @@ class FileSystemService {
 
   async findExecutable(directory) {
     return this.executables.find(directory);
+  }
+
+  getExecutableSearchError() {
+    return this.executables.getLastError();
   }
 
   async runEngine(engineId, version, onStateChange, args = [], modId = null) {

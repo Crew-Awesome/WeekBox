@@ -3,6 +3,7 @@ import {
   downloadArchive,
   extractArchive,
 } from "../../utils/downloads/archiveTransfer.js";
+import { errorHandler } from "../errors/errorHandler.js";
 
 export const downloadEngine = {
   activeTasks: new Map(),
@@ -85,6 +86,9 @@ export const downloadEngine = {
 
   // Función inteligente para buscar el ejecutable y subir todo su contenido a la raíz de {version}
   async flattenEngineDir(engineDir, isCancelled = () => false) {
+    // macOS engines are commonly .app bundles. Moving the nested executable
+    // to the engine root breaks the bundle and prevents macOS from launching it.
+    if (window.NL_OS === "Darwin") return;
     if (isCancelled()) throw new Error("Cancelled");
     const exePath = await FS.findExecutable(engineDir);
     if (isCancelled()) throw new Error("Cancelled");
@@ -139,8 +143,46 @@ export const downloadEngine = {
     }
   },
 
+  async describeExtractedFiles(directory, limit = 24) {
+    const files = [];
+    const directories = [directory];
+    const root = directory.replace(/\\/g, "/");
+
+    while (directories.length && files.length < limit) {
+      const currentDirectory = directories.shift();
+      let entries;
+      try {
+        entries = await Neutralino.filesystem.readDirectory(currentDirectory);
+      } catch (error) {
+        return `Could not list extracted files: ${error?.message || String(error)}`;
+      }
+
+      for (const entry of entries) {
+        if (entry.entry === "." || entry.entry === "..") continue;
+        const fullPath = `${currentDirectory}/${entry.entry}`;
+        const relativePath = fullPath.slice(root.length + 1);
+        if (String(entry.type).toUpperCase() === "DIRECTORY") {
+          directories.push(fullPath);
+        } else {
+          files.push(relativePath);
+          if (files.length >= limit) break;
+        }
+      }
+    }
+
+    return files.length
+      ? files.join(", ") + (directories.length ? ", …" : "")
+      : "No files were found after extraction";
+  },
+
   async install(engineId, version, downloadUrl, onProgress, onStateChange) {
     if (!FS.isInitialized) await FS.init();
+
+    if (FS.isOneDriveStorage()) {
+      throw new Error(
+        "WeekBox storage is inside OneDrive. Choose a local folder outside OneDrive, such as C:\\WeekBoxData, before downloading engines.",
+      );
+    }
 
     const enginesBasePath = FS.enginesPath;
     const engineDir = `${enginesBasePath}/${engineId}/${version}`;
@@ -206,8 +248,15 @@ export const downloadEngine = {
       this.throwIfCancelled(task);
 
       if (!(await FS.findExecutable(engineDir))) {
+        const searchError = FS.getExecutableSearchError();
+        if (searchError) {
+          throw new Error(
+            `WeekBox could not access the engine folder after extraction: ${searchError}`,
+          );
+        }
+        const extractedFiles = await this.describeExtractedFiles(engineDir);
         throw new Error(
-          "The downloaded archive does not contain a runnable engine",
+          `The downloaded archive does not contain a runnable engine. Extracted files: ${extractedFiles}`,
         );
       }
       this.throwIfCancelled(task);
@@ -231,8 +280,16 @@ export const downloadEngine = {
 
       return true;
     } catch (error) {
-      if (!task.cancelled)
+      if (!task.cancelled) {
         console.error(`Error installing engine ${engineId}:`, error);
+        errorHandler.show({
+          error,
+          action: "Install engine",
+          item: engineId,
+          version,
+          storagePath: FS.weekboxPath,
+        });
+      }
 
       await FS.api.remove(tempFilePath).catch(() => {});
 

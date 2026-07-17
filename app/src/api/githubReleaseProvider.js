@@ -58,6 +58,27 @@ const PLATFORM_MISMATCH_PATTERNS = {
   macarm: [/windows|win32|win64/i, /linux/i],
 };
 
+function getCurrentPlatformKeys() {
+  if (window.NL_OS === "Windows") {
+    return window.NL_ARCH === "x64" ? ["win64", "win"] : ["win32", "win"];
+  }
+  if (window.NL_OS === "Linux") return ["lin"];
+  if (window.NL_OS === "Darwin") {
+    if (window.NL_ARCH === "x64") return ["mac64", "mac"];
+    if (window.NL_ARCH === "arm64") return ["macarm", "mac"];
+    return ["mac", "mac64", "macarm"];
+  }
+  return [];
+}
+
+function filterVersionsForCurrentPlatform(versions) {
+  const platforms = getCurrentPlatformKeys();
+  if (!platforms.length) return versions;
+  return versions.filter((version) =>
+    platforms.some((platform) => Boolean(version[platform])),
+  );
+}
+
 function selectAsset(assets, patterns, exclude = [], platform) {
   return assets.find((asset) => {
     const name = asset.name || "";
@@ -94,7 +115,9 @@ function normalizeRelease(release, source) {
 
 function withLatestReleaseOption(versions, engineId) {
   if (engineId !== "psychonline" || !versions.length) return versions;
-  const existingLatest = versions.find((version) => version.version === "Latest");
+  const existingLatest = versions.find(
+    (version) => version.version === "Latest",
+  );
   if (existingLatest) {
     const releaseVersion = existingLatest.releaseVersion;
     if (
@@ -249,9 +272,11 @@ export async function getEngineReleaseVersions(engineId) {
     cached?.versions?.length &&
     Date.now() - cached.savedAt < CACHE_FRESH_MS
   ) {
-    return withNightlyVersion(
-      withLatestReleaseOption(cached.versions, engineId),
-      source,
+    return filterVersionsForCurrentPlatform(
+      withNightlyVersion(
+        withLatestReleaseOption(cached.versions, engineId),
+        source,
+      ),
     );
   }
 
@@ -259,9 +284,11 @@ export async function getEngineReleaseVersions(engineId) {
     const result = await fetchAllReleases(source, cached?.etag);
     if (result.notModified && cached?.versions?.length) {
       writeCache(engineId, { ...cached, savedAt: Date.now() });
-      return withNightlyVersion(
-        withLatestReleaseOption(cached.versions, engineId),
-        source,
+      return filterVersionsForCurrentPlatform(
+        withNightlyVersion(
+          withLatestReleaseOption(cached.versions, engineId),
+          source,
+        ),
       );
     }
     const versions = withLatestReleaseOption(
@@ -276,12 +303,16 @@ export async function getEngineReleaseVersions(engineId) {
       etag: result.etag,
       savedAt: Date.now(),
     });
-    return withNightlyVersion(versions, source);
+    return filterVersionsForCurrentPlatform(
+      withNightlyVersion(versions, source),
+    );
   } catch (error) {
     return cached?.versions?.length
-      ? withNightlyVersion(
-          withLatestReleaseOption(cached.versions, engineId),
-          source,
+      ? filterVersionsForCurrentPlatform(
+          withNightlyVersion(
+            withLatestReleaseOption(cached.versions, engineId),
+            source,
+          ),
         )
       : withNightlyVersion([], source);
   }

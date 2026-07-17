@@ -137,6 +137,33 @@
           style="display: none"
         >
           <div class="settings-list">
+            <div class="setting-item setting-item-storage">
+              <div class="setting-info">
+                <h4>WeekBox updates</h4>
+                <p id="app-update-status">
+                  Check GitHub Releases for a new WeekBox version.
+                </p>
+              </div>
+              <button
+                class="storage-location-button"
+                id="check-app-update"
+                type="button"
+              >
+                Check for updates
+              </button>
+            </div>
+
+            <div class="setting-item">
+              <div class="setting-info">
+                <h4>Check WeekBox updates on startup</h4>
+                <p>Tell me when a newer WeekBox release is available.</p>
+              </div>
+              <label class="switch">
+                <input type="checkbox" id="setting-checkAppUpdatesOnStartup" />
+                <span class="slider round"></span>
+              </label>
+            </div>
+
             <div class="setting-item">
               <div class="setting-info">
                 <h4>Check engine updates on startup</h4>

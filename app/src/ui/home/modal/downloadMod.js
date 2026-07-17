@@ -5,6 +5,7 @@ import {
   extractArchive,
 } from "../../../utils/downloads/archiveTransfer.js";
 import { toastDownloadMod } from "./toastDownloadMod.js";
+import { errorHandler } from "../../errors/errorHandler.js";
 
 export const downloadMod = {
   activeTasks: new Map(),
@@ -269,6 +270,12 @@ export const downloadMod = {
       if (error.message !== "Cancelled") {
         await this.cleanupData(modId, tempFilePath, targetModFolder);
         toastDownloadMod.error(modId, error.message || "Installation failed");
+        errorHandler.show({
+          error,
+          action: "Install mod",
+          item: modName,
+          storagePath: FS.weekboxPath,
+        });
         this.activeTasks.delete(modId);
       }
       return false;
