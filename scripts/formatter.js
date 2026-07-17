@@ -14,7 +14,7 @@ try {
   
   // Imprime el mensaje de éxito con fondo verde
   console.log(`${fondoVerde} ¡Formateo completado con éxito! ${resetearColor}`);
-} catch (error) {
+} catch {
   // Imprime el mensaje de error con fondo rojo
   console.error(`${fondoRojo} Ocurrió un error al formatear los archivos. ${resetearColor}`);
   process.exit(1); 
