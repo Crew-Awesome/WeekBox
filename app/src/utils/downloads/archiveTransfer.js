@@ -65,7 +65,7 @@ function getGoogleDriveFileId(url) {
 async function resolveExternalDownloadUrl(url) {
   const parsed = new URL(url);
   const hostname = parsed.hostname.toLowerCase();
-  if (hostname === "drive.google.com" || hostname === "docs.google.com") {
+  if (hostname === "drive.google.com") {
     const fileId = getGoogleDriveFileId(url);
     if (!fileId) throw new Error("Could not find the Google Drive file ID");
     return `https://drive.usercontent.google.com/download?id=${encodeURIComponent(fileId)}&export=download&confirm=t`;

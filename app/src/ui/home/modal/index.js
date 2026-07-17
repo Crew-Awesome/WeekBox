@@ -68,7 +68,7 @@ export const modModal = {
         data.engineId,
         {
           kind: "dependency",
-          sourceType: dependency.type,
+          sourceType: dependency.downloadType || dependency.type,
           toastThumbnail: dependency.thumbnail,
         },
       );

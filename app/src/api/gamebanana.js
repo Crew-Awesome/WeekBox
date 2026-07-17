@@ -250,18 +250,47 @@ export const gameBananaApi = {
   },
 
   isInstallableDownloadFile(file) {
+    const placeholderText = `${file?._sFile || ""} ${file?._sDescription || ""}`
+      .replaceAll("_", " ")
+      .toLowerCase();
     return (
       !file?._bIsArchived &&
       file?._bHasContents !== false &&
       Boolean(file?._sDownloadUrl) &&
-      Number(file?._nFilesize || 0) >= MIN_INSTALLABLE_FILE_SIZE
+      Number(file?._nFilesize || 0) >= MIN_INSTALLABLE_FILE_SIZE &&
+      !/\b(?:placeholder|use\s+(?:mediafire|drive|external)|download\s+(?:from|on)\s+(?:mediafire|drive))\b/.test(
+        placeholderText,
+      )
+    );
+  },
+
+  getExternalDownloadLabel(url) {
+    try {
+      const hostname = new URL(url).hostname.toLowerCase();
+      if (hostname.endsWith("mediafire.com")) return "MediaFire download";
+      if (hostname === "drive.google.com") return "Drive download";
+    } catch (error) {}
+    return "External download";
+  },
+
+  getPreferredDownloadOption(options) {
+    return (
+      options.find((option) => option.type === "gamebanana") ||
+      options.find(
+        (option) =>
+          option.type === "external" &&
+          new URL(option.downloadUrl).hostname
+            .toLowerCase()
+            .endsWith("mediafire.com"),
+      ) ||
+      options.find((option) => option.type === "external") ||
+      null
     );
   },
 
   getExternalDownloadFiles(data) {
     const supportedHosts = new Set([
       "drive.google.com",
-      "docs.google.com",
       "mediafire.com",
       "www.mediafire.com",
     ]);
@@ -276,7 +305,7 @@ export const gameBananaApi = {
             type: "external",
             name: name || url.hostname,
             fileSize: 0,
-            fileSizeStr: "External download",
+            fileSizeStr: this.getExternalDownloadLabel(url.href),
             downloadUrl: url.href,
           });
         }
@@ -302,12 +331,12 @@ export const gameBananaApi = {
     return [...files.values()];
   },
 
-  async getExternalFileName(url) {
+  async getExternalFileDetails(url) {
     try {
       const parsed = new URL(url);
       const hostname = parsed.hostname.toLowerCase();
       let downloadUrl = url;
-      if (["drive.google.com", "docs.google.com"].includes(hostname)) {
+      if (hostname === "drive.google.com") {
         const fileId = getGoogleDriveFileId(url);
         if (!fileId) return null;
         downloadUrl = `https://drive.usercontent.google.com/download?id=${encodeURIComponent(fileId)}&export=download&confirm=t`;
@@ -334,7 +363,12 @@ export const gameBananaApi = {
       const filename = header.match(
         /content-disposition:[^\r\n]*filename\*?=(?:UTF-8''|"?)([^";\r\n]+)/i,
       )?.[1];
-      return filename ? decodeURIComponent(filename.trim()) : null;
+      const sizes = [...header.matchAll(/content-length:\s*(\d+)/gi)];
+      const size = Number(sizes.at(-1)?.[1] || 0);
+      return {
+        filename: filename ? decodeURIComponent(filename.trim()) : null,
+        size: Number.isFinite(size) ? size : 0,
+      };
     } catch (error) {
       return null;
     }
@@ -362,8 +396,13 @@ export const gameBananaApi = {
       options
         .filter((option) => option.type === "external")
         .map(async (option) => {
-          const filename = await this.getExternalFileName(option.downloadUrl);
-          if (filename) option.name = filename;
+          const details = await this.getExternalFileDetails(option.downloadUrl);
+          if (!details) return;
+          if (details.filename) option.name = details.filename;
+          if (details.size > 0) {
+            option.fileSize = details.size;
+            option.fileSizeStr = `${this.getExternalDownloadLabel(option.downloadUrl)} • ${this.formatBytes(details.size)}`;
+          }
         }),
     );
     return options;
@@ -411,6 +450,7 @@ export const gameBananaApi = {
       fileSizeStr: mod.fileSizeStr,
       thumbnail: mod.images?.[0] || null,
       gameBananaUrl: mod.gameBananaUrl,
+      downloadType: mod.downloadType,
     };
   },
 
@@ -510,10 +550,13 @@ export const gameBananaApi = {
       }
       if (images.length === 0)
         images.push("https://images.gamebanana.com/img/ss/mods/default.jpg");
-      const file = this.getPrimaryDownloadFile(data);
-      const fileSize = file?._nFilesize || 0;
-      const downloadUrl = file?._sDownloadUrl || "";
       const downloadOptions = await this.getDownloadOptions(data);
+      const preferredDownload =
+        this.getPreferredDownloadOption(downloadOptions);
+      const downloadButtonLabel =
+        preferredDownload?.type === "external"
+          ? this.getExternalDownloadLabel(preferredDownload.downloadUrl)
+          : null;
       const requirements = includeRequirements
         ? await this.getRequirements(data)
         : [];
@@ -526,8 +569,14 @@ export const gameBananaApi = {
         views: data._nViewCount || 0,
         timeAgo: this.getTimeAgo(data._tsDateAdded),
         images: images,
-        fileSizeStr: this.formatBytes(fileSize),
-        downloadUrl: downloadUrl,
+        fileSizeStr: preferredDownload
+          ? preferredDownload.fileSize > 0
+            ? this.formatBytes(preferredDownload.fileSize)
+            : "Unknown size"
+          : "No download available",
+        downloadUrl: preferredDownload?.downloadUrl || "",
+        downloadType: preferredDownload?.type || null,
+        downloadButtonLabel,
         downloadOptions,
         requirements,
         gameBananaUrl: `https://gamebanana.com/mods/${data._idRow}`,

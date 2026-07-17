@@ -46,7 +46,7 @@ export const downloadChoiceModal = {
         const meta = document.createElement("small");
         meta.textContent =
           option.type === "external"
-            ? "Alternate file source"
+            ? option.fileSizeStr || "Alternate file source"
             : option.fileSizeStr;
         copy.append(name, meta);
 

@@ -104,7 +104,7 @@ export function showModData(data, isInstalled, onDownload) {
     button.innerHTML =
       data.downloadOptions.length > 1
         ? '<i class="fa-solid fa-list"></i> Choose Download'
-        : '<i class="fa-solid fa-download"></i> Download';
+        : `<i class="fa-solid fa-download"></i> ${data.downloadButtonLabel || "Download"}`;
     button.onclick = onDownload;
   }
 }
