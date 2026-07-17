@@ -3,7 +3,6 @@ import { downloadArchive } from "../utils/downloads/archiveTransfer.js";
 const RELEASES_API =
   "https://api.github.com/repos/Crew-Awesome/Weekbox/releases/latest";
 const UPDATE_DIRECTORY = ".weekbox-update";
-const INSTALLED_VERSION_KEY = "weekbox_installed_app_version";
 
 function normalizeVersion(value) {
   return String(value || "")
@@ -65,7 +64,17 @@ $sourceResources=Join-Path $staging 'resources.neu'
 if (!(Test-Path -LiteralPath $sourceBinary) -or !(Test-Path -LiteralPath $sourceResources)) { throw 'The update package is missing required WeekBox files.' }
 $targetBinary=@('WeekBox-win_x64.exe','WeekBox.exe') | ForEach-Object { $candidate=Join-Path $target $_; if (Test-Path -LiteralPath $candidate) { $candidate; break } }
 if (!$targetBinary) { $targetBinary=Join-Path $target 'WeekBox-win_x64.exe' }
-Copy-Item -LiteralPath $sourceBinary -Destination $targetBinary -Force
+$copyAttempts=0
+while ($true) {
+  try {
+    Copy-Item -LiteralPath $sourceBinary -Destination $targetBinary -Force
+    break
+  } catch {
+    $copyAttempts++
+    if ($copyAttempts -ge 40) { throw }
+    Start-Sleep -Milliseconds 250
+  }
+}
 Copy-Item -LiteralPath $sourceResources -Destination (Join-Path $target 'resources.neu') -Force
 Remove-Item -LiteralPath $archive -Force -ErrorAction SilentlyContinue
 Remove-Item -LiteralPath $staging -Force -Recurse -ErrorAction SilentlyContinue
@@ -115,15 +124,7 @@ rm -rf "$staging"
 
 async function getCurrentVersion() {
   const config = await Neutralino.app.getConfig();
-  const configuredVersion = config.version || "0.0.0";
-  try {
-    const recordedVersion = localStorage.getItem(INSTALLED_VERSION_KEY);
-    return compareVersions(recordedVersion, configuredVersion) > 0
-      ? recordedVersion
-      : configuredVersion;
-  } catch {
-    return configuredVersion;
-  }
+  return config.version || "0.0.0";
 }
 
 function getPlatformPackage() {
@@ -240,9 +241,6 @@ export const appUpdater = {
     await Neutralino.os.execCommand(command, {
       background: true,
     });
-    try {
-      localStorage.setItem(INSTALLED_VERSION_KEY, update.latestVersion);
-    } catch {}
     await Neutralino.app.exit();
   },
 };
