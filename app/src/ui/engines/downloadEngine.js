@@ -185,6 +185,11 @@ export const downloadEngine = {
       });
       this.throwIfCancelled(task);
 
+      const archiveStats = await Neutralino.filesystem.getStats(tempFilePath);
+      if (!archiveStats.size) {
+        throw new Error("Download finished without creating an archive file");
+      }
+
       task.phase = "extracting";
       this.notifyState(task, "installing");
       updateProgress("Installing...", 98);

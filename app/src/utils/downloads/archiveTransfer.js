@@ -41,6 +41,18 @@ function quoteCommandArgument(value) {
   return `"${String(value).replaceAll('"', '\\"')}"`;
 }
 
+function appendProcessOutput(output, data) {
+  const next = `${output}${String(data || "")}`;
+  return next.length > 4000 ? next.slice(-4000) : next;
+}
+
+function createProcessError(operation, exitCode, output) {
+  const detail = output.trim();
+  return new Error(
+    `${operation} failed with exit code ${exitCode}${detail ? `: ${detail}` : ""}`,
+  );
+}
+
 function getGoogleDriveFileId(url) {
   const parsed = new URL(url);
   return (
@@ -161,6 +173,7 @@ async function runCurlDownload(command, getTask, onProgress, getProgress) {
   const task = getTask();
   if (task) task.pid = process.id ?? process.pid;
 
+  let processOutput = "";
   let maxPercent = 0;
   const reportProgress = (percent) => {
     if (Number.isNaN(percent) || percent < maxPercent) return;
@@ -188,8 +201,10 @@ async function runCurlDownload(command, getTask, onProgress, getProgress) {
       getTask,
       (event, handler, resolve, reject) => {
         if (event.action === "stdErr" || event.action === "stdOut") {
+          const output = String(event.data || "");
+          processOutput = appendProcessOutput(processOutput, output);
           if (getProgress) return;
-          const matches = event.data.match(/(\d+\.?\d*)%/g);
+          const matches = output.match(/(\d+\.?\d*)%/g);
           if (!matches?.length) return;
           reportProgress(Number.parseFloat(matches[matches.length - 1]));
           return;
@@ -197,7 +212,7 @@ async function runCurlDownload(command, getTask, onProgress, getProgress) {
         if (event.action !== "exit") return;
         Neutralino.events.off("spawnedProcess", handler);
         if (event.data === 0) resolve();
-        else reject(new Error(`Download failed with exit code ${event.data}`));
+        else reject(createProcessError("Download", event.data, processOutput));
       },
     );
   } finally {
@@ -207,7 +222,7 @@ async function runCurlDownload(command, getTask, onProgress, getProgress) {
 
 async function downloadSingleArchive({ url, outPath, getTask, onProgress }) {
   await runCurlDownload(
-    `curl -# -L ${quoteCommandArgument(url)} -o ${quoteCommandArgument(outPath)}`,
+    `curl -# -L --fail --show-error ${quoteCommandArgument(url)} -o ${quoteCommandArgument(outPath)}`,
     getTask,
     onProgress,
   );
@@ -231,7 +246,7 @@ async function downloadSegmentedArchive({
       )
       .join(" --next ");
     await runCurlDownload(
-      `curl -# --parallel --parallel-max ${parts.length} ${requests}`,
+      `curl -# --fail --show-error --parallel --parallel-max ${parts.length} ${requests}`,
       getTask,
       onProgress,
       async () => {
@@ -334,13 +349,17 @@ export async function extractArchive({
   const task = getTask();
   if (task) task.pid = process.id ?? process.pid;
 
+  let processOutput = "";
+
   return listenForProcess(
     process,
     getTask,
     (event, handler, resolve, reject) => {
       if (event.action === "stdOut" || event.action === "stdErr") {
-        const output = event.data.trim();
-        if (output) onEntry?.(formatArchiveEntry(output));
+        const output = String(event.data || "");
+        processOutput = appendProcessOutput(processOutput, output);
+        const trimmedOutput = output.trim();
+        if (trimmedOutput) onEntry?.(formatArchiveEntry(trimmedOutput));
         return;
       }
       if (event.action !== "exit") return;
@@ -348,7 +367,7 @@ export async function extractArchive({
       // Windows tar can return 1 for recoverable archive warnings. The caller
       // verifies that real files were extracted before recording an install.
       if (event.data === 0 || (isWindows && event.data === 1)) resolve();
-      else reject(new Error(`Extraction failed with exit code ${event.data}`));
+      else reject(createProcessError("Extraction", event.data, processOutput));
     },
   );
 }
