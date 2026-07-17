@@ -69,7 +69,7 @@ Copy-Item -LiteralPath $sourceBinary -Destination $targetBinary -Force
 Copy-Item -LiteralPath $sourceResources -Destination (Join-Path $target 'resources.neu') -Force
 Remove-Item -LiteralPath $archive -Force -ErrorAction SilentlyContinue
 Remove-Item -LiteralPath $staging -Force -Recurse -ErrorAction SilentlyContinue
-Start-Process -FilePath $targetBinary`;
+Start-Process -FilePath $targetBinary -WorkingDirectory $target`;
 }
 
 function createUnixApplyScript({
@@ -237,12 +237,9 @@ export const appUpdater = {
       window.NL_OS === "Windows"
         ? `powershell -NoProfile -NonInteractive -WindowStyle Hidden -ExecutionPolicy Bypass -EncodedCommand ${encodePowerShellScript(createWindowsApplyScript({ appPath: window.NL_PATH, archivePath, expectedDigest }))}`
         : `/bin/sh -c ${quoteShellString(createUnixApplyScript({ appPath: window.NL_PATH, archivePath, expectedDigest, binaryName: platform.binary }))} >/dev/null 2>&1 &`;
-    const result = await Neutralino.os.execCommand(command, {
+    await Neutralino.os.execCommand(command, {
       background: true,
     });
-    if (result.exitCode && result.exitCode !== 0) {
-      throw new Error(result.stdErr || "Could not start the WeekBox updater.");
-    }
     try {
       localStorage.setItem(INSTALLED_VERSION_KEY, update.latestVersion);
     } catch {}

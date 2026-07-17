@@ -8,12 +8,39 @@ import { engineUpdateToast } from "./engineUpdateToast.js";
 import { appSettings } from "../../core/settings.js";
 
 const SKIP_PREFIX = "weekbox-engine-update-skip-";
-const INSTALLED_PREFIX = "weekbox-engine-update-installed-";
+const UPDATE_STATE_FILE = "engineupdatestate.json";
 const AUTO_CHECK_INTERVAL_MS = 3 * 60 * 60 * 1000;
 let scheduledCheck = null;
 
-function getInstalledBuildKey(engineId, installedVersion) {
-  return `${INSTALLED_PREFIX}${engineId}-${installedVersion}`;
+function getBuildStateKey(engineId, installedVersion) {
+  return `${engineId}:${installedVersion}`;
+}
+
+async function readUpdateState() {
+  if (!FS.isInitialized) await FS.init();
+  try {
+    const state = JSON.parse(
+      await FS.api.read(`${FS.dataPath}/${UPDATE_STATE_FILE}`),
+    );
+    return state && typeof state === "object" ? state : {};
+  } catch {
+    return {};
+  }
+}
+
+async function getInstalledBuild(engineId, installedVersion) {
+  const state = await readUpdateState();
+  return state.builds?.[getBuildStateKey(engineId, installedVersion)] || null;
+}
+
+async function saveInstalledBuild(engineId, installedVersion, buildKey) {
+  const state = await readUpdateState();
+  state.builds ||= {};
+  state.builds[getBuildStateKey(engineId, installedVersion)] = buildKey;
+  await FS.api.write(
+    `${FS.dataPath}/${UPDATE_STATE_FILE}`,
+    JSON.stringify(state, null, 2),
+  );
 }
 
 function getValue(key) {
@@ -30,7 +57,7 @@ function setValue(key, value) {
   } catch {}
 }
 
-export function rememberInstalledEngineBuild(
+export async function rememberInstalledEngineBuild(
   engineId,
   versionData,
   installedVersion = versionData.version,
@@ -42,7 +69,7 @@ export function rememberInstalledEngineBuild(
     (versionData.isNightly
       ? null
       : `release:${versionData.releaseVersion || versionData.version}`);
-  if (key) setValue(getInstalledBuildKey(engineId, installedVersion), key);
+  if (key) await saveInstalledBuild(engineId, installedVersion, key);
 }
 
 async function findAvailableUpdate(engineId, installedVersion) {
@@ -59,19 +86,13 @@ async function findAvailableUpdate(engineId, installedVersion) {
   if (!key) return { status: "unavailable" };
   if (getValue(`${SKIP_PREFIX}${engineId}`) === key)
     return { status: "skipped" };
-  const installedBuildKey = getInstalledBuildKey(engineId, installedVersion);
-  const savedBuild =
-    getValue(installedBuildKey) ||
-    (engineId === "psychonline"
-      ? null
-      : getValue(`${INSTALLED_PREFIX}${engineId}`));
-  if (savedBuild === key)
-    return { status: "current" };
+  const savedBuild = await getInstalledBuild(engineId, installedVersion);
+  if (savedBuild === key) return { status: "current" };
 
   // Older installs did not record which release the moving Latest folder
   // contained. Establish a baseline once instead of offering a false update.
   if (engineId === "psychonline" && installedVersion === "Latest") {
-    setValue(installedBuildKey, key);
+    await saveInstalledBuild(engineId, installedVersion, key);
     return { status: "current" };
   }
 
@@ -79,7 +100,7 @@ async function findAvailableUpdate(engineId, installedVersion) {
     return { status: "current" };
   }
   if (!candidate.isNightly && installedVersion === candidate.version) {
-      rememberInstalledEngineBuild(engineId, candidate, installedVersion);
+    await rememberInstalledEngineBuild(engineId, candidate, installedVersion);
     return { status: "current" };
   }
 
@@ -95,14 +116,11 @@ export const engineUpdateService = {
     if (appSettings.get("checkUpdatesOnStartup")) {
       void this.checkForUpdatesInBackground();
     }
-    scheduledCheck = setInterval(
-      () => {
-        if (appSettings.get("checkUpdatesInBackground")) {
-          void this.checkForUpdatesInBackground();
-        }
-      },
-      AUTO_CHECK_INTERVAL_MS,
-    );
+    scheduledCheck = setInterval(() => {
+      if (appSettings.get("checkUpdatesInBackground")) {
+        void this.checkForUpdatesInBackground();
+      }
+    }, AUTO_CHECK_INTERVAL_MS);
   },
 
   async checkForUpdatesInBackground() {
@@ -155,7 +173,11 @@ export const engineUpdateService = {
       (progress) => engineUpdateToast.update(engineId, progress),
     );
     if (updated) {
-      rememberInstalledEngineBuild(engineId, update.candidate, installedVersion);
+      await rememberInstalledEngineBuild(
+        engineId,
+        update.candidate,
+        installedVersion,
+      );
       engineUpdateToast.complete(engineId);
       return { status: "updated" };
     }

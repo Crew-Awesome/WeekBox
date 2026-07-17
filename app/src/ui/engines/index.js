@@ -219,7 +219,10 @@ export const enginesView = {
         }
         if (success) {
           if (!this.isVisible) engineInstallToast.complete(finishedInstall);
-          rememberInstalledEngineBuild(this.currentEngine.id, versionData);
+          await rememberInstalledEngineBuild(
+            this.currentEngine.id,
+            versionData,
+          );
           if (dlUI) dlUI.style.display = "none";
           await this.updateButtonState(); // Actualiza a "Launch"
 
