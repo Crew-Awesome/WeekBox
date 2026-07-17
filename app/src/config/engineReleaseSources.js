@@ -4,9 +4,7 @@ export const ENGINE_RELEASE_SOURCES = {
     assets: {
       win: [/^funkin-windows-(?:64bit|x64)\.zip$/i],
       lin: [/linux/i],
-      // vSlice 0.7.3 ships macOS as a DMG. WeekBox installs archives, so do
-      // not select DMG installers and then try to extract them as ZIP files.
-      mac: [/^funkin-(?:macos|osx).+\.zip$/i],
+      mac: [/macos|osx/i],
     },
     exclude: [/debug/i, /html5/i],
   },

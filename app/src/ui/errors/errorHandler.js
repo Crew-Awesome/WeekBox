@@ -80,6 +80,14 @@ function describeIssue(error) {
       tag: "Empty download",
     };
   }
+  if (lower.includes("disk image does not contain a macos application")) {
+    return {
+      title: "The macOS installer contains no app",
+      summary:
+        "WeekBox mounted the downloaded disk image but could not find an application inside it. Try another version or report this release to the engine author.",
+      tag: "Invalid macOS installer",
+    };
+  }
   if (
     lower.includes("end-of-central-directory signature not found") ||
     lower.includes("cannot find zipfile directory")

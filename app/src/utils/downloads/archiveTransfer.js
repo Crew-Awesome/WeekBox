@@ -359,6 +359,74 @@ export async function extractArchive({
   getTask,
   onEntry,
 }) {
+  const isDiskImage =
+    window.NL_OS === "Darwin" && /\.dmg$/i.test(String(archivePath));
+  if (isDiskImage) {
+    const mountPath = `${destinationPath}/.weekbox-dmg-${Date.now()}`;
+    let attached = false;
+    let processOutput = "";
+
+    try {
+      await Neutralino.filesystem.createDirectory(mountPath);
+      const process = await Neutralino.os.spawnProcess(
+        `hdiutil attach -nobrowse -readonly -mountpoint ${quoteCommandArgument(mountPath)} ${quoteCommandArgument(archivePath)}`,
+      );
+      const task = getTask();
+      if (task) task.pid = process.id ?? process.pid;
+
+      await listenForProcess(
+        process,
+        getTask,
+        (event, handler, resolve, reject) => {
+          if (event.action === "stdOut" || event.action === "stdErr") {
+            processOutput = appendProcessOutput(processOutput, event.data);
+            return;
+          }
+          if (event.action !== "exit") return;
+          Neutralino.events.off("spawnedProcess", handler);
+          if (event.data === 0) resolve();
+          else
+            reject(
+              createProcessError(
+                "Mounting disk image",
+                event.data,
+                processOutput,
+              ),
+            );
+        },
+      );
+      attached = true;
+
+      const entries = await Neutralino.filesystem.readDirectory(mountPath);
+      const app = entries.find(
+        (entry) =>
+          entry.type === "DIRECTORY" && /\.app$/i.test(String(entry.entry)),
+      );
+      if (!app) {
+        throw new Error("The disk image does not contain a macOS application");
+      }
+
+      onEntry?.(app.entry);
+      await Neutralino.filesystem.copy(
+        `${mountPath}/${app.entry}`,
+        `${destinationPath}/${app.entry}`,
+        { recursive: true, overwrite: false },
+      );
+    } finally {
+      if (attached) {
+        const result = await Neutralino.os.execCommand(
+          `hdiutil detach ${quoteCommandArgument(mountPath)}`,
+          { background: false },
+        );
+        if (result.exitCode !== 0) {
+          console.warn("Could not detach WeekBox disk image:", result.stdErr);
+        }
+      }
+      await Neutralino.filesystem.remove(mountPath).catch(() => {});
+    }
+    return;
+  }
+
   const isWindows = window.NL_OS === "Windows";
   const command = isWindows
     ? getWindowsExtractionCommand(archivePath, destinationPath)

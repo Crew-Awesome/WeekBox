@@ -187,7 +187,11 @@ export const downloadEngine = {
 
     const enginesBasePath = FS.enginesPath;
     const engineDir = `${enginesBasePath}/${engineId}/${version}`;
-    const tempFilePath = `${enginesBasePath}/temp_${engineId}_${version}.zip`;
+    const archiveExtension =
+      window.NL_OS === "Darwin" && /\.dmg(?:$|[?#])/i.test(downloadUrl)
+        ? ".dmg"
+        : ".zip";
+    const tempFilePath = `${enginesBasePath}/temp_${engineId}_${version}${archiveExtension}`;
     const taskKey = this.getTaskKey(engineId, version);
 
     if (this.activeTasks.has(taskKey)) return false;

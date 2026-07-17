@@ -395,7 +395,10 @@ class FileSystemService {
         this.enginesPath,
       );
       for (const engine of getRealEntries(engines)) {
-        if (engine.type === "FILE" && /^temp_.*\.zip$/.test(engine.entry)) {
+        if (
+          engine.type === "FILE" &&
+          /^temp_.*\.(?:zip|dmg)$/.test(engine.entry)
+        ) {
           await this.api
             .remove(`${this.enginesPath}/${engine.entry}`)
             .catch(() => {});
