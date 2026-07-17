@@ -14,6 +14,7 @@ const EXCLUDED_ENGINE_SUBMISSIONS = new Map([
   ["wips:95612", "alepsych"],
   ["mods:598553", "codename"],
   ["mods:535203", "pslice"],
+  ["mods:479714", "psychonline"],
 ]);
 
 const NON_DEPENDENCY_REQUIREMENTS = new Set(EXCLUDED_ENGINE_SUBMISSIONS.keys());
