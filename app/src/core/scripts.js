@@ -216,6 +216,9 @@ async function offerNestedStorageRepair() {
 async function startApp() {
   try {
     Neutralino.init();
+    // Updater relaunches originate from a background helper process. Bring
+    // the new WeekBox window to the foreground as soon as native APIs are up.
+    await Neutralino.window.focus().catch(() => {});
 
     // Aquí implementamos la lógica de leer la configuración para el Blur
     const setWindowFocus = (isFocused) => {

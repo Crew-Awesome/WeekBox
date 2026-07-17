@@ -2,6 +2,7 @@ import { downloadArchive } from "../utils/downloads/archiveTransfer.js";
 
 const RELEASES_API =
   "https://api.github.com/repos/Crew-Awesome/Weekbox/releases/latest";
+const RELEASES_PAGE = "https://github.com/Crew-Awesome/Weekbox/releases/latest";
 const UPDATE_DIRECTORY = ".weekbox-update";
 
 function normalizeVersion(value) {
@@ -264,7 +265,13 @@ export const appUpdater = {
       );
     }
 
-    return { status: "available", currentVersion, latestVersion, asset };
+    return {
+      status: "available",
+      currentVersion,
+      latestVersion,
+      asset,
+      releaseUrl: release.html_url || RELEASES_PAGE,
+    };
   },
 
   async install(update, onProgress = () => {}, onHandoff = () => {}) {

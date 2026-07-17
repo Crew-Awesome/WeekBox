@@ -26,6 +26,7 @@ export const appUpdateModal = {
           <p class="app-update-copy">WeekBox <strong data-update-version></strong> is ready. The app will close, apply the update, and reopen automatically.</p>
           <p class="app-update-progress" aria-live="polite"></p>
           <div class="app-update-actions">
+            <button class="app-update-manual" type="button"><i class="fa-brands fa-github" aria-hidden="true"></i> Download manually</button>
             <button class="app-update-later" type="button">Later</button>
             <button class="app-update-install" type="button"><i class="fa-solid fa-download" aria-hidden="true"></i> Install and close</button>
           </div>
@@ -34,8 +35,14 @@ export const appUpdateModal = {
 
     modal.querySelector("[data-update-version]").textContent =
       update.latestVersion;
+    const manualUrl =
+      update.releaseUrl ||
+      "https://github.com/Crew-Awesome/Weekbox/releases/latest";
     const close = () => this.close();
     modal.querySelector(".app-update-later").addEventListener("click", close);
+    modal.querySelector(".app-update-manual").addEventListener("click", () => {
+      Neutralino.os.open(manualUrl).catch(() => {});
+    });
     modal.addEventListener("click", (event) => {
       if (event.target === modal) close();
     });
@@ -58,10 +65,10 @@ export const appUpdateModal = {
             },
           );
         } catch (error) {
-          progress.textContent =
-            error?.message || "Could not install the update.";
+          progress.textContent = `${error?.message || "Could not install the update."} Download it manually instead.`;
           button.disabled = false;
           modal.querySelector(".app-update-later").disabled = false;
+          modal.querySelector(".app-update-manual").disabled = false;
         }
       });
 
