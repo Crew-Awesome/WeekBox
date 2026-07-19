@@ -4,6 +4,10 @@ import {
   extractArchive,
 } from "../../utils/downloads/archiveTransfer.js";
 import { errorHandler } from "../errors/errorHandler.js";
+import {
+  describeExtractedFiles,
+  flattenEngineDirectory,
+} from "./engineInstallFiles.js";
 
 export const downloadEngine = {
   activeTasks: new Map(),
@@ -84,95 +88,16 @@ export const downloadEngine = {
     });
   },
 
-  // Función inteligente para buscar el ejecutable y subir todo su contenido a la raíz de {version}
   async flattenEngineDir(engineDir, isCancelled = () => false) {
-    // macOS engines are commonly .app bundles. Moving the nested executable
-    // to the engine root breaks the bundle and prevents macOS from launching it.
-    if (window.NL_OS === "Darwin") return;
-    if (isCancelled()) throw new Error("Cancelled");
-    const exePath = await FS.findExecutable(engineDir);
-    if (isCancelled()) throw new Error("Cancelled");
-    if (!exePath) return; // Si no hay ejecutable, la estructura se queda como está
-
-    const executableDir = exePath
-      .slice(0, Math.max(exePath.lastIndexOf("/"), exePath.lastIndexOf("\\")))
-      .replace(/\\/g, "/");
-
-    const normalizedEngineDir = engineDir.replace(/\\/g, "/");
-
-    // Si el ejecutable está en una subcarpeta y no en la raíz
-    if (
-      executableDir !== normalizedEngineDir &&
-      executableDir.startsWith(normalizedEngineDir)
-    ) {
-      try {
-        const files = await Neutralino.filesystem.readDirectory(executableDir);
-        for (const file of files) {
-          if (isCancelled()) throw new Error("Cancelled");
-          if (file.entry === "." || file.entry === "..") continue;
-
-          const fromPath = `${executableDir}/${file.entry}`;
-          const toPath = `${normalizedEngineDir}/${file.entry}`;
-
-          await Neutralino.filesystem.move(fromPath, toPath);
-        }
-
-        if (isCancelled()) throw new Error("Cancelled");
-
-        // Limpiar las subcarpetas vacías que quedaron después de mover los archivos
-        const relativePart = executableDir.substring(
-          normalizedEngineDir.length + 1,
-        );
-        const topSubDir = relativePart.split("/")[0];
-        const dirToRemove = `${normalizedEngineDir}/${topSubDir}`;
-
-        if (window.NL_OS === "Windows") {
-          await Neutralino.os
-            .execCommand(`rmdir /S /Q "${dirToRemove.replace(/\//g, "\\")}"`, {
-              background: true,
-            })
-            .catch(() => {});
-        } else {
-          await Neutralino.os
-            .execCommand(`rm -rf "${dirToRemove}"`, { background: true })
-            .catch(() => {});
-        }
-      } catch (error) {
-        console.warn("Could not organize engine folder:", error);
-      }
-    }
+    return flattenEngineDirectory({
+      engineDir,
+      findExecutable: FS.findExecutable.bind(FS),
+      isCancelled,
+    });
   },
 
   async describeExtractedFiles(directory, limit = 24) {
-    const files = [];
-    const directories = [directory];
-    const root = directory.replace(/\\/g, "/");
-
-    while (directories.length && files.length < limit) {
-      const currentDirectory = directories.shift();
-      let entries;
-      try {
-        entries = await Neutralino.filesystem.readDirectory(currentDirectory);
-      } catch (error) {
-        return `Could not list extracted files: ${error?.message || String(error)}`;
-      }
-
-      for (const entry of entries) {
-        if (entry.entry === "." || entry.entry === "..") continue;
-        const fullPath = `${currentDirectory}/${entry.entry}`;
-        const relativePath = fullPath.slice(root.length + 1);
-        if (String(entry.type).toUpperCase() === "DIRECTORY") {
-          directories.push(fullPath);
-        } else {
-          files.push(relativePath);
-          if (files.length >= limit) break;
-        }
-      }
-    }
-
-    return files.length
-      ? files.join(", ") + (directories.length ? ", …" : "")
-      : "No files were found after extraction";
+    return describeExtractedFiles({ directory, limit });
   },
 
   async install(engineId, version, downloadUrl, onProgress, onStateChange) {

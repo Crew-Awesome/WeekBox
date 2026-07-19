@@ -1,4 +1,8 @@
 import { appSettings } from "../../core/settings.js";
+import {
+  getRangeSupportedFileSize,
+  resolveExternalDownloadUrl,
+} from "./externalDownloadResolver.js";
 
 function formatArchiveEntry(output) {
   const lines = output.trim().split("\n");
@@ -51,57 +55,6 @@ function createProcessError(operation, exitCode, output) {
   return new Error(
     `${operation} failed with exit code ${exitCode}${detail ? `: ${detail}` : ""}`,
   );
-}
-
-function getGoogleDriveFileId(url) {
-  const parsed = new URL(url);
-  return (
-    parsed.searchParams.get("id") ||
-    parsed.pathname.match(/\/file\/d\/([^/]+)/)?.[1] ||
-    null
-  );
-}
-
-async function resolveExternalDownloadUrl(url) {
-  const parsed = new URL(url);
-  const hostname = parsed.hostname.toLowerCase();
-  if (hostname === "drive.google.com") {
-    const fileId = getGoogleDriveFileId(url);
-    if (!fileId) throw new Error("Could not find the Google Drive file ID");
-    return `https://drive.usercontent.google.com/download?id=${encodeURIComponent(fileId)}&export=download&confirm=t`;
-  }
-  if (hostname === "mediafire.com" || hostname === "www.mediafire.com") {
-    const result = await Neutralino.os.execCommand(
-      `curl -fsSL --connect-timeout 10 --max-time 30 ${quoteCommandArgument(url)}`,
-      { background: false },
-    );
-    if (result.exitCode !== 0)
-      throw new Error(
-        result.stdErr || "Could not open the MediaFire download page",
-      );
-    const directUrl = (result.stdOut || "")
-      .replaceAll("&amp;", "&")
-      .match(/https?:\/\/download[^"'\s<>]+\.mediafire\.com[^"'\s<>]*/i)?.[0];
-    if (!directUrl)
-      throw new Error("Could not find the MediaFire download link");
-    return directUrl;
-  }
-  return url;
-}
-
-async function getRangeSupportedFileSize(url) {
-  const result = await Neutralino.os.execCommand(
-    `curl -sS -L -I --connect-timeout 3 --max-time 3 --range 0-0 ${quoteCommandArgument(url)}`,
-    { background: false },
-  );
-  if (result.exitCode !== 0) {
-    throw new Error(
-      result.stdErr || `Range check failed with exit code ${result.exitCode}`,
-    );
-  }
-  const headers = `${result.stdOut || ""}\n${result.stdErr || ""}`;
-  const match = headers.match(/content-range:\s*bytes\s+0-0\/(\d+)/i);
-  return match ? Number(match[1]) : 0;
 }
 
 function getDownloadSegments(totalBytes, outPath) {
@@ -407,14 +360,18 @@ export async function downloadArchive({
 }) {
   if (sourceType === "external") {
     onProgress?.("Preparing external download...", 2);
-    url = await resolveExternalDownloadUrl(url);
+    url = await resolveExternalDownloadUrl(url, (...args) =>
+      Neutralino.os.execCommand(...args),
+    );
   }
   const useMultithreadDownloads = appSettings.get("multithreadDownloads");
   let remoteFileSize = 0;
   if (useMultithreadDownloads) {
     try {
       onProgress?.("Checking download server...", 2);
-      remoteFileSize = await getRangeSupportedFileSize(url);
+      remoteFileSize = await getRangeSupportedFileSize(url, (...args) =>
+        Neutralino.os.execCommand(...args),
+      );
     } catch (error) {
       if (getTask()?.cancelled) throw error;
     }

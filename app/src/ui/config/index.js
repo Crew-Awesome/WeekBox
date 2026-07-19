@@ -4,6 +4,11 @@ import { downloadEngine } from "../engines/downloadEngine.js";
 import { downloadMod } from "../home/modal/downloadMod.js";
 import { appUpdater } from "../../core/appUpdater.js";
 import { toastSystem } from "../toasts/toastSystem.js";
+import { AppUpdateController } from "./appUpdateController.js";
+import { StorageMoveFeedback } from "./storageMoveFeedback.js";
+
+const appUpdates = new AppUpdateController(appUpdater);
+const storageMoveFeedback = new StorageMoveFeedback(toastSystem);
 
 export const configModal = {
   async init() {
@@ -57,7 +62,7 @@ export const configModal = {
     document
       .getElementById("check-app-update")
       ?.addEventListener("click", () => {
-        if (this.pendingAppUpdate) return this.installAppUpdate();
+        if (appUpdates.pendingUpdate) return appUpdates.install();
         return this.checkForAppUpdate();
       });
 
@@ -158,69 +163,19 @@ export const configModal = {
   },
 
   async updateAppVersionLabel() {
-    const label = document.getElementById("weekbox-app-version");
-    if (!label) return;
-    try {
-      label.textContent = `WeekBox ${await appUpdater.getCurrentVersion()}`;
-    } catch {
-      label.textContent = "WeekBox version unavailable";
-    }
+    return appUpdates.updateVersionLabel();
   },
 
   showAvailableAppUpdate(update) {
-    const button = document.getElementById("check-app-update");
-    const status = document.getElementById("app-update-status");
-    if (!button || !status || !update?.latestVersion) return;
-    this.pendingAppUpdate = update;
-    status.textContent = `WeekBox ${update.latestVersion} is ready to install.`;
-    button.textContent = "Install and restart";
-    button.disabled = false;
+    return appUpdates.showAvailable(update);
   },
 
   async checkForAppUpdate() {
-    const button = document.getElementById("check-app-update");
-    const status = document.getElementById("app-update-status");
-    if (!button || !status) return;
-    button.disabled = true;
-    this.pendingAppUpdate = null;
-    status.textContent = "Checking for updates…";
-    try {
-      const update = await appUpdater.check();
-      if (update.status === "current") {
-        sessionStorage.removeItem("weekbox_available_app_update");
-        status.textContent = `WeekBox ${update.currentVersion} is up to date.`;
-        button.textContent = "Up to date";
-        return;
-      }
-      if (update.status === "unsupported") {
-        status.textContent = update.message;
-        button.textContent = "Unavailable";
-        return;
-      }
-      this.showAvailableAppUpdate(update);
-    } catch (error) {
-      status.textContent = error.message || "Could not check for updates.";
-      button.textContent = "Try again";
-      button.disabled = false;
-    }
+    return appUpdates.check();
   },
 
   async installAppUpdate() {
-    const button = document.getElementById("check-app-update");
-    const status = document.getElementById("app-update-status");
-    const update = this.pendingAppUpdate;
-    if (!button || !status || !update) return;
-    button.disabled = true;
-    try {
-      await appUpdater.install(update, (message) => {
-        status.textContent = message;
-      });
-    } catch (error) {
-      status.textContent = error.message || "Could not install the update.";
-      button.textContent = "Try again";
-      this.pendingAppUpdate = null;
-      button.disabled = false;
-    }
+    return appUpdates.install();
   },
 
   hasActiveDownloads() {
@@ -230,46 +185,19 @@ export const configModal = {
   },
 
   showStorageMoveToast() {
-    if (!document.getElementById("storage-move-lock")) {
-      const lock = document.createElement("div");
-      lock.id = "storage-move-lock";
-      lock.className = "storage-move-lock";
-      lock.setAttribute("aria-hidden", "true");
-      document.body.appendChild(lock);
-    }
-    toastSystem.show("weekbox-storage-move", {
-      title: "Moving WeekBox files",
-      message: "Preparing files…",
-      mediaHtml: '<i class="fa-solid fa-folder-open" aria-hidden="true"></i>',
-      showPercent: true,
-    });
+    storageMoveFeedback.show();
   },
 
   updateStorageMoveToast({ progress, copiedFiles, totalFiles }) {
-    toastSystem.update("weekbox-storage-move", {
-      message: `Moving files (${copiedFiles} of ${totalFiles})`,
-      progress,
-    });
+    storageMoveFeedback.update({ progress, copiedFiles, totalFiles });
   },
 
   completeStorageMoveToast() {
-    document.getElementById("storage-move-lock")?.remove();
-    toastSystem.setState("weekbox-storage-move", "complete", {
-      badgeHtml: '<i class="fa-solid fa-check" aria-hidden="true"></i>',
-    });
-    toastSystem.update("weekbox-storage-move", {
-      message: "WeekBox files moved",
-      progress: 100,
-    });
-    setTimeout(() => toastSystem.hide("weekbox-storage-move"), 3600);
+    storageMoveFeedback.complete();
   },
 
   failStorageMoveToast(message) {
-    document.getElementById("storage-move-lock")?.remove();
-    toastSystem.setState("weekbox-storage-move", "error", {
-      badgeHtml: '<i class="fa-solid fa-xmark" aria-hidden="true"></i>',
-    });
-    toastSystem.update("weekbox-storage-move", { message, progress: 100 });
+    storageMoveFeedback.fail(message);
   },
 
   async chooseStorageLocation() {
