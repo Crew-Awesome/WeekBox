@@ -66,7 +66,8 @@ Remove-Item -LiteralPath $backup -Force -Recurse -ErrorAction SilentlyContinue
 Expand-Archive -LiteralPath $archive -DestinationPath $staging -Force
 $sourceBinary=Join-Path $staging 'WeekBox-win_x64.exe'
 $sourceResources=Join-Path $staging 'resources.neu'
-if (!(Test-Path -LiteralPath $sourceBinary) -or !(Test-Path -LiteralPath $sourceResources)) { throw 'The update package is missing required WeekBox files.' }
+if (!(Test-Path -LiteralPath $sourceBinary)) { throw 'The update package is missing the WeekBox executable.' }
+$hasSourceResources=Test-Path -LiteralPath $sourceResources
 $targetBinary=$null
 foreach ($binaryName in @('WeekBox-win_x64.exe','WeekBox.exe')) {
   $candidate=Join-Path $target $binaryName
@@ -80,8 +81,12 @@ New-Item -ItemType Directory -Path $backup -Force | Out-Null
 if (Test-Path -LiteralPath $targetBinary) { Copy-Item -LiteralPath $targetBinary -Destination (Join-Path $backup 'app.exe') -Force }
 if (Test-Path -LiteralPath (Join-Path $target 'resources.neu')) { Copy-Item -LiteralPath (Join-Path $target 'resources.neu') -Destination (Join-Path $backup 'resources.neu') -Force }
 try {
-  Copy-Item -LiteralPath $sourceResources -Destination (Join-Path $target 'resources.neu') -Force
   Copy-Item -LiteralPath $sourceBinary -Destination $targetBinary -Force
+  if ($hasSourceResources) {
+    Copy-Item -LiteralPath $sourceResources -Destination (Join-Path $target 'resources.neu') -Force
+  } else {
+    Remove-Item -LiteralPath (Join-Path $target 'resources.neu') -Force -ErrorAction SilentlyContinue
+  }
 } catch {
   if (Test-Path -LiteralPath (Join-Path $backup 'resources.neu')) { Copy-Item -LiteralPath (Join-Path $backup 'resources.neu') -Destination (Join-Path $target 'resources.neu') -Force }
   if (Test-Path -LiteralPath (Join-Path $backup 'app.exe')) { Copy-Item -LiteralPath (Join-Path $backup 'app.exe') -Destination $targetBinary -Force }
@@ -132,7 +137,7 @@ rm -rf "$staging"
 unzip -qo "$archive" -d "$staging"
 source_binary=${sourceBinary}
 source_resources=${sourceResources}
-[ -f "$source_binary" ] && [ -f "$source_resources" ] || { echo 'The update package is missing required WeekBox files.' >&2; exit 1; }
+[ -f "$source_binary" ] || { echo 'The update package is missing the WeekBox executable.' >&2; exit 1; }
 target_binary=${targetBinary}
 target_resources=${targetResources}
 retry() {
@@ -158,8 +163,12 @@ cleanup() {
   rm -rf "$staging"
 }
 trap cleanup EXIT
-retry cp "$source_resources" "$target_resources"
 retry cp "$source_binary" "$target_binary"
+if [ -f "$source_resources" ]; then
+  retry cp "$source_resources" "$target_resources"
+else
+  rm -f "$target_resources"
+fi
 retry chmod 755 "$target_binary"
 launch_attempts=0
 while :; do

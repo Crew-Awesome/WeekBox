@@ -41,6 +41,14 @@ neu run
 neu build
 ```
 
+For a future single-file release, embed the resource bundle into the platform
+binary. The app updater supports both this format and the older two-file
+packages:
+
+```bash
+neu build --release --embed-resources
+```
+
 The launcher icon, window icon, and Credits icon all come from the same source asset in `app/assets/icons/launcher-icon.png`.
 
 ## Credits
