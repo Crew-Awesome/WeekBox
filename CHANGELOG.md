@@ -30,101 +30,109 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- The app update modal now includes a GitHub manual-download button for cases where an automatic update cannot finish.
+- The update window now includes a GitHub download button if automatic updating fails.
 
 ### Changed
 
-- WeekBox requests foreground focus when it starts, including after an updater relaunch.
+- WeekBox now comes to the front when it starts, including after an update.
 
 ### Fixed
 
-- Improved updater handoff, file replacement, cleanup, rollback, retries, and restart behavior across supported platforms.
+- Updates replace files, clean up, retry, roll back, and restart more reliably.
 
 ## [1.3.0] - 2026-07-17
 
 ### Added
 
-- Psych Online mods from [Sniro](https://funkin.sniro.boo/mods) are now shown alongside GameBanana results, with source-aware details, downloads, and sorting.
-- MediaFire and Google Drive download links supplied by GameBanana are available as install choices, with their resolved filename and size when available.
-- Settings now use a typed, versioned JSON file beside WeekBox's installed-mod and engine-update state. Existing settings are migrated from LocalStorage once and then removed from it.
-- A storage-location recommendation flow helps avoid cloud-synced folders that can interfere with downloads.
-- Sniro is listed in the in-app Powered by credits.
+- Psych Online mods from [Sniro](https://funkin.sniro.boo/mods) now appear with GameBanana search results.
+- MediaFire and Google Drive links can now be used to install GameBanana mods.
+- Settings are now saved in a file instead of browser storage.
+- WeekBox warns you about cloud-synced folders that can cause download problems.
+- Sniro was added to the in-app credits.
 
 ### Changed
 
-- Reworked Mod Manager card rendering, filters, and caching to make installed mods load and refresh faster.
-- Updated mod cards, search hints, carousel sizing, and engine-manager styling.
-- Search results now keep engine submissions and Psych Online entries out of the normal mod/dependency flows where they do not apply.
+- Mod Manager loads and refreshes installed mods faster.
+- Updated mod cards, search tips, carousel size, and Engine Manager styling.
+- Search handles engine submissions and Psych Online mods correctly.
 
 ### Fixed
 
-- Launcher updates no longer restart the app before the update is installed, and relaunch from the correct installed location.
-- Storage moves preserve active files and handle the default location correctly across Windows, macOS, and Linux.
-- Fixed loading stalls when Mod Manager cards contain base64 images and improved consecutive card rendering.
-- Fixed the search placeholder overlapping entered text and card labels overflowing their layouts.
+- App updates now install before WeekBox restarts.
+- Moving storage keeps your files on Windows, macOS, and Linux.
+- Mod Manager no longer stalls while loading some images.
+- Fixed search text and card labels overlapping.
 - Fixed opening engine downloads from mod details.
 
 ## [1.2.3] - 2026-07-16
 
 ### Fixed
 
-- Launcher updates now restart WeekBox from its installed folder after applying an update.
-- Nightly engine update checks now save their installed workflow SHA in `WeekBox/data/engineupdatestate.json`, preventing repeated prompts for the same build.
+- App updates now restart WeekBox from the correct folder.
+- Nightly engine updates no longer ask again for the same build.
 
 ## [1.2.2] - 2026-07-16
 
 ### Fixed
 
-- Launcher updates now download release archives through the native transfer utility, avoiding GitHub release-download CORS failures.
+- App updates can download GitHub releases without browser download errors.
 
 ## [1.2.1] - 2026-07-16
 
 ### Fixed
 
-- Engine release lists now wait for nightly-version lookup before filtering releases for the current operating system.
+- Engine versions now load before WeekBox filters them for your operating system.
 
 ## [1.2.0] - 2026-07-16
 
 ### Added
 
-- A built-in launcher updater that checks GitHub Releases, verifies the release SHA-256 digest, installs the matching package, and restarts WeekBox.
-- Launcher updates for Windows, Linux, macOS Intel, and Apple Silicon release packages.
-- A launcher-update section in Settings → Updates, including a manual check button and a startup-check preference.
-- An in-app update modal with Later and Install and restart actions when a newer WeekBox release is detected.
-- Friendly, copyable error reports for engine and mod installation failures.
+- WeekBox can now update itself from GitHub Releases.
+- App updates work on Windows, Linux, Intel Macs, and Apple Silicon Macs.
+- Settings has update options and a button to check for updates.
+- WeekBox shows an update window when a new version is available.
+- Engine and mod install errors are easier to read and copy.
 
 ### Changed
 
-- Engine installs now show the real archive filename being extracted and clear live status for extraction, organization, validation, and mod setup.
-- Engine release lists now show only versions that support the current operating system.
-- macOS engine app bundles are preserved instead of moving their internal executable out of the bundle.
-- macOS and Linux updater installs restore executable permission after replacing the launcher.
+- Engine installs now show clearer progress and the real download file name.
+- Engine lists only show versions for your operating system.
+- macOS engine apps stay as app bundles when they are installed.
+- Updates restore executable permissions on macOS and Linux.
 
 ### Fixed
 
-- Windows archive extraction now handles drive-letter paths correctly.
-- WeekBox avoids downloading engines into OneDrive-backed storage, which can lock or invalidate active downloads.
-- Missing engine folders no longer generate misleading executable-scanner warnings.
-- Storage moves now reapply installed mods without calling a missing method.
-- Engine installation reports the extracted file list when a download does not contain a runnable engine.
+- Fixed Windows archive extraction paths.
+- WeekBox avoids OneDrive folders that can break engine downloads.
+- Missing engine folders no longer show confusing warnings.
+- Moving storage now restores installed mods correctly.
+- Bad engine downloads now show the files that were found.
 
 ## [1.1.0] - 2026-07-16
 
 ### Added
 
-- A multithread-download preference for faster large archive downloads, with a single-connection option for compatibility.
-- A Library & Storage setting that lets you move the WeekBox data folder, including mods, engines, and data, to any writable folder or drive.
-- Settings categories for General, Downloads, Library & Storage, and Updates.
-- Rotating search guidance for mod searches, GameBanana links, and GameBanana mod IDs.
-- App-wide console reporting for uncaught errors and unhandled promise rejections.
-- Developer tools support that can be opened when needed without opening automatically at startup.
+- Choose faster multi-part downloads or single-part downloads for compatibility.
+- Move your WeekBox data, mods, and engines to another folder or drive.
+- Settings now has General, Downloads, Library & Storage, and Updates sections.
+- Search tips now show mod names, GameBanana links, and mod IDs.
+- Unexpected errors are now reported in the console.
+- Developer tools can be opened when needed.
 
 ### Changed
 
-- Large downloads skip the parallel-download server check when multithread downloads are disabled.
+- Large downloads skip the multi-part check when it is turned off.
 
 ### Fixed
 
-- Mod Manager engine and version selections now save and refresh correctly.
-- Mod-to-engine links are recreated after moving the WeekBox storage folder.
-- Fixed a stylesheet filename-case mismatch that could prevent the search dropdown styles from loading on case-sensitive platforms.
+- Mod Manager now saves and refreshes engine and version choices correctly.
+- Moving storage reconnects mods to their engines.
+- Fixed search dropdown styles on case-sensitive systems.
+
+## [1.0.0] - 2026-07-16
+
+### Added
+
+- First WeekBox release.
+- Download packages for Windows, Linux, and macOS.
+- Packages for x64, ARM64, ARMHF, and Universal Macs where available.
