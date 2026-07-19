@@ -5,12 +5,12 @@ import {
 } from "../config/engines.js";
 import { ExecutableService } from "./filesystem/executableService.js";
 import { ModInjectionService } from "./filesystem/modInjectionService.js";
+import { LibraryMaintenanceService } from "./filesystem/libraryMaintenanceService.js";
 import { ModRepository } from "./filesystem/modRepository.js";
 import {
   getParentPath,
   getModFolderName,
   getRealEntries,
-  sanitizePathSegment,
 } from "./filesystem/pathUtils.js";
 import { ProcessService } from "./filesystem/processService.js";
 import { appSettings } from "../core/settings.js";
@@ -31,32 +31,6 @@ function isICloudPath(path) {
 
 function isWeekBoxFolder(path) {
   return /(?:^|[\\/])weekbox$/i.test(String(path).replace(/[\\/]+$/, ""));
-}
-
-function getStableUrlId(url) {
-  let hash = 5381;
-  for (const char of String(url)) hash = (hash * 33) ^ char.charCodeAt(0);
-  return (hash >>> 0).toString(36);
-}
-
-function getImportedPsychOnlineMetadata(folderName, downloadUrl) {
-  const parsed = new URL(downloadUrl);
-  const isSniro = parsed.hostname.toLowerCase() === "funkin.sniro.boo";
-  const sourceId = isSniro
-    ? parsed.pathname.match(/^\/mod\/([^/]+)\/dl\//)?.[1]
-    : null;
-  return {
-    id: sourceId
-      ? `sniro:${sourceId}`
-      : `psychonline:${getStableUrlId(downloadUrl)}`,
-    name: folderName,
-    engineId: "psychonline",
-    engineLocked: true,
-    source: isSniro ? "sniro" : "gamebanana",
-    sourceUrl: isSniro ? "https://funkin.sniro.boo/mods" : downloadUrl,
-    downloadUrl,
-    folderName,
-  };
 }
 
 class FileSystemService {
@@ -86,6 +60,16 @@ class FileSystemService {
       modRepository: this.mods,
       getEnginesPath: () => this.enginesPath,
       getModsPath: () => this.modsPath,
+    });
+    this.maintenance = new LibraryMaintenanceService({
+      api: this.api,
+      mods: this.mods,
+      injection: this.injection,
+      getEnginesPath: () => this.enginesPath,
+      getModsPath: () => this.modsPath,
+      getInstalledEngines: () => this.getInstalledEngines(),
+      isEngineRunning: (engineId, version) =>
+        this.isEngineRunning(engineId, version),
     });
   }
 
@@ -354,135 +338,23 @@ class FileSystemService {
   }
 
   async cleanupHiddenModLinks() {
-    const hiddenMods = (await this.mods.getAll()).filter((mod) => mod.hidden);
-    if (hiddenMods.length === 0) return;
-    const engines = await this.getInstalledEngines();
-    await Promise.all(
-      hiddenMods.map((mod) =>
-        this.injection.unlinkFromInstalledEngines(mod, engines),
-      ),
-    );
+    return this.maintenance.cleanupHiddenModLinks();
   }
 
   async importPsychOnlineEngineMods() {
-    const engines = await this.getInstalledEngines();
-    const installedMods = await this.mods.getAll();
-    for (const engine of engines.filter((item) => item.id === "psychonline")) {
-      if (this.isEngineRunning(engine.id, engine.version)) continue;
-      const engineModsPath = `${this.enginesPath}/${engine.id}/${engine.version}/mods`;
-      let entries = [];
-      try {
-        entries = getRealEntries(
-          await Neutralino.filesystem.readDirectory(engineModsPath),
-        );
-      } catch {
-        continue;
-      }
-      for (const entry of entries.filter((item) => item.type === "DIRECTORY")) {
-        const folderName = sanitizePathSegment(entry.entry);
-        if (!folderName) continue;
-        const existingMod = installedMods.find(
-          (mod) => getModFolderName(mod) === folderName,
-        );
-        if (existingMod) {
-          if (!existingMod.hidden)
-            await this.injection.link(existingMod, engine.id, engine.version);
-          continue;
-        }
-        const sourcePath = `${engineModsPath}/${entry.entry}`;
-        const urlPath = `${sourcePath}/mod_url.txt`;
-        if (!(await this.api.exists(urlPath))) continue;
-        const downloadUrl = (await this.api.read(urlPath)).trim();
-        if (!/^https?:\/\//i.test(downloadUrl)) continue;
-        const destinationPath = `${this.modsPath}/${folderName}`;
-        if (await this.api.exists(destinationPath)) continue;
-        let metadata;
-        try {
-          metadata = getImportedPsychOnlineMetadata(folderName, downloadUrl);
-        } catch {
-          continue;
-        }
-        if (installedMods.some((mod) => sameId(mod.id, metadata.id))) continue;
-        await Neutralino.filesystem.move(sourcePath, destinationPath);
-        await this.mods.add(metadata.id, metadata.name, metadata);
-        installedMods.push({ ...metadata, hidden: false });
-        await this.injection.link(metadata, engine.id, engine.version);
-      }
-    }
+    return this.maintenance.importPsychOnlineEngineMods();
   }
 
   async cleanupIncompleteDownloads() {
-    try {
-      const engines = await Neutralino.filesystem.readDirectory(
-        this.enginesPath,
-      );
-      for (const engine of getRealEntries(engines)) {
-        if (
-          engine.type === "FILE" &&
-          /^temp_.*\.(?:zip|dmg)$/.test(engine.entry)
-        ) {
-          await this.api
-            .remove(`${this.enginesPath}/${engine.entry}`)
-            .catch(() => {});
-          continue;
-        }
-        if (engine.type !== "DIRECTORY") continue;
-        const versions = await Neutralino.filesystem.readDirectory(
-          `${this.enginesPath}/${engine.entry}`,
-        );
-        for (const version of getRealEntries(versions)) {
-          if (version.type !== "DIRECTORY") continue;
-          const versionPath = `${this.enginesPath}/${engine.entry}/${version.entry}`;
-          if (!(await this.api.exists(`${versionPath}/.downloading`))) continue;
-          const command =
-            window.NL_OS === "Windows"
-              ? `rmdir /S /Q "${versionPath.replace(/\//g, "\\")}"`
-              : `rm -rf "${versionPath}"`;
-          await Neutralino.os
-            .execCommand(command, { background: true })
-            .catch(() => {});
-        }
-      }
-    } catch (error) {
-      console.warn("Could not clean up incomplete downloads", error);
-    }
+    return this.maintenance.cleanupIncompleteDownloads();
   }
 
   async hasModFiles(mod) {
-    const folderName = getModFolderName(mod);
-    if (!folderName || /[\\/]/.test(folderName)) return false;
-    const hasFilesIn = async (path) => {
-      const entries = getRealEntries(
-        await Neutralino.filesystem.readDirectory(path),
-      );
-      for (const entry of entries) {
-        if (entry.entry === ".downloading") continue;
-        if (entry.type === "FILE") return true;
-        if (
-          entry.type === "DIRECTORY" &&
-          (await hasFilesIn(`${path}/${entry.entry}`))
-        ) {
-          return true;
-        }
-      }
-      return false;
-    };
-    try {
-      return await hasFilesIn(`${this.modsPath}/${folderName}`);
-    } catch (error) {
-      return false;
-    }
+    return this.maintenance.hasModFiles(mod);
   }
 
   async cleanupInvalidInstalledMods() {
-    for (const mod of await this.mods.getAll()) {
-      if (await this.hasModFiles(mod)) continue;
-      const folderName = getModFolderName(mod);
-      if (folderName && !/[\\/]/.test(folderName)) {
-        await this.api.remove(`${this.modsPath}/${folderName}`).catch(() => {});
-      }
-      await this.mods.remove(mod.id);
-    }
+    return this.maintenance.cleanupInvalidInstalledMods();
   }
 
   async isEngineInstalled(engineId, version) {

@@ -1,5 +1,12 @@
 import { FeaturedService } from "./gamebanana/featuredService.js";
 import { CategoryFeedService } from "./gamebanana/categoryFeedService.js";
+import { GameBananaCategoryResolver } from "./gamebanana/categoryResolver.js";
+import {
+  formatBytes,
+  getImageUrl,
+  getTimeAgo,
+  toGridMod,
+} from "./gamebanana/modPresentation.js";
 import { GameBananaTransport } from "./gamebanana/transport.js";
 import { GameBananaSearchService } from "./gamebanana/searchService.js";
 import {
@@ -62,6 +69,7 @@ export const gameBananaApi = {
   featuredService: null,
   categoryFeedService: null,
   categoryTransport: null,
+  categoryResolver: null,
   searchService: null,
   psychOnlineFeedCache: new Map(),
 
@@ -75,138 +83,42 @@ export const gameBananaApi = {
   discoveryConfig: DISCOVERY_CONFIG,
 
   getImageUrl(mod) {
-    const screenshot = mod?._aPreviewContent?.screenshot;
-    if (screenshot?._sBaseUrl) {
-      const filename =
-        screenshot._sFile530 || screenshot._sFile220 || screenshot._sFile;
-      if (filename) return `${screenshot._sBaseUrl}/${filename}`;
-    }
-    if (
-      mod._aPreviewMedia &&
-      mod._aPreviewMedia._aImages &&
-      mod._aPreviewMedia._aImages.length > 0
-    ) {
-      const img = mod._aPreviewMedia._aImages[0];
-      return `${img._sBaseUrl}/${img._sFile}`;
-    }
-    return "assets/icons/launcher-icon.png";
+    return getImageUrl(mod);
   },
 
   getEngineIdForCategory(categoryId) {
-    const id = Number(categoryId);
-    return this.engineCategories[id] || this.legacyEngineCategories[id] || null;
+    return this.getCategoryResolver().getEngineIdForCategory(categoryId);
   },
 
   getEngineIdForCategoryName(...categories) {
-    const names = categories
-      .filter((category) => category && typeof category === "object")
-      .map((category) => String(category._sName || "").toLocaleLowerCase());
-    if (names.some((name) => /\bpsych(?:[\s-]+)?online\b/.test(name)))
-      return "psychonline";
-    if (names.some((name) => /\bpsych\b/.test(name))) return "psych";
-    if (names.some((name) => /\bcodename\b/.test(name))) return "codename";
-    if (names.some((name) => /\bexecutable\b/.test(name))) return "executable";
-    if (names.some((name) => /\bbase\b/.test(name))) return "vslice";
-    return null;
+    return this.getCategoryResolver().getEngineIdForCategoryName(...categories);
   },
 
   getCategoryId(category) {
-    if (!category || typeof category !== "object") return null;
-    const id =
-      category._idRow ||
-      category._idCategory ||
-      category._sProfileUrl?.match(/\/mods\/cats\/(\d+)/)?.[1];
-    return Number.isFinite(Number(id)) ? Number(id) : null;
+    return this.getCategoryResolver().getCategoryId(category);
   },
 
   isExcludedCategory(...categories) {
-    const pending = categories.filter(Boolean);
-    const seen = new Set();
-    while (pending.length) {
-      const category = pending.shift();
-      if (typeof category === "number" || typeof category === "string") {
-        if (this.excludedCategoryIds.has(Number(category))) return true;
-        continue;
-      }
-      if (typeof category !== "object" || seen.has(category)) continue;
-      seen.add(category);
-      if (
-        category._bIsObsolete ||
-        this.excludedCategoryIds.has(this.getCategoryId(category))
-      )
-        return true;
-      pending.push(
-        category._aCategory,
-        category._aRootCategory,
-        category._aSubCategory,
-        category._aParentCategory,
-        category._aSuperCategory,
-      );
-    }
-    return false;
+    return this.getCategoryResolver().isExcludedCategory(...categories);
   },
 
   isInCategory(categoryId, ...categories) {
-    const requestedId = Number(categoryId);
-    if (!Number.isFinite(requestedId)) return false;
-
-    const pending = categories.filter(Boolean);
-    const seen = new Set();
-    while (pending.length) {
-      const category = pending.shift();
-      if (Number(category) === requestedId) return true;
-      if (typeof category !== "object" || seen.has(category)) continue;
-      seen.add(category);
-      if (this.getCategoryId(category) === requestedId) return true;
-      pending.push(
-        category._aCategory,
-        category._aRootCategory,
-        category._aSubCategory,
-        category._aParentCategory,
-        category._aSuperCategory,
-      );
-    }
-    return false;
+    return this.getCategoryResolver().isInCategory(categoryId, ...categories);
   },
 
-  // 1. Detección Inteligente y recursiva de categorías y motores
   getEngineIdForCategories(...categories) {
-    const pending = categories.filter((c) => c !== null && c !== undefined);
-    const seen = new Set();
-    const detectedEngines = [];
+    return this.getCategoryResolver().getEngineIdForCategories(...categories);
+  },
 
-    while (pending.length > 0) {
-      const category = pending.shift();
-
-      // Si recibimos directamente un número de categoría (ID directo)
-      if (typeof category === "number" || typeof category === "string") {
-        const engineId = this.getEngineIdForCategory(Number(category));
-        if (engineId) detectedEngines.push(engineId);
-        continue;
-      }
-
-      // Si ya analizamos este objeto o no es un objeto, pasamos
-      if (typeof category !== "object" || seen.has(category)) {
-        continue;
-      }
-      seen.add(category);
-
-      const engineId = this.getEngineIdForCategory(
-        this.getCategoryId(category),
-      );
-      if (engineId) detectedEngines.push(engineId);
-
-      pending.push(
-        category._aCategory,
-        category._aSuperCategory,
-        category._aParentCategory,
-        category._aRootCategory,
-        category._aSubCategory,
-      );
+  getCategoryResolver() {
+    if (!this.categoryResolver) {
+      this.categoryResolver = new GameBananaCategoryResolver({
+        engineCategories: this.engineCategories,
+        legacyEngineCategories: this.legacyEngineCategories,
+        excludedCategoryIds: this.excludedCategoryIds,
+      });
     }
-    return detectedEngines.includes("psychonline")
-      ? "psychonline"
-      : detectedEngines[0] || null;
+    return this.categoryResolver;
   },
 
   getValidRecords(data) {
@@ -568,28 +480,11 @@ export const gameBananaApi = {
   },
 
   getTimeAgo(timestamp) {
-    if (!timestamp) return "N/A";
-    const seconds = Math.floor(Date.now() / 1000) - timestamp;
-    let interval = seconds / 31536000;
-    if (interval > 1) return Math.floor(interval) + "y";
-    interval = seconds / 2592000;
-    if (interval > 1) return Math.floor(interval) + "mo";
-    interval = seconds / 86400;
-    if (interval > 1) return Math.floor(interval) + "d";
-    interval = seconds / 3600;
-    if (interval > 1) return Math.floor(interval) + "h";
-    interval = seconds / 60;
-    if (interval > 1) return Math.floor(interval) + "m";
-    return Math.floor(seconds) + "s";
+    return getTimeAgo(timestamp);
   },
 
   formatBytes(bytes, decimals = 2) {
-    if (!+bytes) return "0 Bytes";
-    const k = 1024;
-    const dm = decimals < 0 ? 0 : decimals;
-    const sizes = ["Bytes", "KB", "MB", "GB", "TB"];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;
+    return formatBytes(bytes, decimals);
   },
 
   async getModDetails(modId, { includeRequirements = true } = {}) {
@@ -666,27 +561,16 @@ export const gameBananaApi = {
   },
 
   toGridMod(mod) {
-    return {
-      id: mod._idRow,
-      title: mod._sName,
-      author: mod._aSubmitter?._sName || "Unknown",
-      gameId: Number(mod._aGame?._idRow || mod._idGame || 0),
-      image: this.getImageUrl(mod),
-      likes: mod._nLikeCount || 0,
-      views: mod._nViewCount || 0,
-      submittedAt: Number(mod._tsDateAdded || 0) * 1000,
-      timeAgo: this.getTimeAgo(mod._tsDateAdded),
-      engineId:
-        mod.__resolvedEngineId ||
-        this.getEngineIdForCategories(
-          mod.__injectedCategoryId, // Pasamos el ID inyectado primero para prioridad
-          mod._aCategory,
-          mod._aSuperCategory,
-          mod._aRootCategory,
-          mod._aSubCategory,
-          mod._idCategory,
-        ),
-    };
+    return toGridMod(mod, (record) =>
+      this.getEngineIdForCategories(
+        record.__injectedCategoryId,
+        record._aCategory,
+        record._aSuperCategory,
+        record._aRootCategory,
+        record._aSubCategory,
+        record._idCategory,
+      ),
+    );
   },
 
   async getRipeMods(page = 1, categoryId = null, options = {}) {

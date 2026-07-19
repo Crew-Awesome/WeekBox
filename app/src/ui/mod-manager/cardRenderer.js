@@ -10,6 +10,7 @@ import { setupDropdown } from "../../utils/dropdown.js";
 import { engineUpdateToast } from "../engines/engineUpdateToast.js";
 import { getBase64FromUrl } from "../../utils/base64Transformer.js";
 import { modManagerTemplates } from "../../html/components/mod-manager.js";
+import { loadModCardImage } from "./modImageLoader.js";
 
 export const cardRenderer = {
   async renderCards(
@@ -184,37 +185,13 @@ export const cardRenderer = {
       );
       applyDominantColor(card.querySelector(".mod-manager-cover"), card);
 
-      if (!mod.imageBase64 && !mod.image) {
-        gameBananaApi
-          .getModDetails(mod.id)
-          .then(async (details) => {
-            if (details?.images?.length) {
-              const b64 = await getBase64FromUrl(details.images[0]);
-              if (b64) {
-                mod.imageBase64 = b64;
-                const img = card.querySelector(".mod-manager-cover");
-                if (img) {
-                  img.src = b64;
-                  applyDominantColor(img, card);
-                }
-              }
-            }
-          })
-          .catch(() => {});
-      } else if (mod.image && !mod.imageBase64) {
-        getBase64FromUrl(mod.image)
-          .then((b64) => {
-            if (b64) {
-              mod.imageBase64 = b64;
-              const img = card.querySelector(".mod-manager-cover");
-              if (img) {
-                img.src = b64;
-                applyDominantColor(img, card);
-              }
-            }
-          })
-          .catch(() => {});
-      }
+      loadModCardImage({
+        mod,
+        card,
+        fetchDetails: gameBananaApi.getModDetails.bind(gameBananaApi),
+        getBase64FromUrl,
+        applyDominantColor,
+      });
 
       const deleteBtn = card.querySelector(".mod-manager-delete-btn");
       const launchBtn = card.querySelector(".mod-manager-launch-btn");
