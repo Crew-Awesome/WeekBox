@@ -13,10 +13,13 @@ export function createCard(mod, index) {
 
   const image = document.createElement("img");
   image.className = "mod-image";
-  image.crossOrigin = "Anonymous";
   image.src = mod.image;
   image.alt = "";
   image.loading = "lazy";
+  image.onerror = () => {
+    image.onerror = null;
+    image.src = "assets/icons/launcher-icon.png";
+  };
   imageContainer.appendChild(image);
 
   applyDominantColor(image, card, {

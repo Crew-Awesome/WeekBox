@@ -68,6 +68,12 @@ export const gameBananaApi = {
   discoveryConfig: DISCOVERY_CONFIG,
 
   getImageUrl(mod) {
+    const screenshot = mod?._aPreviewContent?.screenshot;
+    if (screenshot?._sBaseUrl) {
+      const filename =
+        screenshot._sFile530 || screenshot._sFile220 || screenshot._sFile;
+      if (filename) return `${screenshot._sBaseUrl}/${filename}`;
+    }
     if (
       mod._aPreviewMedia &&
       mod._aPreviewMedia._aImages &&
@@ -76,7 +82,7 @@ export const gameBananaApi = {
       const img = mod._aPreviewMedia._aImages[0];
       return `${img._sBaseUrl}/${img._sFile}`;
     }
-    return "https://images.gamebanana.com/img/ss/mods/default.jpg";
+    return "assets/icons/launcher-icon.png";
   },
 
   getEngineIdForCategory(categoryId) {
@@ -594,8 +600,7 @@ export const gameBananaApi = {
           (img) => `${img._sBaseUrl}/${img._sFile}`,
         );
       }
-      if (images.length === 0)
-        images.push("https://images.gamebanana.com/img/ss/mods/default.jpg");
+      if (images.length === 0) images.push("assets/icons/launcher-icon.png");
       const downloadOptions = await this.getDownloadOptions(data);
       const preferredDownload =
         this.getPreferredDownloadOption(downloadOptions);
@@ -894,26 +899,6 @@ export const gameBananaApi = {
     return this.categoryFeedService;
   },
 
-  getSearchRelevance(mod, query) {
-    const title = String(mod._sName || "").toLocaleLowerCase();
-    const normalizedQuery = query.toLocaleLowerCase();
-    const words = normalizedQuery.split(/\s+/).filter(Boolean);
-    const exactTitle = title === normalizedQuery ? 1000000000 : 0;
-    const startsWithQuery = title.startsWith(normalizedQuery) ? 100000000 : 0;
-    const matchingWords =
-      words.filter((word) => title.includes(word)).length * 1000000;
-    return exactTitle + startsWithQuery + matchingWords;
-  },
-
-  getSearchMatchCount(mod, query) {
-    const title = String(mod._sName || "").toLocaleLowerCase();
-    return query
-      .toLocaleLowerCase()
-      .split(/\s+/)
-      .filter(Boolean)
-      .filter((word) => title.includes(word)).length;
-  },
-
   async getSearchSuggestions(query, limit = 8) {
     const normalizedQuery = String(query || "")
       .trim()
@@ -941,6 +926,24 @@ export const gameBananaApi = {
     } catch {
       return [];
     }
+  },
+
+  getSearchTitleRelevance(mod, query) {
+    const normalize = (value) =>
+      String(value || "")
+        .toLocaleLowerCase()
+        .replace(/[^a-z0-9]+/g, " ")
+        .trim();
+    const title = normalize(mod?._sName);
+    const normalizedQuery = normalize(query);
+    if (!title || !normalizedQuery) return 0;
+    const words = normalizedQuery.split(" ");
+    const matchingWords = words.filter((word) => title.includes(word)).length;
+    return (
+      (title.includes(normalizedQuery) ? 100000 : 0) +
+      (title.startsWith(normalizedQuery) ? 10000 : 0) +
+      matchingWords * 1000
+    );
   },
 
   async searchMods(query, page = 1, perPage = 12) {
@@ -981,48 +984,52 @@ export const gameBananaApi = {
         return [directMod];
       }
 
-      const searchWindowSize = 50;
-      const resultOffset = (page - 1) * perPage;
-      const sourcePage = Math.floor(resultOffset / searchWindowSize) + 1;
-      const sourceOffset = resultOffset % searchWindowSize;
       const params = new URLSearchParams({
         _sModelName: "Mod",
-        _sSearchString: `${normalizedQuery} fnf`,
-        _nPage: String(sourcePage),
-        _nPerpage: String(searchWindowSize),
+        _sOrder: "best_match",
+        _idGameRow: String(this.gameId),
+        _sSearchString: normalizedQuery,
+        _nPage: String(page),
+        _nPerpage: String(perPage),
       });
-      params.set("_aFilters[Generic_Game]", String(this.gameId));
-      const res = await fetch(`${this.baseUrl}/Util/Search/Results?${params}`);
-      if (!res.ok) throw new Error("Mod search failed");
-      const data = await res.json();
-      const records = this.getValidRecords(data).filter(
-        (mod) =>
-          mod._sModelName === "Mod" &&
-          Number(mod._aGame?._idRow || mod._idGame) === this.gameId &&
-          !this.isDeletedMod(mod) &&
-          !this.isExcludedCategory(
-            mod._aCategory,
-            mod._aRootCategory,
-            mod._aSubCategory,
-          ),
-      );
+      const fetchRecords = async (order) => {
+        params.set("_sOrder", order);
+        const res = await fetch(
+          `https://gamebanana.com/apiv13/Util/Search/Results?${params}`,
+        );
+        if (!res.ok) throw new Error("Mod search failed");
+        return this.getValidRecords(await res.json());
+      };
+      const bestMatchRecords = await fetchRecords("best_match");
+      const popularityRecords =
+        page === 1 ? await fetchRecords("popularity").catch(() => []) : [];
+      const records = [
+        ...new Map(
+          [...bestMatchRecords, ...popularityRecords].map((mod) => [
+            mod._idRow,
+            mod,
+          ]),
+        ).values(),
+      ]
+        .filter(
+          (mod) =>
+            mod._sModelName === "Mod" &&
+            Number(mod._aGame?._idRow || mod._idGame) === this.gameId &&
+            !this.isDeletedMod(mod) &&
+            !this.isExcludedCategory(
+              mod._aCategory,
+              mod._aRootCategory,
+              mod._aSubCategory,
+            ),
+        )
+        .sort(
+          (left, right) =>
+            this.getSearchTitleRelevance(right, normalizedQuery) -
+              this.getSearchTitleRelevance(left, normalizedQuery) ||
+            Number(right._nViewCount || 0) - Number(left._nViewCount || 0),
+        );
 
-      const sortedRecords = [
-        ...new Map(records.map((mod) => [mod._idRow, mod])).values(),
-      ].sort(
-        (left, right) =>
-          this.getSearchMatchCount(right, normalizedQuery) -
-            this.getSearchMatchCount(left, normalizedQuery) ||
-          Number(right._nViewCount || 0) - Number(left._nViewCount || 0) ||
-          Number(right._nLikeCount || 0) - Number(left._nLikeCount || 0) ||
-          this.getSearchRelevance(right, normalizedQuery) -
-            this.getSearchRelevance(left, normalizedQuery) ||
-          Number(right._idRow || 0) - Number(left._idRow || 0),
-      );
-      const visibleRecords = sortedRecords.slice(
-        sourceOffset,
-        sourceOffset + perPage,
-      );
+      const visibleRecords = records.slice(0, perPage);
       for (let index = 0; index < visibleRecords.length; index += 2) {
         await Promise.all(
           visibleRecords.slice(index, index + 2).map(async (mod) => {
@@ -1036,13 +1043,7 @@ export const gameBananaApi = {
         const sniroMods = await sniroApi
           .listAll(normalizedQuery, "submitted:desc")
           .catch(() => []);
-        parsedMods = [...parsedMods, ...sniroMods]
-          .sort(
-            (left, right) =>
-              Number(right.views || 0) - Number(left.views || 0) ||
-              Number(right.likes || 0) - Number(left.likes || 0),
-          )
-          .slice(0, perPage);
+        parsedMods = [...parsedMods, ...sniroMods].slice(0, perPage);
       }
 
       if (directMod) {
