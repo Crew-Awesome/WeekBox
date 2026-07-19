@@ -38,14 +38,6 @@ neu run
 ```
 
 ```bash
-neu build
-```
-
-For a future single-file release, embed the resource bundle into the platform
-binary. The app updater supports both this format and the older two-file
-packages:
-
-```bash
 neu build --release --embed-resources
 ```
 
