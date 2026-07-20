@@ -277,9 +277,29 @@ async function startApp() {
     console.log("WeekBox: modules loaded.");
   } catch (error) {
     console.error("Startup error:", error);
+    try {
+      errorHandler.show({
+        error,
+        action: "Start WeekBox",
+        storagePath: FS.weekboxPath,
+      });
+    } catch (reportingError) {
+      console.error("Could not show startup error report:", reportingError);
+    }
     const mainContent = document.getElementById("main-content");
     if (mainContent) {
-      mainContent.innerHTML = `<div style="padding: 24px; color: #ff4a4a;"><h2>Load error</h2><p>${error.message}</p></div>`;
+      mainContent.replaceChildren();
+      const errorView = document.createElement("div");
+      errorView.style.cssText = "padding: 24px; color: #ff4a4a;";
+      const heading = document.createElement("h2");
+      heading.textContent = "Load error";
+      const message = document.createElement("p");
+      message.textContent =
+        error instanceof Error
+          ? error.message
+          : "See the technical details in the error report.";
+      errorView.append(heading, message);
+      mainContent.appendChild(errorView);
     }
   }
 }

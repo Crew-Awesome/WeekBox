@@ -1,5 +1,14 @@
 function getMessage(error) {
-  return String(error?.message || error || "An unexpected error occurred");
+  if (error instanceof Error) return error.stack || error.message;
+  if (typeof error === "string") return error;
+  if (error && typeof error === "object") {
+    try {
+      return JSON.stringify(error, null, 2);
+    } catch {
+      return error.message || "An unexpected error occurred";
+    }
+  }
+  return String(error || "An unexpected error occurred");
 }
 
 function describeIssue(error) {
