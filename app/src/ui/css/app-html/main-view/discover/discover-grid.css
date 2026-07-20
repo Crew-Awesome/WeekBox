@@ -9,15 +9,13 @@
 .discover-grid-container .md3-component-card {
     display: flex;
     flex-direction: column;
-    /* Estado base permanente: 5px de padding en toda la tarjeta */
-    padding: 5px; 
+    padding: 0;
     align-items: stretch;
     justify-content: flex-start;
     aspect-ratio: auto; 
     border-radius: 12px;
-    overflow: hidden; /* Volvemos a ocultar el desbordamiento para mantener el diseño limpio */
+    overflow: hidden;
     position: relative; /* Para el badge */
-    box-sizing: border-box;
 }
 
 /* Recortamos el ripple para que no se salga */
@@ -32,12 +30,15 @@
     aspect-ratio: 16 / 9;
     object-fit: cover;
     z-index: 1;
-    /* Redondeo de 8px para que encaje visualmente dentro del padding de 5px (que está en un contenedor de 12px) */
-    border-radius: 8px; 
+    /* Reducimos la imagen simulando un padding interno de -5px PERMANENTEMENTE */
+    transform: scale(0.92);
+    /* Redondeamos todas las esquinas para que luzca bien al estar encogida */
+    border-radius: 12px;
     transition: opacity 0.4s ease;
+    transform-origin: center;
 }
 
-/* Efecto de imagen al hacer hover en la tarjeta */
+/* Efecto al hacer hover en la tarjeta de color dinámico */
 .discover-dynamic-card:hover img {
     opacity: 0.95;
 }
@@ -61,8 +62,7 @@
 
 /* Área de contenido de texto debajo de la miniatura */
 .discover-grid-container .card-content {
-    /* 11px aquí + los 5px del contenedor = 16px originales de padding */
-    padding: 11px;
+    padding: 16px;
     display: flex;
     flex-direction: column;
     gap: 6px;
@@ -117,20 +117,17 @@
 
 /* Lógica de color dinámico */
 .discover-dynamic-card {
-    /* El fondo cambia suavemente de transparente al color del mod */
-    background-color: rgba(var(--card-bg-rgb), 0) !important;
+    background-color: transparent !important;
     /* Aseguramos que el texto principal nunca cambie de color */
     color: var(--m3-component-on-surface) !important;
     border: none !important;
     box-shadow: none !important;
-    transition: background-color 0.4s ease, transform 0.2s ease !important;
+    transition: transform 0.2s ease !important;
     position: relative;
     z-index: 1;
 }
 
 .discover-dynamic-card:hover {
-    /* Al hacer hover, se enciende el fondo completo de la tarjeta */
-    background-color: rgba(var(--card-bg-rgb), 0.6) !important;
     box-shadow: none !important;
 }
 
@@ -140,3 +137,27 @@
 .discover-dynamic-card .mod-author-stats {
     color: var(--m3-component-on-surface) !important;
 }
+
+/* Animación de relleno de color: inicia en -5px y crece hasta llenar (0px) al hacer hover */
+.discover-dynamic-card::after {
+    content: '';
+    position: absolute;
+    top: 5px;
+    left: 5px;
+    right: 5px;
+    bottom: 5px;
+    background-color: rgba(var(--card-bg-rgb), 0);
+    border-radius: inherit;
+    z-index: -1;
+    transition: all 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+    pointer-events: none;
+}
+
+.discover-dynamic-card:hover::after {
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(var(--card-bg-rgb), 0.75);
+}
+
