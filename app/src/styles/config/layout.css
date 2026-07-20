@@ -17,12 +17,12 @@
 }
 
 .config-content {
-  width: 65vw;
+  width: 74vw;
   min-width: 600px;
-  max-width: 900px;
-  height: 70vh;
+  max-width: 1080px;
+  height: 78vh;
   min-height: 450px;
-  max-height: 800px;
+  max-height: 900px;
   background-color: var(--bg-panel);
   border-radius: 12px;
   border: 1px solid var(--border-color);
@@ -182,7 +182,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding-bottom: 16px;
+  padding-bottom: 18px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
@@ -192,14 +192,14 @@
 
 .setting-info h4 {
   color: var(--text-main);
-  font-size: 1rem;
+  font-size: 1.05rem;
   margin-bottom: 4px;
   font-weight: 600;
 }
 
 .setting-info p {
   color: var(--text-muted);
-  font-size: 0.85rem;
+  font-size: 0.9rem;
   margin: 0;
 }
 
@@ -214,20 +214,11 @@
   min-width: 0;
 }
 
-.setting-item-storage .setting-info h4 {
-  font-size: 0.92rem;
-}
-
-.setting-item-storage .setting-info p {
-  font-size: 0.78rem;
-  line-height: 1.45;
-}
-
 .storage-location-actions {
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
-  gap: 6px;
+  gap: 8px;
 }
 
 .storage-move-lock {
@@ -240,19 +231,19 @@
 .setting-item-storage #storage-location-path {
   display: block;
   width: 100%;
-  margin-top: 6px;
-  padding: 5px 7px;
+  margin-top: 8px;
+  padding: 7px 9px;
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 5px;
   background: rgba(0, 0, 0, 0.16);
   color: var(--text-muted);
   cursor: pointer;
   text-align: left;
-  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
-  font-size: 0.72rem;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  font: inherit;
+  font-size: 0.9rem;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+  white-space: normal;
 }
 
 .setting-item-storage #storage-location-path:hover,
@@ -267,10 +258,10 @@
   border: 1px solid var(--border-color);
   background: rgba(255, 255, 255, 0.06);
   color: var(--text-main);
-  border-radius: 7px;
-  padding: 7px 9px;
+  border-radius: 8px;
+  padding: 10px 14px;
   font: inherit;
-  font-size: 0.76rem;
+  font-size: 0.95rem;
   line-height: 1.2;
   white-space: nowrap;
   cursor: pointer;
@@ -370,20 +361,20 @@ input:checked + .slider:before {
   gap: var(--spacing-xl);
 }
 
-.credit-item .credit-logo {
-  width: 64px;
-  height: 64px;
-  margin-bottom: var(--spacing-sm);
-}
-
 .credit-item h4 {
   font-size: 1.5rem;
   color: var(--text-main);
-  margin-bottom: 4px;
+  margin: 0;
+}
+
+.credit-item h4.credit-heart {
+  font-size: 1.75rem;
 }
 
 .credit-item p {
   color: var(--text-muted);
+  font-size: 0.95rem;
+  line-height: 1.5;
 }
 
 .credit-list {
@@ -391,23 +382,84 @@ input:checked + .slider:before {
   flex-direction: column;
   gap: var(--spacing-lg);
   width: 100%;
-  max-width: 400px;
+  max-width: 640px;
   background: var(--bg-color);
   padding: var(--spacing-lg);
   border-radius: 12px;
   border: 1px solid var(--border-color);
+  position: relative;
+  isolation: isolate;
+}
+
+.credit-columns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--spacing-xl);
+  align-items: stretch;
+  position: relative;
+  z-index: 1;
+}
+
+.credit-column {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+  position: relative;
+  z-index: 1;
+}
+
+.credit-column:first-child {
+  text-align: left;
+}
+
+.credit-column:nth-child(2) {
+  text-align: right;
+}
+
+.credit-center-mark {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.credit-center-mark img {
+  width: 144px;
+  height: 144px;
+  opacity: 0.08;
 }
 
 .credit-entry h5 {
-  color: var(--text-main);
-  font-size: 1rem;
-  margin-bottom: 6px;
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  margin-bottom: 8px;
+  text-transform: uppercase;
 }
 
 .credit-entry p {
-  color: var(--text-muted);
-  font-size: 0.9rem;
+  color: var(--text-main);
+  font-size: 0.95rem;
+  font-weight: 500;
+  line-height: 1.6;
   margin: 0;
+}
+
+.credit-dedication {
+  padding-top: var(--spacing-lg);
+  border-top: 1px solid var(--border-color);
+  position: relative;
+  z-index: 1;
+}
+
+.credit-special-thanks {
+  text-align: center;
+  position: relative;
+  z-index: 1;
 }
 
 .credits-container a {
@@ -426,4 +478,19 @@ input:checked + .slider:before {
   font: inherit;
   text-decoration: underline;
   text-underline-offset: 2px;
+}
+
+@media (max-width: 520px) {
+  .credit-columns {
+    grid-template-columns: 1fr;
+  }
+
+  .credit-center-mark {
+    display: none;
+  }
+
+  .credit-column:first-child,
+  .credit-column:nth-child(2) {
+    text-align: center;
+  }
 }
