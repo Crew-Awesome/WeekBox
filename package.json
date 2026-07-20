@@ -4,8 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "build": "npx @neutralinojs/neu build --embed-resources",
-    "release": "npx @neutralinojs/neu build --release --embed-resources",
+    "build": "npx @neutralinojs/neu build",
+    "release": "npx @neutralinojs/neu build --release",
     "format": "node scripts/formatter.js"
   },
   "repository": {
