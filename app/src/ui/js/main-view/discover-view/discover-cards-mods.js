@@ -1,6 +1,7 @@
 import { extractImageColor } from '../../../utils/extractImgColor.js';
 import { gameBananaApi } from '../../../../core/config/api/gamebanana.js';
 import { installMod } from '../../../../backend/utils/fileSystem/downloader/mods.js';
+import { isModInstalled } from '../../../../backend/utils/fileSystem/mods-library.js';
 import { initCards } from '../../../utils/components/cards/cards.js';
 
 /**
@@ -80,6 +81,15 @@ export class ModCard extends HTMLElement {
         img.src = this._mod.image || '';
         img.alt = this._mod.title || 'Mod Thumbnail';
         
+        isModInstalled(this._mod.id).then(installed => {
+            if (installed) {
+                downloadBtn.textContent = 'Instalado';
+                downloadBtn.style.backgroundColor = 'var(--m3-component-primary)';
+                downloadBtn.style.color = 'var(--m3-component-on-primary)';
+                downloadBtn.disabled = true;
+            }
+        });
+        
         this.addEventListeners(card, downloadBtn);
         
         this.appendChild(clone);
@@ -131,12 +141,13 @@ export class ModCard extends HTMLElement {
                 
                 downloadBtn.textContent = 'Descargando...';
                 
-                const result = await installMod(modTitle, details.downloadUrl);
+                const result = await installMod(modId, modTitle, this._mod.engineId || 'Unknown Engine', details.downloadUrl);
                 
                 if (result.success) {
                     downloadBtn.textContent = 'Instalado';
                     downloadBtn.style.backgroundColor = 'var(--m3-component-primary)';
                     downloadBtn.style.color = 'var(--m3-component-on-primary)';
+                    downloadBtn.disabled = true;
                 } else {
                     throw new Error(result.error);
                 }

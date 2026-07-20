@@ -1,4 +1,5 @@
 import { centerWindow, ensureTmpDirectory, readStoredWindowDimensions, writeStoredWindowDimensions } from './windowSize.js';
+import { initModsLibrary, startLibraryWatcher } from '../../utils/fileSystem/mods-library.js';
 import { initCircleLoad, updateCircleProgress } from '../../../ui/utils/components/circleLoad/circleLoad.js';
 import { SidebarController } from '../../../ui/js/sidebar/sidebar.js';
 
@@ -96,6 +97,8 @@ export function initWindowLogic() {
         await Neutralino.window.setSize({ width: 400, height: 600 });
         await centerWindow(400, 600);
         await ensureTmpDirectory();
+        await initModsLibrary();
+        startLibraryWatcher();
         
         // Load Main App in the background
         const appResponse = await fetch('src/ui/html/app.html');

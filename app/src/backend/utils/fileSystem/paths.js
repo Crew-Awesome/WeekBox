@@ -17,12 +17,30 @@ function normalizePath(rawPath) {
 }
 
 /**
- * Gets the base WeekBox data path (e.g. AppData/Roaming/WeekBox on Windows)
+ * Gets the base WeekBox path (e.g. AppData/Roaming/WeekBox on Windows)
  * @returns {Promise<string>}
  */
 export async function getWeekBoxPath() {
     const dataPath = await Neutralino.os.getPath('data');
     return normalizePath(`${dataPath}/WeekBox`);
+}
+
+/**
+ * Gets the root directory for application data
+ * @returns {Promise<string>}
+ */
+export async function getDataPath() {
+    const basePath = await getWeekBoxPath();
+    return normalizePath(`${basePath}/data`);
+}
+
+/**
+ * Gets the path for the installed mods index JSON file
+ * @returns {Promise<string>}
+ */
+export async function getModsLibraryPath() {
+    const dataPath = await getDataPath();
+    return normalizePath(`${dataPath}/installed_mods.json`);
 }
 
 /**

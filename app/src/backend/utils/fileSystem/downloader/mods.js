@@ -3,6 +3,8 @@
  * Uses native OS tools (curl, powershell/unzip) to avoid Node/JS memory leaks with large binaries.
  */
 import { getModTempPath, getModInstallPath, getTempPath, getModsPath } from '../paths.js';
+import { addMod, lockedFolders } from '../mods-library.js';
+import { removeDir } from '../fs-utils.js';
 
 function quote(str) {
     return `"${str}"`;
@@ -47,19 +49,6 @@ async function ensureDir(path) {
         await Neutralino.filesystem.createDirectory(path);
     } catch (e) {
         /** Ignore if exists */
-    }
-}
-
-async function removeDir(path) {
-    try {
-        if (window.NL_OS === 'Windows') {
-            /** Fix: Use single quotes for PowerShell literal paths to avoid nesting double quotes */
-            await Neutralino.os.execCommand(`powershell -NoProfile -Command "Remove-Item -LiteralPath '${path}' -Recurse -Force -ErrorAction Ignore"`);
-        } else {
-            await Neutralino.os.execCommand(`rm -rf ${quote(path)}`);
-        }
-    } catch (e) {
-        console.warn("Could not remove dir:", e);
     }
 }
 
@@ -117,13 +106,19 @@ async function normalizeExtractedMod(installPath) {
 
 /**
  * Downloads and installs an FNF mod
+ * @param {number|string} modId - GameBanana mod ID
  * @param {string} modName - Name of the mod
+ * @param {string} categoryId - Engine or category ID
  * @param {string} downloadUrl - GameBanana URL or direct download link
  * @returns {Promise<{success: boolean, path?: string, error?: string}>}
  */
-export async function installMod(modName, downloadUrl) {
+export async function installMod(modId, modName, categoryId, downloadUrl) {
     const tempPath = await getModTempPath(modName);
     const installPath = await getModInstallPath(modName);
+    const folderName = installPath.split(/[\\/]/).pop();
+    
+    // Lock the folder so the background watcher doesn't delete it mid-download
+    lockedFolders.add(folderName);
     
     try {
         log(`Initiating installation for: ${modName}`);
@@ -203,6 +198,8 @@ export async function installMod(modName, downloadUrl) {
 
                     log(`Extraction complete! Normalizing directory structure...`);
                     await normalizeExtractedMod(installPath);
+                    
+                    await addMod(modId, modName, folderName, categoryId);
 
                     extracted = true;
                     log(`Attempt ${attempt}/3 succeeded.`);
@@ -232,5 +229,7 @@ export async function installMod(modName, downloadUrl) {
         /** Clean up broken temp folder */
         await removeDir(tempPath).catch(() => {});
         return { success: false, error: error.message };
+    } finally {
+        lockedFolders.delete(folderName);
     }
 }
