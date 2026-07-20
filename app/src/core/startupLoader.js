@@ -31,5 +31,9 @@ export const startupLoader = {
     this.setPhase(message, 100);
     screen?.classList.remove("startup-loading-screen--complete");
     screen?.classList.add("startup-loading-screen--failed");
+    requestAnimationFrame(() =>
+      screen?.classList.add("startup-loading-screen--complete"),
+    );
+    window.setTimeout(() => screen?.remove(), 200);
   },
 };
