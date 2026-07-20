@@ -9,181 +9,181 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- Fixed mod covers not updating on the card after you assign or change them. This mostly showed up for mods imported from a GameBanana link: the cover appeared in the edit screen but not on the card. The card now shows the same cover as the edit screen.
+- Mod covers now update on the card after you change them in the edit screen.
 
 ## [1.5.6] - 2026-07-20
 
 ### Fixed
 
-- Fixed the Windows auto-updater failing with "Failed to fetch" when downloading an update. Updates now download through the same download engine the rest of the app uses, so installing from 1.5.4 or later works again.
-- The Mod Manager now keeps your scroll position when it refreshes (for example, after a mod finishes downloading or you toggle its visibility), instead of jumping back to the top.
+- Fixed the Windows updater failing with "Failed to fetch" when downloading an update.
+- The Mod Manager now keeps your scroll position when it refreshes.
 
 ## [1.5.5] - 2026-07-20
 
 ### Fixed
 
-- Fixed the update-check button in Settings > Updates keeping the loading cursor after it finishes. The button now returns to normal (and can check again) once the check is done.
+- The update-check button no longer keeps the loading cursor after it finishes.
 
 ## [1.5.4] - 2026-07-20
 
 ### Fixed
 
-- Fixed the downgrade-after-update problem on Windows. The auto-updater used to replace only the app bundle and leave your old executable in place, which could leave you stuck on an older version. It now updates both the executable and the bundle together, so they always stay in sync.
+- Windows updates now update the app and the executable together, so you don't get stuck on an old version.
 
 ## [1.5.3] - 2026-07-20
 
 ### Changed
 
-- Bumped to 1.5.3 and rebuilt with the pinned toolchain so the auto-updater and release pipeline stay in sync.
-- The Windows installer is now built automatically in CI, so it always ships a matching executable and bundle.
+- Bumped to 1.5.3 and rebuilt with the pinned toolchain.
+- The Windows installer is now built automatically in CI.
 
 ## [1.5.2] - 2026-07-20
 
 ### Fixed
 
-- Windows extraction no longer fails on non-system drives. v-slice installs on drives like D: used to error with "tar: Cannot connect to D: resolve failed"; paths are now passed in a format Windows tar accepts.
-- Mod Manager no longer shows "engine missing" right after you install an engine. It now refreshes when you open it and when an engine finishes installing.
-- The Windows auto-updater is now safe: it validates the bundle and keeps a backup before overwriting, so a bad update cannot silently break the app.
-- Pinned the Neutralino build toolchain so the app bundle and executable always stay compatible, preventing "failed to load view" bricking after updates or rebuilds.
+- Windows installs on other drives (like D:) no longer fail to extract.
+- The Mod Manager no longer shows "engine missing" right after you install an engine.
+- The Windows updater now backs up your app before updating, so a bad update can't break it.
+- Pinned the build toolchain so updates don't brick the app.
 
 ## [1.5.1] - 2026-07-20
 
 ### Fixed
 
-- WeekBox no longer runs out of memory when downloading or installing large engines like v-slice 0.8.4. Big downloads used to eat up over a gigabyte of RAM at the end; now they merge on disk and use almost no extra memory.
+- WeekBox no longer runs out of memory when downloading large engines.
 
 ## [1.5.0] - 2026-07-20
 
 ### Added
 
-- A real Windows installer. It sets up WeekBox with a simple setup wizard and a start menu shortcut.
-- WeekBox can now update itself on Windows. It downloads the new version and restarts, no need to reinstall.
-- A Discord button on the installer's last page opens our server in your browser.
+- A real Windows installer with a setup wizard and start menu shortcut.
+- WeekBox can now update itself on Windows.
+- A Discord button on the installer opens our server.
 
 ### Changed
 
-- WeekBox now installs to your personal AppData folder, so updates can run without admin rights.
-- The installer shows a mod manager screenshot on the side and a small banner on the thank-you page.
+- WeekBox now installs to AppData, so updates don't need admin rights.
+- The installer shows a mod manager screenshot and a banner.
 
 ## [1.4.2] - 2026-07-20
 
 ### Changed
 
 - Large mods extract faster.
-- Mod Manager now prepares in the background when WeekBox starts.
-- Mod covers are prepared while a mod installs.
-- Mod Manager shows mods while they download and install.
-- Home cards now use a stronger cover color when you hover them.
+- The Mod Manager prepares in the background when WeekBox starts.
+- Mod covers load while a mod installs.
+- The Mod Manager shows mods while they download.
+- Home cards use a stronger cover color on hover.
 
 ### Fixed
 
-- Mod Manager no longer flashes when you open it.
-- Mod cover images stay ready when you reopen Mod Manager.
-- Mods without a cover now show a clear message instead of a grey image.
-- Tool dependencies can now load their cover image and use Reset.
-- Home card colors stay dark enough for text to be easy to read.
-- Home engine tags stay in sync while you scroll.
+- The Mod Manager no longer flashes when opened.
+- Mod covers stay ready when you reopen Mod Manager.
+- Mods without a cover now show a clear message.
+- Tool dependencies can now load their cover and use Reset.
+- Home card colors stay dark enough to read.
+- Home engine tags stay in sync while scrolling.
 
 ## [1.4.1] - 2026-07-20
 
 ### Added
 
 - You can use an existing WeekBox folder from another drive.
-- You can replace an old WeekBox folder when moving your library. The old folder is kept as a backup.
+- You can replace an old WeekBox folder when moving your library. The old one is kept as a backup.
 
 ### Changed
 
-- Storage settings are easier to use. You can open the current folder from its path.
-- WeekBox releases now build automatically after they are published.
+- Storage settings are easier to use and let you open the current folder.
+- WeekBox releases now build automatically after publishing.
 
 ### Fixed
 
-- WeekBox accepts both ZIP file types used by GitHub releases.
+- WeekBox accepts both ZIP types used by GitHub releases.
 - Startup errors now show useful details.
-- WeekBox does not try to move files when you choose the folder it already uses.
+- WeekBox no longer tries to move files when you pick its own folder.
 - A missing old Documents folder no longer stops WeekBox from starting.
 
 ## [1.4.0] - 2026-07-19
 
 ### Added
 
-- You can add mods from a folder on your computer in Mod Manager.
-- Local mods can have their own name, cover image, engine, and version.
-- Local mod details can be filled from a GameBanana mod ID or link.
-- Dependencies now have their own list or grid view, cover image, settings, and delete button.
-- Mod Settings can move a mod to Dependencies, or move a dependency back to Mods.
+- You can add mods from a folder on your computer.
+- Local mods can have their own name, cover, engine, and version.
+- Local mod details can be filled from a GameBanana ID or link.
+- Dependencies have their own list, cover, settings, and delete button.
+- Mod Settings can move a mod to Dependencies, or back.
 
 ### Changed
 
-- Mod Manager loads mod cards before slower checks finish, so it opens faster.
-- Mod and dependency cover images are saved locally.
-- Mods without a cover get a local "NO IMAGE ASSIGNED" image.
+- The Mod Manager loads cards faster.
+- Mod and dependency covers are saved locally.
+- Mods without a cover get a local "NO IMAGE" image.
 - Psych Online now only uses the Latest version.
 
 ### Fixed
 
 - Empty or fake engine folders are ignored and cleaned up.
-- Interrupted mod downloads and their temporary files are cleaned up when WeekBox starts.
+- Interrupted downloads and temp files are cleaned up on startup.
 - Unassigned mods no longer show a launch button.
-- Executable mods cannot be assigned to an engine.
-- Mod folders on macOS now use the correct app-bundle mods folder.
+- Executable mods can't be assigned to an engine.
+- macOS now uses the correct mods folder for app bundles.
 
 ## [1.3.2] - 2026-07-19
 
 ### Added
 
 - Search suggestions and typo matching are better.
-- WeekBox hides downloads that do not work and supports more external download links.
-- Engine install errors now show the files found in a bad download.
+- WeekBox hides broken downloads and supports more external links.
+- Engine errors now show the files found in a bad download.
 
 ### Changed
 
 - Search shows GameBanana and Psych Online mods together more accurately.
-- Some app code was split into smaller files to make future work easier.
-- Updates support both the old `resources.neu` format and future one-file builds.
+- Some app code was split into smaller files.
+- Updates support both old and future bundle formats.
 
 ### Fixed
 
-- Fake or broken engine folders no longer show as installed engines.
-- Engine downloads work better when files are inside extra folders.
-- Mod covers use a fallback image if the normal image fails.
+- Fake or broken engine folders no longer show as installed.
+- Engine downloads work better when files are in extra folders.
+- Mod covers use a fallback image if the normal one fails.
 - Opening one dropdown now closes the others.
 
 ## [1.3.1] - 2026-07-17
 
 ### Added
 
-- The update window now includes a GitHub download button if automatic updating fails.
+- The update window has a GitHub download button if auto-update fails.
 
 ### Changed
 
-- WeekBox now comes to the front when it starts, including after an update.
+- WeekBox comes to the front when it starts, including after an update.
 
 ### Fixed
 
-- Updates replace files, clean up, retry, roll back, and restart more reliably.
+- Updates replace, clean up, retry, roll back, and restart more reliably.
 
 ## [1.3.0] - 2026-07-17
 
 ### Added
 
-- Psych Online mods from [Sniro](https://funkin.sniro.boo/mods) now appear with GameBanana search results.
-- MediaFire and Google Drive links can now be used to install GameBanana mods.
+- Psych Online mods from Sniro now appear with GameBanana search results.
+- MediaFire and Google Drive links can install GameBanana mods.
 - Settings are now saved in a file instead of browser storage.
-- WeekBox warns you about cloud-synced folders that can cause download problems.
-- Sniro was added to the in-app credits.
+- WeekBox warns about cloud-synced folders that break downloads.
+- Sniro was added to the credits.
 
 ### Changed
 
-- Mod Manager loads and refreshes installed mods faster.
-- Updated mod cards, search tips, carousel size, and Engine Manager styling.
+- The Mod Manager loads and refreshes mods faster.
+- Updated mod cards, search tips, carousel, and Engine Manager styling.
 - Search handles engine submissions and Psych Online mods correctly.
 
 ### Fixed
 
-- App updates now install before WeekBox restarts.
-- Moving storage keeps your files on Windows, macOS, and Linux.
-- Mod Manager no longer stalls while loading some images.
+- Updates now install before WeekBox restarts.
+- Moving storage keeps your files on all operating systems.
+- The Mod Manager no longer stalls loading some images.
 - Fixed search text and card labels overlapping.
 - Fixed opening engine downloads from mod details.
 
@@ -191,42 +191,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- App updates now restart WeekBox from the correct folder.
+- Updates now restart WeekBox from the correct folder.
 - Nightly engine updates no longer ask again for the same build.
 
 ## [1.2.2] - 2026-07-16
 
 ### Fixed
 
-- App updates can download GitHub releases without browser download errors.
+- Updates can download GitHub releases without browser errors.
 
 ## [1.2.1] - 2026-07-16
 
 ### Fixed
 
-- Engine versions now load before WeekBox filters them for your operating system.
+- Engine versions now load before WeekBox filters them for your system.
 
 ## [1.2.0] - 2026-07-16
 
 ### Added
 
-- WeekBox can now update itself from GitHub Releases.
-- App updates work on Windows, Linux, Intel Macs, and Apple Silicon Macs.
-- Settings has update options and a button to check for updates.
+- WeekBox can update itself from GitHub Releases.
+- Updates work on Windows, Linux, Intel Macs, and Apple Silicon Macs.
+- Settings has update options and a check-for-updates button.
 - WeekBox shows an update window when a new version is available.
 - Engine and mod install errors are easier to read and copy.
 
 ### Changed
 
-- Engine installs now show clearer progress and the real download file name.
+- Engine installs show clearer progress and the real file name.
 - Engine lists only show versions for your operating system.
-- macOS engine apps stay as app bundles when they are installed.
+- macOS engine apps stay as app bundles when installed.
 - Updates restore executable permissions on macOS and Linux.
 
 ### Fixed
 
 - Fixed Windows archive extraction paths.
-- WeekBox avoids OneDrive folders that can break engine downloads.
+- WeekBox avoids OneDrive folders that break engine downloads.
 - Missing engine folders no longer show confusing warnings.
 - Moving storage now restores installed mods correctly.
 - Bad engine downloads now show the files that were found.
@@ -235,20 +235,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Choose faster multi-part downloads or single-part downloads for compatibility.
+- Choose faster multi-part or single-part downloads.
 - Move your WeekBox data, mods, and engines to another folder or drive.
 - Settings now has General, Downloads, Library & Storage, and Updates sections.
-- Search tips now show mod names, GameBanana links, and mod IDs.
+- Search tips show mod names, GameBanana links, and mod IDs.
 - Unexpected errors are now reported in the console.
 - Developer tools can be opened when needed.
 
 ### Changed
 
-- Large downloads skip the multi-part check when it is turned off.
+- Large downloads skip the multi-part check when it's turned off.
 
 ### Fixed
 
-- Mod Manager now saves and refreshes engine and version choices correctly.
+- The Mod Manager now saves and refreshes engine and version choices.
 - Moving storage reconnects mods to their engines.
 - Fixed search dropdown styles on case-sensitive systems.
 
@@ -257,5 +257,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - First WeekBox release.
-- Download packages for Windows, Linux, and macOS.
+- Downloads for Windows, Linux, and macOS.
 - Packages for x64, ARM64, ARMHF, and Universal Macs where available.
