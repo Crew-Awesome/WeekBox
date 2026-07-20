@@ -5,11 +5,18 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.5.1] - 2026-07-20
+## [1.5.4] - 2026-07-20
 
 ### Fixed
 
-- WeekBox no longer runs out of memory when downloading or installing large engines like v-slice 0.8.4. Big downloads used to eat up over a gigabyte of RAM at the end; now they merge on disk and use almost no extra memory.
+- Fixed the downgrade-after-update problem on Windows. The auto-updater used to replace only the app bundle and leave your old executable in place, which could leave you stuck on an older version. It now updates both the executable and the bundle together, so they always stay in sync.
+
+## [1.5.3] - 2026-07-20
+
+### Changed
+
+- Bumped to 1.5.3 and rebuilt with the pinned toolchain so the auto-updater and release pipeline stay in sync.
+- The Windows installer is now built automatically in CI, so it always ships a matching executable and bundle.
 
 ## [1.5.2] - 2026-07-20
 
@@ -17,8 +24,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Windows extraction no longer fails on non-system drives. v-slice installs on drives like D: used to error with "tar: Cannot connect to D: resolve failed"; paths are now passed in a format Windows tar accepts.
 - Mod Manager no longer shows "engine missing" right after you install an engine. It now refreshes when you open it and when an engine finishes installing.
-- The Windows auto-updater is now safe: it validates the bundle, checks its integrity when available, and keeps a backup before overwriting, so a bad update cannot silently break the app.
+- The Windows auto-updater is now safe: it validates the bundle and keeps a backup before overwriting, so a bad update cannot silently break the app.
 - Pinned the Neutralino build toolchain so the app bundle and executable always stay compatible, preventing "failed to load view" bricking after updates or rebuilds.
+
+## [1.5.1] - 2026-07-20
+
+### Fixed
+
+- WeekBox no longer runs out of memory when downloading or installing large engines like v-slice 0.8.4. Big downloads used to eat up over a gigabyte of RAM at the end; now they merge on disk and use almost no extra memory.
 
 ## [1.5.0] - 2026-07-20
 
