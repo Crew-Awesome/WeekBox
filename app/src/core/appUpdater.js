@@ -29,6 +29,13 @@ function toHex(buffer) {
     .join("");
 }
 
+function isValidNeutralinoBundle(bytes) {
+  if (!bytes || bytes.length < 4) return false;
+  if (bytes[0] === 0x50 && bytes[1] === 0x4b) return true;
+  if (bytes[0] === 0x04 && bytes[1] === 0x00) return true;
+  return false;
+}
+
 function quoteShellString(value) {
   const escaped = String(value).replaceAll("'", "'\"'\"'");
   return `'${escaped}'`;
@@ -308,9 +315,15 @@ export const appUpdater = {
 
     const target = `${window.NL_PATH}/resources.neu`;
     const staging = `${window.NL_PATH}/${UPDATE_DIRECTORY}/resources.neu`;
+    const backup = `${window.NL_PATH}/${UPDATE_DIRECTORY}/resources.neu.bak`;
     await Neutralino.filesystem
       .createDirectory(`${window.NL_PATH}/${UPDATE_DIRECTORY}`)
       .catch(() => {});
+
+    if (await Neutralino.filesystem.exists(target)) {
+      const current = await Neutralino.filesystem.readBinaryFile(target);
+      await Neutralino.filesystem.writeBinaryFile(backup, current);
+    }
 
     onProgress("Downloading update…");
     const response = await fetch(update.asset.browser_download_url);
@@ -319,8 +332,22 @@ export const appUpdater = {
     const bytes = new Uint8Array(await response.arrayBuffer());
 
     onProgress("Verifying update…");
-    if (bytes.length < 64 || bytes[0] !== 0x50 || bytes[1] !== 0x4b) {
+    if (!isValidNeutralinoBundle(bytes)) {
+      await Neutralino.filesystem.remove(backup).catch(() => {});
       throw new Error("Downloaded update is not a valid app bundle.");
+    }
+    if (
+      update.asset.digest &&
+      /^sha256:[a-f0-9]{64}$/i.test(update.asset.digest)
+    ) {
+      const actual = toHex(await crypto.subtle.digest("SHA-256", bytes));
+      const expected = update.asset.digest
+        .slice("sha256:".length)
+        .toLowerCase();
+      if (actual !== expected) {
+        await Neutralino.filesystem.remove(backup).catch(() => {});
+        throw new Error("Downloaded update failed its integrity check.");
+      }
     }
 
     onProgress("Installing update…");

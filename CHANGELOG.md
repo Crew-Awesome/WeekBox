@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - WeekBox no longer runs out of memory when downloading or installing large engines like v-slice 0.8.4. Big downloads used to eat up over a gigabyte of RAM at the end; now they merge on disk and use almost no extra memory.
 
+## [1.5.2] - 2026-07-20
+
+### Fixed
+
+- Windows extraction no longer fails on non-system drives. v-slice installs on drives like D: used to error with "tar: Cannot connect to D: resolve failed"; paths are now passed in a format Windows tar accepts.
+- Mod Manager no longer shows "engine missing" right after you install an engine. It now refreshes when you open it and when an engine finishes installing.
+- The Windows auto-updater is now safe: it validates the bundle, checks its integrity when available, and keeps a backup before overwriting, so a bad update cannot silently break the app.
+- Pinned the Neutralino build toolchain so the app bundle and executable always stay compatible, preventing "failed to load view" bricking after updates or rebuilds.
+
 ## [1.5.0] - 2026-07-20
 
 ### Added

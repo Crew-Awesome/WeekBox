@@ -1,6 +1,6 @@
 {
   "name": "weekbox",
-  "version": "1.5.1",
+  "version": "1.5.2",
   "description": "",
   "main": "index.js",
   "scripts": {
@@ -21,6 +21,7 @@
   },
   "homepage": "https://github.com/Crew-Awesome/Weekbox#readme",
   "devDependencies": {
+    "@neutralinojs/neu": "11.7.2",
     "prettier": "^3.9.5"
   }
 }
