@@ -5,6 +5,19 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.0] - 2026-07-20
+
+### Added
+
+- A real Windows installer. It sets up WeekBox with a simple setup wizard and a start menu shortcut.
+- WeekBox can now update itself on Windows. It downloads the new version and restarts, no need to reinstall.
+- A Discord button on the installer's last page opens our server in your browser.
+
+### Changed
+
+- WeekBox now installs to your personal AppData folder, so updates can run without admin rights.
+- The installer shows a mod manager screenshot on the side and a small banner on the thank-you page.
+
 ## [1.4.2] - 2026-07-20
 
 ### Changed
