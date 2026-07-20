@@ -93,9 +93,13 @@ class FileSystemService {
       // Keep the old default exactly where it is. Existing libraries only move
       // when the user explicitly chooses a new location in Settings.
       if (!savedPath) {
-        const legacyBasePath = await Neutralino.os.getPath("documents");
-        if (await this.api.exists(`${legacyBasePath}/WeekBox`)) {
-          storagePath = legacyBasePath;
+        try {
+          const legacyBasePath = await Neutralino.os.getPath("documents");
+          if (await this.api.exists(`${legacyBasePath}/WeekBox`)) {
+            storagePath = legacyBasePath;
+          }
+        } catch (error) {
+          console.warn("Could not inspect the legacy WeekBox folder", error);
         }
       }
 
