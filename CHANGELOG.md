@@ -5,6 +5,31 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0] - 2026-07-19
+
+### Added
+
+- You can add mods from a folder on your computer in Mod Manager.
+- Local mods can have their own name, cover image, engine, and version.
+- Local mod details can be filled from a GameBanana mod ID or link.
+- Dependencies now have their own list or grid view, cover image, settings, and delete button.
+- Mod Settings can move a mod to Dependencies, or move a dependency back to Mods.
+
+### Changed
+
+- Mod Manager loads mod cards before slower checks finish, so it opens faster.
+- Mod and dependency cover images are saved locally.
+- Mods without a cover get a local "NO IMAGE ASSIGNED" image.
+- Psych Online now only uses the Latest version.
+
+### Fixed
+
+- Empty or fake engine folders are ignored and cleaned up.
+- Interrupted mod downloads and their temporary files are cleaned up when WeekBox starts.
+- Unassigned mods no longer show a launch button.
+- Executable mods cannot be assigned to an engine.
+- Mod folders on macOS now use the correct app-bundle mods folder.
+
 ## [1.3.2] - 2026-07-19
 
 ### Added

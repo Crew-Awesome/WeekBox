@@ -23,10 +23,67 @@ export class ModInjectionService {
     this.getModsPath = getModsPath;
   }
 
+  getLegacyModsPath(engineId, version) {
+    return `${this.getEnginesPath()}/${engineId}/${version}/mods`;
+  }
+
+  async getEngineModsPath(engineId, version) {
+    const legacyModsPath = this.getLegacyModsPath(engineId, version);
+    if (window.NL_OS !== "Darwin") return legacyModsPath;
+
+    const executablePath = await this.executables.find(
+      `${this.getEnginesPath()}/${engineId}/${version}`,
+    );
+    const normalizedPath = String(executablePath || "").replace(/\\/g, "/");
+    const bundleMatch = normalizedPath.match(/^(.+?\.app)(?:\/|$)/i);
+    return bundleMatch
+      ? `${bundleMatch[1]}/Contents/Resources/mods`
+      : legacyModsPath;
+  }
+
+  async migrateLegacyEngineMods(engineId, version) {
+    if (window.NL_OS !== "Darwin") return;
+    const legacyModsPath = this.getLegacyModsPath(engineId, version);
+    const bundleModsPath = await this.getEngineModsPath(engineId, version);
+    if (
+      bundleModsPath === legacyModsPath ||
+      !(await this.api.exists(legacyModsPath))
+    ) {
+      return;
+    }
+
+    await this.api.ensureDir(bundleModsPath);
+    const entries = await Neutralino.filesystem
+      .readDirectory(legacyModsPath)
+      .catch(() => []);
+    for (const entry of entries.filter(
+      (item) => item.entry !== "." && item.entry !== "..",
+    )) {
+      const sourcePath = `${legacyModsPath}/${entry.entry}`;
+      const destinationPath = `${bundleModsPath}/${entry.entry}`;
+      if (await this.api.exists(destinationPath)) continue;
+      try {
+        await Neutralino.filesystem.move(sourcePath, destinationPath);
+      } catch (error) {
+        console.warn("Could not migrate macOS engine mod:", sourcePath, error);
+      }
+    }
+  }
+
+  async migrateLegacyEngineModsFor(engines) {
+    if (window.NL_OS !== "Darwin") return;
+    await Promise.all(
+      engines.map((engine) =>
+        this.migrateLegacyEngineMods(engine.id, engine.version),
+      ),
+    );
+  }
+
   async link(mod, engineId, version) {
     const folderName = getModFolderName(mod);
     const sourcePath = `${this.getModsPath()}/${folderName}`;
-    const modsPath = `${this.getEnginesPath()}/${engineId}/${version}/mods`;
+    await this.migrateLegacyEngineMods(engineId, version);
+    const modsPath = await this.getEngineModsPath(engineId, version);
     const linkPath = `${modsPath}/${folderName}`;
 
     if (!(await this.api.exists(sourcePath))) {
@@ -92,24 +149,31 @@ export class ModInjectionService {
   }
 
   async unlinkFromEngine(mod, engineId, version) {
-    const linkPath = `${this.getEnginesPath()}/${engineId}/${version}/mods/${getModFolderName(mod)}`;
-    if (!(await this.api.exists(linkPath))) return false;
-
-    const command =
-      window.NL_OS === "Windows"
-        ? `cmd /c rmdir "${linkPath.replace(/\//g, "\\")}"`
-        : `rm -f "${linkPath}"`;
-
-    const result = await Neutralino.os.execCommand(command, {
-      background: false,
-    });
-
-    if (result.exitCode !== 0) {
-      throw new Error(
-        result.stdErr || `Could not remove mod link for ${mod.name}`,
-      );
+    const legacyModsPath = this.getLegacyModsPath(engineId, version);
+    const bundleModsPath = await this.getEngineModsPath(engineId, version);
+    const paths = [...new Set([bundleModsPath, legacyModsPath])].map(
+      (modsPath) => `${modsPath}/${getModFolderName(mod)}`,
+    );
+    let removed = false;
+    for (const linkPath of paths) {
+      if (!(await this.api.exists(linkPath))) continue;
+      const command =
+        window.NL_OS === "Windows"
+          ? `cmd /c rmdir "${linkPath.replace(/\//g, "\\")}"`
+          : window.NL_OS === "Darwin"
+            ? `rm -f "${linkPath}"`
+            : `rm -rf "${linkPath}"`;
+      const result = await Neutralino.os.execCommand(command, {
+        background: false,
+      });
+      if (result.exitCode !== 0) {
+        throw new Error(
+          result.stdErr || `Could not remove mod link for ${mod.name}`,
+        );
+      }
+      removed = true;
     }
-    return true;
+    return removed;
   }
 
   async unlinkFromInstalledEngines(mod, engines) {
@@ -121,24 +185,29 @@ export class ModInjectionService {
   }
 
   async cleanup(engineId, version) {
-    const modsPath = `${this.getEnginesPath()}/${engineId}/${version}/mods`;
-    if (!(await this.api.exists(modsPath))) return;
-    try {
-      const entries = await Neutralino.filesystem.readDirectory(modsPath);
-      for (const entry of entries.filter(
-        (item) => item.entry !== "." && item.entry !== "..",
-      )) {
-        const linkPath = `${modsPath}/${entry.entry}`;
-        const command =
-          window.NL_OS === "Windows"
-            ? `cmd /c rmdir "${linkPath.replace(/\//g, "\\")}"`
-            : `rm -rf "${linkPath}"`;
-        await Neutralino.os
-          .execCommand(command, { background: false })
-          .catch(() => {});
+    const legacyModsPath = this.getLegacyModsPath(engineId, version);
+    const bundleModsPath = await this.getEngineModsPath(engineId, version);
+    for (const modsPath of new Set([bundleModsPath, legacyModsPath])) {
+      if (!(await this.api.exists(modsPath))) continue;
+      try {
+        const entries = await Neutralino.filesystem.readDirectory(modsPath);
+        for (const entry of entries.filter(
+          (item) => item.entry !== "." && item.entry !== "..",
+        )) {
+          const linkPath = `${modsPath}/${entry.entry}`;
+          const command =
+            window.NL_OS === "Windows"
+              ? `cmd /c rmdir "${linkPath.replace(/\//g, "\\")}"`
+              : window.NL_OS === "Darwin"
+                ? `rm -f "${linkPath}"`
+                : `rm -rf "${linkPath}"`;
+          await Neutralino.os
+            .execCommand(command, { background: false })
+            .catch(() => {});
+        }
+      } catch (error) {
+        console.warn("Could not clean up mods shortcuts", error);
       }
-    } catch (error) {
-      console.warn("Could not clean up mods shortcuts", error);
     }
   }
 }

@@ -80,8 +80,15 @@ export function showModData(data, isInstalled, onDownload) {
   ).toLocaleString();
   document.getElementById("modal-views-icon").className =
     data.source === "sniro" ? "fa-solid fa-download" : "fa-solid fa-eye";
-  document.getElementById("modal-description").innerHTML = data.description;
-  document.getElementById("modal-filesize").textContent = data.fileSizeStr;
+  const description = document.getElementById("modal-description");
+  const content = document.createElement("template");
+  content.innerHTML = data.description;
+  content.content
+    .querySelectorAll(
+      "img, picture, video, audio, iframe, embed, object, source",
+    )
+    .forEach((element) => element.remove());
+  description.replaceChildren(content.content);
   document.getElementById("modal-image-loader").style.display = "none";
 
   const gameBananaLink = document.getElementById("modal-gamebanana-link");
@@ -112,10 +119,19 @@ export function showModData(data, isInstalled, onDownload) {
     engineBadge.hidden = true;
   }
 
+  updateDownloadStatus(data, isInstalled, onDownload);
+}
+
+export function updateDownloadStatus(data, isInstalled, onDownload) {
+  document.getElementById("modal-filesize").textContent = data.fileSizeStr;
   const button = document.getElementById("modal-download-btn");
   if (isInstalled) {
     button.disabled = true;
     button.innerHTML = '<i class="fa-solid fa-check"></i> Already Installed';
+  } else if (data.loadingDownloads) {
+    button.disabled = true;
+    button.innerHTML =
+      '<i class="fa-solid fa-spinner fa-spin"></i> Checking downloads…';
   } else if (data.downloadOptions?.length) {
     button.disabled = false;
     button.innerHTML =

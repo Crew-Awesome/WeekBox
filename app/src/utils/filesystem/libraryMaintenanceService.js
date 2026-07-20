@@ -3,6 +3,8 @@ import {
   getRealEntries,
   sanitizePathSegment,
 } from "./pathUtils.js";
+import { ENGINE_DETAILS } from "../../config/engines.js";
+import { isValidEngineVersion } from "./engineVersion.js";
 
 function sameId(left, right) {
   return String(left) === String(right);
@@ -40,18 +42,22 @@ export class LibraryMaintenanceService {
     mods,
     injection,
     getEnginesPath,
+    getEngineModsPath,
     getModsPath,
     getInstalledEngines,
     isEngineRunning,
+    findExecutable,
   }) {
     Object.assign(this, {
       api,
       mods,
       injection,
       getEnginesPath,
+      getEngineModsPath,
       getModsPath,
       getInstalledEngines,
       isEngineRunning,
+      findExecutable,
     });
   }
 
@@ -71,7 +77,10 @@ export class LibraryMaintenanceService {
     const installedMods = await this.mods.getAll();
     for (const engine of engines.filter((item) => item.id === "psychonline")) {
       if (this.isEngineRunning(engine.id, engine.version)) continue;
-      const engineModsPath = `${this.getEnginesPath()}/${engine.id}/${engine.version}/mods`;
+      const engineModsPath = await this.getEngineModsPath(
+        engine.id,
+        engine.version,
+      );
       let entries;
       try {
         entries = getRealEntries(
@@ -115,18 +124,41 @@ export class LibraryMaintenanceService {
 
   async cleanupIncompleteDownloads() {
     try {
+      const cleanupTemporaryArchives = async (path) => {
+        const entries = getRealEntries(
+          await Neutralino.filesystem.readDirectory(path),
+        );
+        await Promise.all(
+          entries
+            .filter(
+              (entry) =>
+                entry.type === "FILE" &&
+                /^temp_.+\.(?:zip|dmg)(?:\.part-\d+)?$/i.test(entry.entry),
+            )
+            .map((entry) =>
+              this.api.remove(`${path}/${entry.entry}`).catch(() => {}),
+            ),
+        );
+      };
       const enginesPath = this.getEnginesPath();
+      const modsPath = this.getModsPath();
+      await cleanupTemporaryArchives(modsPath);
+      const modFolders = getRealEntries(
+        await Neutralino.filesystem.readDirectory(modsPath),
+      );
+      await Promise.all(
+        modFolders
+          .filter((entry) => entry.type === "DIRECTORY")
+          .map(async (entry) => {
+            const modPath = `${modsPath}/${entry.entry}`;
+            if (await this.api.exists(`${modPath}/.downloading`)) {
+              await this.api.remove(modPath);
+            }
+          }),
+      );
+      await cleanupTemporaryArchives(enginesPath);
       const engines = await Neutralino.filesystem.readDirectory(enginesPath);
       for (const engine of getRealEntries(engines)) {
-        if (
-          engine.type === "FILE" &&
-          /^temp_.*\.(?:zip|dmg)$/.test(engine.entry)
-        ) {
-          await this.api
-            .remove(`${enginesPath}/${engine.entry}`)
-            .catch(() => {});
-          continue;
-        }
         if (engine.type !== "DIRECTORY") continue;
         const versions = await Neutralino.filesystem.readDirectory(
           `${enginesPath}/${engine.entry}`,
@@ -146,6 +178,45 @@ export class LibraryMaintenanceService {
       }
     } catch (error) {
       console.warn("Could not clean up incomplete downloads", error);
+    }
+  }
+
+  async cleanupInvalidEngineInstallations() {
+    try {
+      const enginesPath = this.getEnginesPath();
+      const engineRoots = getRealEntries(
+        await Neutralino.filesystem.readDirectory(enginesPath),
+      );
+      for (const engineRoot of engineRoots) {
+        if (engineRoot.type !== "DIRECTORY") continue;
+        const rootPath = `${enginesPath}/${engineRoot.entry}`;
+        if (!ENGINE_DETAILS[engineRoot.entry]) {
+          await this.api.remove(rootPath);
+          continue;
+        }
+        let hasValidInstallation = false;
+        const versions = getRealEntries(
+          await Neutralino.filesystem.readDirectory(rootPath),
+        );
+        for (const version of versions) {
+          if (version.type !== "DIRECTORY") continue;
+          const versionPath = `${rootPath}/${version.entry}`;
+          const isInstalled =
+            isValidEngineVersion(version.entry) &&
+            (engineRoot.entry !== "psychonline" ||
+              version.entry === "Latest") &&
+            !(await this.api.exists(`${versionPath}/.downloading`)) &&
+            Boolean(await this.findExecutable(versionPath));
+          if (isInstalled) {
+            hasValidInstallation = true;
+            continue;
+          }
+          await this.api.remove(versionPath);
+        }
+        if (!hasValidInstallation) await this.api.remove(rootPath);
+      }
+    } catch (error) {
+      console.warn("Could not clean up invalid engine installations", error);
     }
   }
 

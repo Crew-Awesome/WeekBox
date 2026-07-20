@@ -34,6 +34,8 @@ export const modManagerTemplates = {
     `<div class="mod-manager-engine-badge"><i class="fa-solid fa-question-circle"></i><span>Unassigned</span></div>`,
   executableBadge: () =>
     `<div class="mod-manager-engine-badge mod-manager-engine-badge--executable"><img src="assets/icons/exe.png" alt="Executable"/><span>Executable</span></div>`,
+  engineBadge: (name, icon) =>
+    `<div class="mod-manager-engine-badge mod-manager-engine-badge--engine"><img src="assets/icons/${icon}" alt=""/><span>${name}</span></div>`,
   engineCompatibilityPicker: (
     modId,
     engineId,
@@ -69,7 +71,6 @@ export const modManagerTemplates = {
   versionOption: (version, isSelected) =>
     `<button type="button" data-version="${version === "Any version" ? "" : version}" class="${isSelected ? "selected" : ""}">${version}</button>`,
   cardContent: (
-    imageUrl,
     launchKind,
     modId,
     engineId,
@@ -77,13 +78,15 @@ export const modManagerTemplates = {
     launchLabel,
     modName,
     isHidden,
+    isUnassigned,
     eyeIcon,
     engineBadgeHtml,
   ) => `
     <div class="mod-manager-card-bg"></div>
     <div class="mod-manager-cover-wrap mod-image-container">
-      <img class="mod-manager-cover mod-image" crossorigin="Anonymous" src="${imageUrl}" alt="Mod Cover" loading="lazy" onerror="this.src='https://images.gamebanana.com/img/ss/mods/default.jpg'"/>
-      <button class="mod-manager-launch-btn" type="button" data-launch-kind="${launchKind}" data-mod-id="${modId}" data-engine-id="${engineId}" data-engine-version="${engineVersion}" data-launch-label="${launchLabel}" data-mod-name="${modName}" aria-label="${launchLabel} ${modName}" ${isHidden ? "disabled" : ""}>
+      <div class="mod-manager-cover-placeholder" aria-hidden="true"></div>
+      <img class="mod-manager-cover mod-image" alt="Mod Cover" loading="lazy" hidden/>
+      <button class="mod-manager-launch-btn" type="button" data-launch-kind="${launchKind}" data-mod-id="${modId}" data-engine-id="${engineId}" data-engine-version="${engineVersion}" data-launch-label="${launchLabel}" data-mod-name="${modName}" aria-label="${launchLabel} ${modName}" ${isHidden || isUnassigned ? "disabled" : ""}>
         <i class="fa-solid fa-play" aria-hidden="true"></i><span>${launchLabel}</span>
       </button>
     </div>
@@ -96,8 +99,8 @@ export const modManagerTemplates = {
           <button class="mod-action-btn mod-manager-vis-btn" title="Toggle Visibility">
             <i class="fa-solid ${eyeIcon}"></i>
           </button>
-          <button class="mod-action-btn mod-manager-dir-btn" title="Open Directory">
-            <i class="fa-solid fa-folder-open"></i>
+          <button class="mod-action-btn mod-manager-settings-btn" title="Mod Settings" aria-label="Open settings for ${modName}">
+            <i class="fa-solid fa-gear"></i>
           </button>
           <button class="mod-action-btn mod-manager-delete-btn" data-id="${modId}" title="Delete Mod">
             <i class="fa-solid fa-trash"></i>
@@ -111,6 +114,13 @@ export const modManagerTemplates = {
   launchButtonDefault: (launchLabel) =>
     `<i class="fa-solid fa-play" aria-hidden="true"></i><span>${launchLabel}</span>`,
   emptyState: (message) => `<div class="empty-mods-state">${message}</div>`,
+  addLocalModCard: () => `
+    <button class="mod-manager-add-local-card" type="button" aria-label="Add local mod">
+      <span class="mod-manager-add-local-content">
+        <i class="fa-solid fa-plus" aria-hidden="true"></i>
+        <span>Add local mod</span>
+      </span>
+    </button>`,
   deleteSpinner: () => `<i class="fa-solid fa-spinner fa-spin"></i>`,
   deleteIcon: () => `<i class="fa-solid fa-trash"></i>`,
   unassignedQuestionIcon: () =>

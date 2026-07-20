@@ -8,10 +8,13 @@ import { ExecutableService } from "./filesystem/executableService.js";
 import { ModInjectionService } from "./filesystem/modInjectionService.js";
 import { LibraryMaintenanceService } from "./filesystem/libraryMaintenanceService.js";
 import { ModRepository } from "./filesystem/modRepository.js";
+import { ModCoverService } from "./filesystem/modCoverService.js";
+import { isValidEngineVersion } from "./filesystem/engineVersion.js";
 import {
   getParentPath,
   getModFolderName,
   getRealEntries,
+  sanitizePathSegment,
 } from "./filesystem/pathUtils.js";
 import { ProcessService } from "./filesystem/processService.js";
 import { appSettings } from "../core/settings.js";
@@ -55,6 +58,10 @@ class FileSystemService {
       api: this.api,
       getDataPath: () => this.dataPath,
     });
+    this.covers = new ModCoverService({
+      api: this.api,
+      getDataPath: () => this.dataPath,
+    });
     this.injection = new ModInjectionService({
       api: this.api,
       executables: this.executables,
@@ -67,10 +74,13 @@ class FileSystemService {
       mods: this.mods,
       injection: this.injection,
       getEnginesPath: () => this.enginesPath,
+      getEngineModsPath: (engineId, version) =>
+        this.injection.getEngineModsPath(engineId, version),
       getModsPath: () => this.modsPath,
       getInstalledEngines: () => this.getInstalledEngines(),
       isEngineRunning: (engineId, version) =>
         this.isEngineRunning(engineId, version),
+      findExecutable: (path) => this.findExecutable(path),
     });
   }
 
@@ -100,9 +110,14 @@ class FileSystemService {
         await this.ensureStorageDirectories();
       }
       await this.cleanupIncompleteDownloads();
+      await this.cleanupInvalidEngineInstallations();
       await this.cleanupInvalidInstalledMods();
     }
     this.isInitialized = true;
+    await this.migrateLegacyModCovers();
+    await this.injection.migrateLegacyEngineModsFor(
+      await this.getInstalledEngines(),
+    );
     await this.importPsychOnlineEngineMods();
     await this.cleanupHiddenModLinks();
   }
@@ -358,8 +373,16 @@ class FileSystemService {
     return this.maintenance.cleanupInvalidInstalledMods();
   }
 
+  async cleanupInvalidEngineInstallations() {
+    return this.maintenance.cleanupInvalidEngineInstallations();
+  }
+
   async isEngineInstalled(engineId, version) {
     if (!this.isInitialized) return false;
+    if (!Object.prototype.hasOwnProperty.call(ENGINE_DETAILS, engineId)) {
+      return false;
+    }
+    if (!isValidEngineVersion(version)) return false;
     const path = `${this.enginesPath}/${engineId}/${version}`;
     if (!(await this.api.exists(path))) return false;
     return (
@@ -377,6 +400,13 @@ class FileSystemService {
   }
 
   async runEngine(engineId, version, onStateChange, args = [], modId = null) {
+    if (
+      !Object.prototype.hasOwnProperty.call(ENGINE_DETAILS, engineId) ||
+      !isValidEngineVersion(version)
+    ) {
+      onStateChange?.("not_found");
+      return false;
+    }
     const executable = await this.findExecutable(
       `${this.enginesPath}/${engineId}/${version}`,
     );
@@ -482,7 +512,13 @@ class FileSystemService {
             );
             const installedVersions = await Promise.all(
               versions
-                .filter((version) => version.type === "DIRECTORY")
+                .filter(
+                  (version) =>
+                    version.type === "DIRECTORY" &&
+                    isValidEngineVersion(version.entry) &&
+                    (engine.entry !== "psychonline" ||
+                      version.entry === "Latest"),
+                )
                 .map(async (version) => {
                   const versionPath = `${this.enginesPath}/${engine.entry}/${version.entry}`;
                   if (await this.api.exists(`${versionPath}/.downloading`)) {
@@ -612,6 +648,91 @@ class FileSystemService {
     await this.mods.add(modId, modName, metadata);
   }
 
+  async getAvailableLocalModFolderName(name, existingFolderName = "") {
+    const displayName = sanitizePathSegment(name) || "Local Mod";
+    const baseName = `${displayName} (Local)`;
+    let folderName = baseName;
+    let copyNumber = 2;
+    while (
+      folderName !== existingFolderName &&
+      (await this.api.exists(`${this.modsPath}/${folderName}`))
+    ) {
+      folderName = `${baseName} (${copyNumber++})`;
+    }
+    return folderName;
+  }
+
+  async importLocalMod({
+    sourcePath,
+    name,
+    engineId,
+    engineVersion,
+    coverDataUrl,
+    coverUrl,
+  }) {
+    this.assertStorageUnlocked();
+    if (!this.isInitialized) throw new Error("WeekBox storage is not ready");
+
+    const modName = String(name || "").trim();
+    if (!modName) throw new Error("Give the mod a name");
+
+    const normalizedSource = String(sourcePath || "")
+      .replace(/\\/g, "/")
+      .replace(/\/+$/, "");
+    const normalizedModsPath = this.modsPath
+      .replace(/\\/g, "/")
+      .replace(/\/+$/, "");
+    if (!normalizedSource) throw new Error("Choose a mod folder first");
+    if (
+      normalizedSource.toLowerCase() === normalizedModsPath.toLowerCase() ||
+      normalizedSource
+        .toLowerCase()
+        .startsWith(`${normalizedModsPath.toLowerCase()}/`)
+    ) {
+      throw new Error("Choose a folder outside your WeekBox mods library");
+    }
+
+    const sourceStats = await Neutralino.filesystem.getStats(normalizedSource);
+    if (!sourceStats.isDirectory) {
+      throw new Error("The selected path is not a folder");
+    }
+
+    const modId = `local-${crypto.randomUUID()}`;
+    const folderName = await this.getAvailableLocalModFolderName(modName);
+    const destinationPath = `${this.modsPath}/${folderName}`;
+    try {
+      await Neutralino.filesystem.copy(normalizedSource, destinationPath, {
+        recursive: true,
+        overwrite: false,
+        skip: false,
+      });
+      await this.saveInstalledMod(modId, modName, {
+        folderName,
+        engineId: engineId || null,
+        engineVersion: engineId ? engineVersion || null : null,
+        source: "local",
+      });
+      if (coverDataUrl || coverUrl) {
+        await this.updateModAppearance(modId, { coverDataUrl, coverUrl });
+      }
+      const importedMod = (await this.mods.getAll()).find((mod) =>
+        sameId(mod.id, modId),
+      );
+      if (importedMod?.engineId && !importedMod.hidden) {
+        await this.injection.injectIntoInstalledEngines(
+          importedMod.id,
+          await this.getInstalledEngines(),
+        );
+      }
+      return importedMod;
+    } catch (error) {
+      await this.api.remove(destinationPath).catch(() => {});
+      await this.mods.remove(modId).catch(() => {});
+      await this.covers.remove(modId).catch(() => {});
+      throw error;
+    }
+  }
+
   async setModHidden(modId, hidden) {
     if (!this.isInitialized) return null;
     const mod = await this.mods.setHidden(modId, hidden);
@@ -630,7 +751,7 @@ class FileSystemService {
     if (!mod) return null;
     const engines = await this.getInstalledEngines();
     await this.injection.unlinkFromInstalledEngines(mod, engines);
-    if (!mod.hidden && mod.engineId) {
+    if (mod.kind !== "dependency" && !mod.hidden && mod.engineId) {
       await this.injection.injectIntoInstalledEngines(modId, engines);
     }
     return mod;
@@ -652,10 +773,66 @@ class FileSystemService {
       engineId,
       engineVersion,
     );
-    if (mod?.engineId && !mod.hidden) {
+    if (mod?.kind !== "dependency" && mod?.engineId && !mod.hidden) {
       await this.injection.injectIntoInstalledEngines(modId, engines);
     }
     return mod;
+  }
+
+  async updateModAppearance(modId, appearance) {
+    if (!this.isInitialized) return null;
+    const { coverDataUrl, coverUrl, ...metadata } = appearance;
+    let coverPath;
+    if (coverDataUrl !== undefined) {
+      coverPath = coverDataUrl
+        ? await this.covers.saveDataUrl(modId, coverDataUrl)
+        : null;
+    } else if (coverUrl !== undefined) {
+      coverPath = coverUrl ? await this.covers.saveUrl(modId, coverUrl) : null;
+    }
+    return this.mods.updateAppearance(modId, { ...metadata, coverPath });
+  }
+
+  async getModCover(modId) {
+    if (!this.isInitialized) return null;
+    try {
+      return await this.covers.read(modId);
+    } catch {
+      return null;
+    }
+  }
+
+  async ensureModCover(modId, getDefaultCoverUrl) {
+    const localCover = await this.getModCover(modId);
+    if (localCover) return localCover;
+    const coverUrl = await getDefaultCoverUrl();
+    const coverPath = coverUrl
+      ? await this.covers.saveUrl(modId, coverUrl)
+      : await this.covers.saveNoImagePlaceholder(modId);
+    const updatedMod = await this.mods.updateAppearance(modId, { coverPath });
+    return updatedMod ? this.getModCover(modId) : null;
+  }
+
+  async migrateLegacyModCovers() {
+    const mods = await this.mods.getAll();
+    let changed = false;
+    for (const mod of mods) {
+      if (!mod.imageBase64 && !mod.image) continue;
+      try {
+        if (mod.imageBase64) {
+          mod.coverPath = await this.covers.saveDataUrl(
+            mod.id,
+            mod.imageBase64,
+          );
+        }
+        delete mod.imageBase64;
+        delete mod.image;
+        changed = true;
+      } catch (error) {
+        console.warn("Could not migrate a local mod cover", error);
+      }
+    }
+    if (changed) await this.mods.saveAll(mods);
   }
 
   async addDependencyConsumer(dependencyId, consumerId) {
@@ -666,6 +843,47 @@ class FileSystemService {
   async removeDependencyConsumer(dependencyId, consumerId) {
     if (!this.isInitialized) return null;
     return this.mods.removeDependencyConsumer(dependencyId, consumerId);
+  }
+
+  async moveModToDependencies(modId) {
+    this.assertStorageUnlocked();
+    if (!this.isInitialized) return null;
+    const mod = (await this.mods.getAll()).find((item) =>
+      sameId(item.id, modId),
+    );
+    if (!mod || mod.kind === "dependency") return mod || null;
+
+    const engines = await this.getInstalledEngines();
+    await this.injection.unlinkFromInstalledEngines(mod, engines);
+    return this.mods.moveToDependencies(modId);
+  }
+
+  async moveDependencyToMods(modId) {
+    this.assertStorageUnlocked();
+    if (!this.isInitialized) return null;
+    const mods = await this.mods.getAll();
+    const dependency = mods.find((item) => sameId(item.id, modId));
+    if (!dependency || dependency.kind !== "dependency")
+      return dependency || null;
+    const consumers = mods.filter(
+      (item) =>
+        item.kind !== "dependency" &&
+        Array.isArray(item.dependencies) &&
+        item.dependencies.some((dependencyId) => sameId(dependencyId, modId)),
+    );
+    if (consumers.length) {
+      throw new Error(
+        `Remove ${consumers.map((item) => item.name).join(", ")} before moving ${dependency.name}`,
+      );
+    }
+    const mod = await this.mods.moveToMods(modId);
+    if (mod?.engineId && !mod.hidden) {
+      await this.injection.injectIntoInstalledEngines(
+        modId,
+        await this.getInstalledEngines(),
+      );
+    }
+    return mod;
   }
 
   async removeInstalledMod(modId) {
@@ -719,6 +937,7 @@ class FileSystemService {
       }
     }
     await this.mods.remove(modId);
+    await this.covers.remove(modId).catch(() => {});
     if (Array.isArray(mod.dependencies)) {
       await Promise.all(
         mod.dependencies.map((dependencyId) =>

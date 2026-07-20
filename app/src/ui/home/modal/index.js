@@ -11,6 +11,7 @@ import {
   resetModal,
   showModal,
   showModData,
+  updateDownloadStatus,
 } from "./modalUi.js";
 
 export const modModal = {
@@ -26,18 +27,39 @@ export const modModal = {
       sidebar.openEngine(engineId);
       return;
     }
-    if (!document.getElementById("mod-modal")) await this.init();
+    if (!document.getElementById("mod-modal")) {
+      await this.init();
+    }
     if (!document.getElementById("mod-modal")) return;
     showModal();
     resetModal();
     document.getElementById("modal-title").textContent = "Loading info...";
     document.getElementById("modal-image-loader").style.display = "block";
-    const data = await gameBananaApi.getModDetails(modId);
+    let isInstalled = false;
+    let hasRenderedProfile = false;
+    const showProgress = async (data) => {
+      if (!hasRenderedProfile) {
+        isInstalled = await FS.isModInstalled(data.id);
+        await this.populateData(data, isInstalled);
+        hasRenderedProfile = true;
+        return;
+      }
+      updateDownloadStatus(data, isInstalled, () =>
+        this.installWithDependencies(data),
+      );
+    };
+    const data = await gameBananaApi.getModDetails(modId, {
+      onProgress: showProgress,
+    });
     if (!data) {
       document.getElementById("modal-title").textContent = "Error loading mod";
       return;
     }
-    await this.populateData(data);
+    if (!hasRenderedProfile) await this.populateData(data, isInstalled);
+    else
+      updateDownloadStatus(data, isInstalled, () =>
+        this.installWithDependencies(data),
+      );
   },
 
   close() {
@@ -45,8 +67,7 @@ export const modModal = {
     hideModal();
   },
 
-  async populateData(data) {
-    const isInstalled = await FS.isModInstalled(data.id);
+  async populateData(data, isInstalled) {
     showModData(data, isInstalled, () => this.installWithDependencies(data));
 
     modModalCarousel.setup(data.images);

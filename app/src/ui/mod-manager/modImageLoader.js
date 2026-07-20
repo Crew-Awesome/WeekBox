@@ -1,24 +1,42 @@
+import { FS } from "../../utils/filesystem.js";
+
 export function loadModCardImage({
   mod,
   card,
   fetchDetails,
-  getBase64FromUrl,
   applyDominantColor,
 }) {
-  const imageUrl = mod.imageBase64 || mod.image;
-  const source = imageUrl
-    ? Promise.resolve(imageUrl)
-    : fetchDetails(mod.id).then((details) => details?.images?.[0] || null);
-
-  source
-    .then((url) => (url && !mod.imageBase64 ? getBase64FromUrl(url) : null))
-    .then((base64) => {
-      if (!base64) return;
-      mod.imageBase64 = base64;
-      const image = card.querySelector(".mod-manager-cover");
-      if (!image) return;
-      image.src = base64;
-      applyDominantColor(image, card);
+  const image = card.querySelector(".mod-manager-cover");
+  const finishLoading = (hasCover) => {
+    card.classList.remove("is-cover-loading");
+    card.classList.toggle("has-cover", hasCover);
+    card.classList.toggle("has-no-cover", !hasCover);
+  };
+  Promise.resolve()
+    .then(async () => {
+      const localCover = await FS.ensureModCover(mod.id, async () => {
+        const details = await fetchDetails(mod.id, {
+          includeRequirements: false,
+        });
+        const imageUrl = details?.images?.[0];
+        return imageUrl === "assets/icons/launcher-icon.png" ? null : imageUrl;
+      });
+      return localCover;
     })
-    .catch(() => {});
+    .then((localCover) => {
+      if (!localCover || !image) {
+        finishLoading(false);
+        return;
+      }
+      const preload = new Image();
+      preload.addEventListener("load", () => {
+        image.src = localCover;
+        image.hidden = false;
+        applyDominantColor(image, card);
+        finishLoading(true);
+      });
+      preload.addEventListener("error", () => finishLoading(false));
+      preload.src = localCover;
+    })
+    .catch(() => finishLoading(false));
 }

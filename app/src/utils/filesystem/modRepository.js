@@ -61,6 +61,47 @@ export class ModRepository {
     return mod;
   }
 
+  async moveToDependencies(modId) {
+    const mods = await this.getAll();
+    const mod = mods.find((item) => sameId(item.id, modId));
+    if (!mod) return null;
+    for (const dependencyId of mod.dependencies || []) {
+      const dependency = mods.find((item) => sameId(item.id, dependencyId));
+      if (!dependency) continue;
+      dependency.consumers = (dependency.consumers || []).filter(
+        (consumerId) => !sameId(consumerId, modId),
+      );
+    }
+    mod.kind = "dependency";
+    delete mod.dependencies;
+    await this.saveAll(mods);
+    return mod;
+  }
+
+  async moveToMods(modId) {
+    const mods = await this.getAll();
+    const mod = mods.find((item) => sameId(item.id, modId));
+    if (!mod) return null;
+    delete mod.kind;
+    delete mod.consumers;
+    await this.saveAll(mods);
+    return mod;
+  }
+
+  async updateAppearance(modId, { name, coverPath } = {}) {
+    const mods = await this.getAll();
+    const mod = mods.find((item) => sameId(item.id, modId));
+    if (!mod) return null;
+    if (typeof name === "string" && name.trim()) mod.name = name.trim();
+    if (coverPath !== undefined) {
+      mod.coverPath = coverPath || null;
+      delete mod.image;
+      delete mod.imageBase64;
+    }
+    await this.saveAll(mods);
+    return mod;
+  }
+
   async addDependencyConsumer(dependencyId, consumerId) {
     const mods = await this.getAll();
     const dependency = mods.find((mod) => sameId(mod.id, dependencyId));

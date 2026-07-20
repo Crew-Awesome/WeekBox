@@ -487,11 +487,18 @@ export const gameBananaApi = {
     return formatBytes(bytes, decimals);
   },
 
-  async getModDetails(modId, { includeRequirements = true } = {}) {
+  async getModDetails(modId, { includeRequirements = true, onProgress } = {}) {
+    const notifyProgress = async (details) => {
+      if (typeof onProgress === "function") await onProgress(details);
+    };
     if (String(modId).startsWith("sniro:")) {
-      return sniroApi
-        .getModDetails(String(modId).slice("sniro:".length))
-        .catch(() => null);
+      try {
+        return await sniroApi.getModDetails(
+          String(modId).slice("sniro:".length),
+        );
+      } catch {
+        return null;
+      }
     }
     try {
       const data = await this.getModProfile(modId);
@@ -503,47 +510,69 @@ export const gameBananaApi = {
         );
       }
       if (images.length === 0) images.push("assets/icons/launcher-icon.png");
+      const buildDetails = (
+        downloadOptions = [],
+        requirements = [],
+        { loadingDownloads = false, loadingRequirements = false } = {},
+      ) => {
+        const preferredDownload =
+          this.getPreferredDownloadOption(downloadOptions);
+        const downloadButtonLabel =
+          preferredDownload?.type === "external"
+            ? this.getExternalDownloadLabel(preferredDownload.downloadUrl)
+            : null;
+        return {
+          id: data._idRow,
+          title: data._sName,
+          author: data._aSubmitter?._sName || "Unknown Creator",
+          description: data._sText || "<p>No description available.</p>",
+          likes: data._nLikeCount || 0,
+          views: data._nViewCount || 0,
+          timeAgo: this.getTimeAgo(data._tsDateAdded),
+          images,
+          fileSizeStr: loadingDownloads
+            ? "Checking downloads…"
+            : preferredDownload
+              ? preferredDownload.fileSize > 0
+                ? this.formatBytes(preferredDownload.fileSize)
+                : "Unknown size"
+              : "No download available",
+          downloadUrl: preferredDownload?.downloadUrl || "",
+          downloadType: preferredDownload?.type || null,
+          downloadButtonLabel,
+          downloadOptions,
+          requirements,
+          loadingDownloads,
+          loadingRequirements,
+          gameBananaUrl: `https://gamebanana.com/mods/${data._idRow}`,
+          gameId: Number(data._aGame?._idRow || data._idGame || 0),
+          isDeleted: this.isDeletedMod(data),
+          categoryId: this.getCategoryId(data._aCategory),
+          engineId: this.getEngineIdForCategories(
+            data._aCategory,
+            data._aSuperCategory,
+            data._aRootCategory,
+            data._aSubCategory,
+            data._idCategory,
+          ),
+        };
+      };
+      await notifyProgress(
+        buildDetails([], [], {
+          loadingDownloads: true,
+          loadingRequirements: includeRequirements,
+        }),
+      );
       const downloadOptions = await this.getDownloadOptions(data);
-      const preferredDownload =
-        this.getPreferredDownloadOption(downloadOptions);
-      const downloadButtonLabel =
-        preferredDownload?.type === "external"
-          ? this.getExternalDownloadLabel(preferredDownload.downloadUrl)
-          : null;
+      await notifyProgress(
+        buildDetails(downloadOptions, [], {
+          loadingRequirements: includeRequirements,
+        }),
+      );
       const requirements = includeRequirements
         ? await this.getRequirements(data)
         : [];
-      return {
-        id: data._idRow,
-        title: data._sName,
-        author: data._aSubmitter?._sName || "Unknown Creator",
-        description: data._sText || "<p>No description available.</p>",
-        likes: data._nLikeCount || 0,
-        views: data._nViewCount || 0,
-        timeAgo: this.getTimeAgo(data._tsDateAdded),
-        images: images,
-        fileSizeStr: preferredDownload
-          ? preferredDownload.fileSize > 0
-            ? this.formatBytes(preferredDownload.fileSize)
-            : "Unknown size"
-          : "No download available",
-        downloadUrl: preferredDownload?.downloadUrl || "",
-        downloadType: preferredDownload?.type || null,
-        downloadButtonLabel,
-        downloadOptions,
-        requirements,
-        gameBananaUrl: `https://gamebanana.com/mods/${data._idRow}`,
-        gameId: Number(data._aGame?._idRow || data._idGame || 0),
-        isDeleted: this.isDeletedMod(data),
-        categoryId: this.getCategoryId(data._aCategory),
-        engineId: this.getEngineIdForCategories(
-          data._aCategory,
-          data._aSuperCategory,
-          data._aRootCategory,
-          data._aSubCategory,
-          data._idCategory,
-        ),
-      };
+      return buildDetails(downloadOptions, requirements);
     } catch (error) {
       return null;
     }
