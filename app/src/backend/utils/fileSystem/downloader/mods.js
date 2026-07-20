@@ -144,21 +144,101 @@ export async function installMod(modName, downloadUrl) {
         }
         
         // 3. Find the downloaded file
-        const files = await Neutralino.filesystem.readDirectory(tempPath);
-        // Exclude '.' and '..' which are returned by readDirectory
-        const downloadedFile = files.find(f => f.type === 'FILE' && f.entry !== '.' && f.entry !== '..');
-        
-        if (!downloadedFile) {
-            throw new Error("Download succeeded, but no file was written to disk.");
+        // So 7z and rar files that were uploaded to gamebanana had issues to download with curl, so we try to download it 3 times before giving up
+        let lastError = null;
+        let extracted = false;
+
+        for (let attempt = 1; attempt <= 3; attempt++) {
+            try {
+                log(`Attempt ${attempt}/3 starting...`);
+
+                await removeDir(tempPath);
+                await ensureDir(tempPath);
+
+                let dlCmd = '';
+                if (window.NL_OS === 'Windows') {
+                    dlCmd = `cmd.exe /c "cd /d ${quote(tempPath)} && curl -sSL --compressed -J -O ${quote(downloadUrl)}"`;
+                } else {
+                    dlCmd = `cd ${quote(tempPath)} && curl -sSL --compressed -J -O ${quote(downloadUrl)}`;
+                }
+
+                log(`Downloading via curl...`);
+                const dlResult = await execAsync(dlCmd);
+                if (dlResult.exitCode !== 0) {
+                    throw new Error(`cURL Download failed: ${dlResult.stdErr}`);
+                }
+
+                const files = await Neutralino.filesystem.readDirectory(tempPath);
+                const downloadedFile = files.find(f => f.type === 'FILE' && f.entry !== '.' && f.entry !== '..');
+
+                if (!downloadedFile) {
+                    throw new Error('Download succeeded, but no file was written to disk.');
+                }
+
+                const fileName = downloadedFile.entry;
+                const filePath = window.NL_OS === 'Windows'
+                ? `${tempPath}\\${fileName}`
+                : `${tempPath}/${fileName}`;
+
+                log(`File downloaded successfully: ${fileName}`);
+
+                let ext = fileName.includes('.') ? fileName.split('.').pop().toLowerCase() : '';
+                if (!ext || !isNaN(Number(ext))) {
+                    log(`File has no valid extension (detected '.${ext}'). Assuming it is a .zip archive.`);
+                    ext = 'zip';
+                } else {
+                    log(`Detected format: .${ext}`);
+                }
+
+                await removeDir(installPath);
+                await ensureDir(installPath);
+
+                if (ext === 'zip' || ext === 'rar' || ext === '7z') {
+                    log(`Extracting ${ext.toUpperCase()} archive...`);
+
+                    let exCmd = '';
+
+                    if (window.NL_OS === 'Windows') {
+                        exCmd = `cmd.exe /c "tar -xf ${quote(filePath)} -C ${quote(installPath)}"`;
+                    } else {
+                        exCmd = `unzip -o ${quote(filePath)} -d ${quote(installPath)}`;
+                    }
+
+                    const exResult = await execAsync(exCmd);
+                    if (exResult.exitCode !== 0) {
+                        throw new Error(`Extraction failed: ${exResult.stdErr}`);
+                    }
+                    } else {
+                        throw new Error(`Type not supported: .${ext}`);
+                    }
+
+                    log(`Extraction complete! Normalizing directory structure...`);
+                    await normalizeExtractedMod(installPath);
+
+                    extracted = true;
+                    log(`Attempt ${attempt}/3 succeeded.`);
+                    break;
+                } catch (err) {
+                    lastError = err;
+                    log(`Attempt ${attempt}/3 failed: ${err.message}`);
+
+                    await removeDir(tempPath).catch(() => {});
+                    await removeDir(installPath).catch(() => {});
+
+                if (attempt === 3) {
+                    throw lastError;
+                }
+            }
         }
-        
-        const fileName = downloadedFile.entry;
-        const filePath = window.NL_OS === 'Windows' 
-            ? `${tempPath}\\${fileName}` 
-            : `${tempPath}/${fileName}`;
-            
-        log(`File downloaded successfully: ${fileName}`);
-        
+
+        if (!extracted) {
+            throw lastError || new Error('Unknown error during mod installation.');
+        }
+
+        log(`Mod available at: ${installPath}`);
+        await removeDir(tempPath);
+        return { success: true, path: installPath };
+                
         // 4. Verify Extension
         let ext = fileName.includes('.') ? fileName.split('.').pop().toLowerCase() : '';
         // Gamebanana sometimes forces a raw ID as filename without extension (e.g., '1758117')
