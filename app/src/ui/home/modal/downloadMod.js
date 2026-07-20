@@ -10,6 +10,27 @@ import { errorHandler } from "../../errors/errorHandler.js";
 export const downloadMod = {
   activeTasks: new Map(),
 
+  async moveEntries(entries, sourceDir, destinationDir, concurrency = 8) {
+    const queue = entries.filter(
+      (entry) => entry.entry !== "." && entry.entry !== "..",
+    );
+    let nextIndex = 0;
+    const worker = async () => {
+      while (nextIndex < queue.length) {
+        const entry = queue[nextIndex];
+        nextIndex += 1;
+        await Neutralino.filesystem.move(
+          `${sourceDir}/${entry.entry}`,
+          `${destinationDir}/${entry.entry}`,
+        );
+      }
+    };
+
+    await Promise.all(
+      Array.from({ length: Math.min(concurrency, queue.length) }, worker),
+    );
+  },
+
   async hasExtractedFiles(path) {
     const entries = await Neutralino.filesystem.readDirectory(path);
     for (const entry of entries) {
@@ -122,15 +143,23 @@ export const downloadMod = {
 
       if (this.activeTasks.get(modId)?.cancelled) throw new Error("Cancelled");
       toastDownloadMod.update(modId, 98, "Extracting...");
+      const extractionStartedAt = performance.now();
+      const extractionStatusTimer = setInterval(() => {
+        const elapsedSeconds = Math.floor(
+          (performance.now() - extractionStartedAt) / 1000,
+        );
+        toastDownloadMod.update(modId, 98, `Extracting... ${elapsedSeconds}s`);
+      }, 2000);
 
-      await extractArchive({
-        archivePath: tempFilePath,
-        destinationPath: targetModFolder,
-        getTask: () => this.activeTasks.get(modId),
-        onEntry: (file) => {
-          toastDownloadMod.update(modId, 98, `Extracting - ${file}`);
-        },
-      });
+      try {
+        await extractArchive({
+          archivePath: tempFilePath,
+          destinationPath: targetModFolder,
+          getTask: () => this.activeTasks.get(modId),
+        });
+      } finally {
+        clearInterval(extractionStatusTimer);
+      }
 
       if (this.activeTasks.get(modId)?.cancelled) throw new Error("Cancelled");
 
@@ -182,14 +211,11 @@ export const downloadMod = {
 
             const extractedFiles =
               await Neutralino.filesystem.readDirectory(innerTempPath);
-            for (const ef of extractedFiles) {
-              if (ef.entry !== "." && ef.entry !== "..") {
-                await Neutralino.filesystem.move(
-                  `${innerTempPath}/${ef.entry}`,
-                  `${targetModFolder}/${ef.entry}`,
-                );
-              }
-            }
+            await this.moveEntries(
+              extractedFiles,
+              innerTempPath,
+              targetModFolder,
+            );
             await FS.api.remove(innerTempPath).catch(() => {});
           }
         }
@@ -224,24 +250,12 @@ export const downloadMod = {
           // `Mod/Mod/...`) without trying to move a folder into itself.
           const flattenTempPath = `${targetModFolder}/.flatten_${taskKey}`;
           await FS.api.ensureDir(flattenTempPath);
-          for (const sf of realSubFiles) {
-            await Neutralino.filesystem.move(
-              `${subDirPath}/${sf.entry}`,
-              `${flattenTempPath}/${sf.entry}`,
-            );
-          }
+          await this.moveEntries(realSubFiles, subDirPath, flattenTempPath);
           await Neutralino.filesystem.remove(subDirPath).catch(() => {});
 
           const stagedFiles =
             await Neutralino.filesystem.readDirectory(flattenTempPath);
-          for (const sf of stagedFiles) {
-            if (sf.entry !== "." && sf.entry !== "..") {
-              await Neutralino.filesystem.move(
-                `${flattenTempPath}/${sf.entry}`,
-                `${targetModFolder}/${sf.entry}`,
-              );
-            }
-          }
+          await this.moveEntries(stagedFiles, flattenTempPath, targetModFolder);
           await Neutralino.filesystem.remove(flattenTempPath).catch(() => {});
         }
       }

@@ -18,6 +18,18 @@ function formatArchiveEntry(output) {
   return name;
 }
 
+function createThrottledEntryReporter(onEntry, intervalMs = 500) {
+  let lastReportedAt = 0;
+
+  return (output) => {
+    if (!onEntry) return;
+    const now = performance.now();
+    if (now - lastReportedAt < intervalMs) return;
+    lastReportedAt = now;
+    onEntry(formatArchiveEntry(output));
+  };
+}
+
 function listenForProcess(process, getTask, onEvent) {
   return new Promise(async (resolve, reject) => {
     const handler = (event) => {
@@ -132,11 +144,11 @@ function getWindowsExtractionCommand(archivePath, destinationPath) {
     destinationMatch &&
     archiveMatch[1].toLowerCase() === destinationMatch[1].toLowerCase()
   ) {
-    const script = `Set-Location ${quotePowerShellString(`${archiveMatch[1]}:\\`)};& tar.exe -xvf ${quotePowerShellString(archiveMatch[2])} -C ${quotePowerShellString(destinationMatch[2])}`;
+    const script = `Set-Location ${quotePowerShellString(`${archiveMatch[1]}:\\`)};& tar.exe -xf ${quotePowerShellString(archiveMatch[2])} -C ${quotePowerShellString(destinationMatch[2])}`;
     return `powershell -NoProfile -NonInteractive -EncodedCommand ${encodePowerShellScript(script)}`;
   }
 
-  return `tar -xvf "${archive}" -C "${destination}"`;
+  return `tar -xf "${archive}" -C "${destination}"`;
 }
 
 const NESTED_ARCHIVE_PATTERNS = [
@@ -178,7 +190,7 @@ function getNestedExtractionCommand(archivePath, destinationPath) {
   if (lower.endsWith(".zip")) {
     if (isWindows)
       return getWindowsExtractionCommand(archivePath, destinationPath);
-    return `unzip -o "${archivePath}" -d "${destinationPath}"`;
+    return `unzip -oq "${archivePath}" -d "${destinationPath}"`;
   }
   const archive = isWindows ? archivePath.replace(/\//g, "\\") : archivePath;
   const dest = isWindows
@@ -191,6 +203,7 @@ function getNestedExtractionCommand(archivePath, destinationPath) {
 
 async function extractNestedArchives(destinationPath, getTask, onEntry) {
   const MAX_PASSES = 10;
+  const reportEntry = createThrottledEntryReporter(onEntry);
   for (let pass = 0; pass < MAX_PASSES; pass += 1) {
     const task = getTask?.();
     if (task?.cancelled) throw new Error("Cancelled");
@@ -212,7 +225,7 @@ async function extractNestedArchives(destinationPath, getTask, onEntry) {
           (event, handler, resolve, reject) => {
             if (event.action === "stdOut" || event.action === "stdErr") {
               const output = String(event.data || "").trim();
-              if (output) onEntry?.(formatArchiveEntry(output));
+              if (output) reportEntry(output);
               return;
             }
             if (event.action !== "exit") return;
@@ -408,6 +421,7 @@ export async function extractArchive({
   onEntry,
   extractNested = false,
 }) {
+  const reportEntry = createThrottledEntryReporter(onEntry);
   const isDiskImage =
     window.NL_OS === "Darwin" && /\.dmg$/i.test(String(archivePath));
   if (isDiskImage) {
@@ -479,7 +493,7 @@ export async function extractArchive({
   const isWindows = window.NL_OS === "Windows";
   const command = isWindows
     ? getWindowsExtractionCommand(archivePath, destinationPath)
-    : `unzip -o "${archivePath}" -d "${destinationPath}"`;
+    : `unzip -oq "${archivePath}" -d "${destinationPath}"`;
   const process = await Neutralino.os.spawnProcess(command);
   const task = getTask();
   if (task) task.pid = process.id ?? process.pid;
@@ -494,7 +508,7 @@ export async function extractArchive({
         const output = String(event.data || "");
         processOutput = appendProcessOutput(processOutput, output);
         const trimmedOutput = output.trim();
-        if (trimmedOutput) onEntry?.(formatArchiveEntry(trimmedOutput));
+        if (trimmedOutput) reportEntry(trimmedOutput);
         return;
       }
       if (event.action !== "exit") return;

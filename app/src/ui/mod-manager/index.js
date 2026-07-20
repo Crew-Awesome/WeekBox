@@ -13,6 +13,7 @@ export const modManagerModal = {
   cachedStandaloneMods: null,
   filterDropdownCtrl: null,
   eventBound: false,
+  loadRequestId: 0,
 
   async init() {
     if (!document.getElementById("mod-manager-modal")) {
@@ -105,6 +106,7 @@ export const modManagerModal = {
   },
 
   close() {
+    this.loadRequestId += 1;
     modSettingsModal.close();
     const modal = document.getElementById("mod-manager-modal");
     if (!modal) return;
@@ -115,15 +117,23 @@ export const modManagerModal = {
   },
 
   async loadInstalledMods(force = false) {
+    const requestId = ++this.loadRequestId;
     try {
+      let mods = this.cachedMods;
+      let standaloneMods = this.cachedStandaloneMods;
       if (force || !this.cachedMods) {
-        this.cachedMods = await FS.getInstalledMods();
-        this.cachedStandaloneMods = [];
-        await this.render(this.cachedMods, this.cachedStandaloneMods);
-        this.cachedStandaloneMods = await FS.getStandaloneMods();
+        [mods, standaloneMods] = await Promise.all([
+          FS.getInstalledMods(),
+          FS.getStandaloneMods(),
+        ]);
       }
-      await this.render(this.cachedMods, this.cachedStandaloneMods);
+      if (requestId !== this.loadRequestId) return;
+
+      this.cachedMods = mods;
+      this.cachedStandaloneMods = standaloneMods;
+      await this.render(mods, standaloneMods);
     } catch (error) {
+      if (requestId !== this.loadRequestId) return;
       console.error("Error loading mods in Mod Manager:", error);
       const container = document.getElementById("mod-manager-modal-body");
       if (container) {

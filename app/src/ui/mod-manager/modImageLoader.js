@@ -8,6 +8,7 @@ export function loadModCardImage({
 }) {
   const image = card.querySelector(".mod-manager-cover");
   const finishLoading = (hasCover) => {
+    if (!card.isConnected) return;
     card.classList.remove("is-cover-loading");
     card.classList.toggle("has-cover", hasCover);
     card.classList.toggle("has-no-cover", !hasCover);
@@ -30,10 +31,11 @@ export function loadModCardImage({
       }
       const preload = new Image();
       preload.addEventListener("load", () => {
+        if (!card.isConnected) return;
         image.src = localCover;
         image.hidden = false;
         applyDominantColor(image, card);
-        finishLoading(true);
+        requestAnimationFrame(() => finishLoading(true));
       });
       preload.addEventListener("error", () => finishLoading(false));
       preload.src = localCover;

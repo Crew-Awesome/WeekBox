@@ -120,7 +120,6 @@ export const cardRenderer = {
         engineBadgeHtml,
       );
       card.classList.add("is-cover-loading");
-      applyDominantColor(card.querySelector(".mod-manager-cover"), card);
 
       loadModCardImage({
         mod,
