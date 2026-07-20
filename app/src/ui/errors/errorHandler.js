@@ -197,7 +197,6 @@ export const errorHandler = {
   show(context) {
     const issue = describeIssue(context.error);
     const report = createReport({ ...context, issue });
-    window.weekboxShowRawError?.(getMessage(context.error));
     const modal = this.ensureModal();
     modal.querySelector("h2").textContent = issue.title;
     modal.querySelector(".error-summary").textContent = issue.summary;

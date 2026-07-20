@@ -17,53 +17,8 @@
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
     />
     <link rel="stylesheet" href="src/styles/styles.css" />
-    <style>
-      #weekbox-raw-error {
-        position: fixed;
-        top: 12px;
-        left: 12px;
-        z-index: 10000;
-        width: min(620px, calc(100vw - 24px));
-        max-height: min(45vh, 420px);
-        padding: 12px;
-        overflow: auto;
-        border: 1px solid #ff6b6b;
-        border-radius: 8px;
-        background: #1b1012;
-        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45);
-        color: #fff;
-        font: 12px/1.45 ui-monospace, SFMono-Regular, Consolas, monospace;
-      }
-      #weekbox-raw-error[hidden] { display: none; }
-      #weekbox-raw-error header { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 8px; font: 700 13px/1.3 Inter, sans-serif; }
-      #weekbox-raw-error button { border: 0; border-radius: 4px; background: #3a2024; color: #fff; cursor: pointer; font: inherit; }
-      #weekbox-raw-error pre { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
-    </style>
   </head>
   <body>
-    <aside id="weekbox-raw-error" role="alert" aria-live="assertive" hidden>
-      <header><span>Raw WeekBox error</span><button type="button" aria-label="Close raw error">×</button></header>
-      <pre></pre>
-    </aside>
-    <script>
-      window.weekboxShowRawError = function (error) {
-        const panel = document.getElementById("weekbox-raw-error");
-        if (!panel) return;
-        const raw = error instanceof Error ? error.stack || error.message : String(error || "Unknown error");
-        panel.querySelector("pre").textContent = raw;
-        panel.hidden = false;
-      };
-      document.getElementById("weekbox-raw-error").querySelector("button").addEventListener("click", function () {
-        document.getElementById("weekbox-raw-error").hidden = true;
-      });
-      window.addEventListener("error", function (event) {
-        const location = event.filename ? "\n" + event.filename + ":" + event.lineno + ":" + event.colno : "";
-        window.weekboxShowRawError(event.error || event.message + location);
-      });
-      window.addEventListener("unhandledrejection", function (event) {
-        window.weekboxShowRawError(event.reason);
-      });
-    </script>
     <div
       id="startup-loading-screen"
       class="startup-loading-screen"

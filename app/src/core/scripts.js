@@ -218,6 +218,7 @@ async function offerNestedStorageRepair() {
 
 async function startApp() {
   try {
+    throw new Error("TEST: forced startup error (remove me)");
     startupLoader.setPhase("Starting native services", 8);
     Neutralino.init();
     networkStatus.init();
