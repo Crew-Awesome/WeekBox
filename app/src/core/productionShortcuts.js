@@ -5,6 +5,10 @@ function isDevelopmentRun() {
 }
 
 export function disableProductionRefreshShortcuts() {
+  document.addEventListener("contextmenu", (event) => {
+    event.preventDefault();
+  });
+
   if (isDevelopmentRun()) return;
 
   window.addEventListener("keydown", (event) => {
