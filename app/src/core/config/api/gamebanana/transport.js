@@ -45,7 +45,7 @@ export class GameBananaTransport {
       let attempt = 0;
       while (true) {
         let response;
-        try { response = await this.fetchImpl(url, { signal: controller.signal }); }
+        try { response = await this.fetchImpl(url, { signal: controller.signal, headers: { 'Accept': 'application/json' } }); }
         catch (cause) {
           if (controller.signal.aborted) throw new GameBananaTransportError(signal?.aborted ? "aborted" : "timeout", "Category request was cancelled", { cause });
           if (attempt++ < (this.config.transientRetryCount ?? 1)) continue;

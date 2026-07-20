@@ -25,18 +25,33 @@ function execAsync(command) {
         try {
             const processInfo = await Neutralino.os.spawnProcess(command);
             
+            let stdout = '';
+            let stderr = '';
+
+            const onStdOut = (evt) => {
+                if (evt.detail.id === processInfo.id) stdout += evt.detail.data;
+            };
+
+            const onStdErr = (evt) => {
+                if (evt.detail.id === processInfo.id) stderr += evt.detail.data;
+            };
+            
             const onSpawned = (evt) => {
                 if (evt.detail.id === processInfo.id) {
                     if (evt.detail.action === 'exit') {
                         Neutralino.events.off('spawnedProcess', onSpawned);
+                        Neutralino.events.off('spawnedProcessStdOut', onStdOut);
+                        Neutralino.events.off('spawnedProcessStdErr', onStdErr);
                         resolve({
                             exitCode: evt.detail.data,
-                            stdErr: evt.detail.data !== 0 ? 'Command failed (spawnProcess)' : ''
+                            stdErr: stderr || (evt.detail.data !== 0 ? 'Command failed (spawnProcess)' : '')
                         });
                     }
                 }
             };
             
+            Neutralino.events.on('spawnedProcessStdOut', onStdOut);
+            Neutralino.events.on('spawnedProcessStdErr', onStdErr);
             Neutralino.events.on('spawnedProcess', onSpawned);
         } catch (e) {
             resolve({ exitCode: 1, stdErr: e.message });
@@ -139,11 +154,23 @@ export async function installMod(modId, modName, categoryId, downloadUrl) {
                 await removeDir(tempPath);
                 await ensureDir(tempPath);
 
+                // Normalize Google Drive URLs before downloading
+                if (downloadUrl.includes('drive.google.com') || downloadUrl.includes('drive.usercontent.google.com')) {
+                    const driveIdMatch = downloadUrl.match(/[-\w]{25,}/);
+                    if (driveIdMatch && driveIdMatch[0]) {
+                        downloadUrl = `https://drive.google.com/uc?export=download&id=${driveIdMatch[0]}`;
+                    }
+                }
+
+                let cookieArgs = downloadUrl.includes('drive.google.com') ? '-c cookies.txt' : '';
+
                 let dlCmd = '';
                 if (window.NL_OS === 'Windows') {
-                    dlCmd = `cmd.exe /c "cd /d ${quote(tempPath)} && curl -sSL --compressed -J -O ${quote(downloadUrl)}"`;
+                    const safeUrl = downloadUrl.replace(/'/g, "''");
+                    const safePath = tempPath.replace(/'/g, "''");
+                    dlCmd = `powershell -NoProfile -NonInteractive -Command "cd -LiteralPath '${safePath}'; curl.exe -sSL --compressed ${cookieArgs} -J -O '${safeUrl}'"`;
                 } else {
-                    dlCmd = `cd ${quote(tempPath)} && curl -sSL --compressed -J -O ${quote(downloadUrl)}`;
+                    dlCmd = `cd ${quote(tempPath)} && curl -sSL --compressed ${cookieArgs} -J -O ${quote(downloadUrl)}`;
                 }
 
                 log(`Downloading via curl...`);
@@ -153,16 +180,54 @@ export async function installMod(modId, modName, categoryId, downloadUrl) {
                 }
 
                 const files = await Neutralino.filesystem.readDirectory(tempPath);
-                const downloadedFile = files.find(f => f.type === 'FILE' && f.entry !== '.' && f.entry !== '..');
+                let downloadedFile = files.find(f => f.type === 'FILE' && f.entry !== '.' && f.entry !== '..' && f.entry !== 'cookies.txt');
 
                 if (!downloadedFile) {
                     throw new Error('Download succeeded, but no file was written to disk.');
                 }
 
-                const fileName = downloadedFile.entry;
-                const filePath = window.NL_OS === 'Windows'
+                let fileName = downloadedFile.entry;
+                let filePath = window.NL_OS === 'Windows'
                 ? `${tempPath}\\${fileName}`
                 : `${tempPath}/${fileName}`;
+
+                // --- GOOGLE DRIVE BYPASS ---
+                if (downloadUrl.includes('drive.google.com') || downloadUrl.includes('drive.usercontent.google.com')) {
+                    const stats = await Neutralino.filesystem.getStats(filePath).catch(() => ({ size: 0 }));
+                    if (stats.size > 0 && stats.size < 500000) { // Posible HTML de advertencia
+                        const content = await Neutralino.filesystem.readFile(filePath).catch(() => '');
+                        if (content.includes('uc-download-link') || content.includes('confirm=')) {
+                            const match = content.match(/confirm=([0-9A-Za-z_-]+)/);
+                            if (match && match[1]) {
+                                log(`Google Drive virus warning detected. Bypassing with token: ${match[1]}`);
+                                await Neutralino.filesystem.removeFile(filePath).catch(() => {});
+                                
+                                const finalUrl = downloadUrl.includes('?') ? `${downloadUrl}&confirm=${match[1]}` : `${downloadUrl}?confirm=${match[1]}`;
+                                
+                                let retryCmd = '';
+                                if (window.NL_OS === 'Windows') {
+                                    const safeUrlRetry = finalUrl.replace(/'/g, "''");
+                                    const safePathRetry = tempPath.replace(/'/g, "''");
+                                    retryCmd = `powershell -NoProfile -NonInteractive -Command "cd -LiteralPath '${safePathRetry}'; curl.exe -sSL --compressed -b cookies.txt -J -O '${safeUrlRetry}'"`;
+                                } else {
+                                    retryCmd = `cd ${quote(tempPath)} && curl -sSL --compressed -b cookies.txt -J -O ${quote(finalUrl)}`;
+                                }
+                                
+                                log(`Downloading real file from Google Drive...`);
+                                const retryResult = await execAsync(retryCmd);
+                                if (retryResult.exitCode !== 0) throw new Error(`Google Drive bypass download failed: ${retryResult.stdErr}`);
+                                
+                                const newFiles = await Neutralino.filesystem.readDirectory(tempPath);
+                                downloadedFile = newFiles.find(f => f.type === 'FILE' && f.entry !== '.' && f.entry !== '..' && f.entry !== 'cookies.txt');
+                                if (!downloadedFile) throw new Error('Bypass succeeded, but no file was written.');
+                                
+                                fileName = downloadedFile.entry;
+                                filePath = window.NL_OS === 'Windows' ? `${tempPath}\\${fileName}` : `${tempPath}/${fileName}`;
+                            }
+                        }
+                    }
+                }
+                // ---------------------------
 
                 log(`File downloaded successfully: ${fileName}`);
 
@@ -177,7 +242,7 @@ export async function installMod(modId, modName, categoryId, downloadUrl) {
                 await removeDir(installPath);
                 await ensureDir(installPath);
 
-                if (ext === 'zip' || ext === 'rar' || ext === '7z') {
+                if (ext === 'zip' || ext === 'rar' || ext === '7z' || ext === 'tar') {
                     log(`Extracting ${ext.toUpperCase()} archive...`);
 
                     let exCmd = '';

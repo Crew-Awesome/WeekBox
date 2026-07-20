@@ -14,7 +14,7 @@
     justify-content: flex-start;
     aspect-ratio: auto; 
     border-radius: 12px;
-    overflow: hidden;
+    overflow: visible !important;
     position: relative; /* Para el badge */
 }
 
@@ -94,6 +94,7 @@
     padding-top: 12px;
     display: flex;
     justify-content: flex-end;
+    pointer-events: auto !important;
 }
 
 .discover-grid-container .download-btn {

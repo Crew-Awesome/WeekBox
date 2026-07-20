@@ -1,4 +1,4 @@
-import { extractImageColor } from '../../../utils/extractImgColor.js';
+import { applyDynamicColor } from '../../../utils/dynamic-color.js';
 import { gameBananaApi } from '../../../../core/config/api/gamebanana.js';
 import { installMod } from '../../../../backend/utils/fileSystem/downloader/mods.js';
 import { isModInstalled } from '../../../../backend/utils/fileSystem/mods-library.js';
@@ -94,7 +94,9 @@ export class ModCard extends HTMLElement {
         
         this.appendChild(clone);
         
-        this.applyDynamicColor();
+        const cardElement = this.querySelector('.md3-component-card');
+        const imgElement = this.querySelector('.mod-thumbnail');
+        applyDynamicColor(cardElement, imgElement);
         
         /**
          * Initialize ripple effects on the newly rendered card.
@@ -130,29 +132,26 @@ export class ModCard extends HTMLElement {
             e.stopPropagation();
             
             const originalText = downloadBtn.textContent;
-            downloadBtn.textContent = 'Iniciando...';
+            downloadBtn.textContent = 'Cargando...';
             downloadBtn.disabled = true;
             
             try {
                 const details = await gameBananaApi.getModDetails(modId);
-                if (!details || !details.downloadUrl) {
+                const options = details?.downloadOptions || [];
+                
+                if (options.length === 0) {
                     throw new Error("No download URL found for this mod.");
                 }
                 
-                downloadBtn.textContent = 'Descargando...';
-                
-                const result = await installMod(modId, modTitle, this._mod.engineId || 'Unknown Engine', details.downloadUrl);
-                
-                if (result.success) {
-                    downloadBtn.textContent = 'Instalado';
-                    downloadBtn.style.backgroundColor = 'var(--m3-component-primary)';
-                    downloadBtn.style.color = 'var(--m3-component-on-primary)';
-                    downloadBtn.disabled = true;
+                if (options.length === 1) {
+                    await this.handleDownloadOption(options[0], downloadBtn, modId, modTitle, details.engineId, originalText);
                 } else {
-                    throw new Error(result.error);
+                    downloadBtn.textContent = originalText;
+                    downloadBtn.disabled = false;
+                    this.showDropdown(cardElement, downloadBtn, options, modId, modTitle, details.engineId, originalText);
                 }
             } catch (error) {
-                console.error("Error during mod installation:", error);
+                console.error("Error fetching mod details:", error);
                 downloadBtn.textContent = 'Error';
                 setTimeout(() => {
                     downloadBtn.textContent = originalText;
@@ -163,45 +162,95 @@ export class ModCard extends HTMLElement {
     }
 
     /**
-     * Extracts the dominant color from the loaded image and applies it as a dynamic background.
+     * Procesa la opción de descarga seleccionada.
      */
-    applyDynamicColor() {
-        const card = this.querySelector('.md3-component-card');
-        const img = this.querySelector('.mod-thumbnail');
-        if (!img || !card) return;
+    async handleDownloadOption(option, downloadBtn, modId, modTitle, engineId, originalText) {
+        await this.startDownload(downloadBtn, modId, modTitle, engineId, option.downloadUrl, originalText);
+    }
 
-        const extractColor = () => {
-            extractImageColor(img.src).then(colorData => {
-                let { r, g, b } = colorData;
-                
-                // Calculamos la luminancia real percibida
-                const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b;
-                
-                // Si el color es muy claro, lo forzamos a oscurecerse drásticamente
-                if (luminance > 90) {
-                    const factor = 90 / luminance; 
-                    r = Math.floor(r * factor);
-                    g = Math.floor(g * factor);
-                    b = Math.floor(b * factor);
-                }
+    /**
+     * Inicia el proceso de descarga.
+     */
+    async startDownload(downloadBtn, modId, modTitle, engineId, downloadUrl, originalText) {
+        downloadBtn.textContent = 'Descargando...';
+        downloadBtn.disabled = true;
+        try {
+            const result = await installMod(modId, modTitle, engineId || this._mod.engineId || 'Unknown Engine', downloadUrl);
+            
+            if (result.success) {
+                downloadBtn.textContent = 'Instalado';
+                downloadBtn.style.backgroundColor = 'var(--m3-component-primary)';
+                downloadBtn.style.color = 'var(--m3-component-on-primary)';
+                downloadBtn.disabled = true;
+            } else {
+                throw new Error(result.error);
+            }
+        } catch (error) {
+            console.error("Error during mod installation:", error);
+            downloadBtn.textContent = 'Error';
+            setTimeout(() => {
+                downloadBtn.textContent = originalText;
+                downloadBtn.disabled = false;
+            }, 3000);
+        }
+    }
 
-                // Tope máximo absoluto por canal para asegurar que NUNCA sea blanco/gris claro
-                r = Math.min(r, 130);
-                g = Math.min(g, 130);
-                b = Math.min(b, 130);
-
-                // Solo aplicamos el fondo, no tocamos --card-color
-                card.style.setProperty('--card-bg-rgb', `${r}, ${g}, ${b}`);
-                card.classList.add('discover-dynamic-card');
-            }).catch(err => {
-                console.warn('Could not extract color for card', err);
+    /**
+     * Muestra el menú de opciones múltiples de descarga.
+     */
+    showDropdown(cardElement, downloadBtn, options, modId, modTitle, engineId, originalText) {
+        const dropdown = cardElement.querySelector('.download-dropdown');
+        if (!dropdown) return;
+        
+        // Evitamos que los clics en el dropdown burbujeen hacia la tarjeta
+        dropdown.addEventListener('click', (e) => e.stopPropagation());
+        dropdown.addEventListener('pointerdown', (e) => e.stopPropagation());
+        
+        // Limpiamos opciones previas
+        dropdown.innerHTML = '';
+        
+        options.forEach(option => {
+            const btn = document.createElement('button');
+            btn.className = 'download-dropdown-item';
+            
+            const nameSpan = document.createElement('span');
+            nameSpan.className = 'dropdown-item-name';
+            nameSpan.textContent = option.name;
+            
+            const sizeSpan = document.createElement('span');
+            sizeSpan.className = 'dropdown-item-size';
+            sizeSpan.textContent = option.fileSizeStr || '';
+            
+            btn.appendChild(nameSpan);
+            btn.appendChild(sizeSpan);
+            
+            btn.addEventListener('pointerdown', (e) => {
+                e.stopPropagation();
             });
+            
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                dropdown.classList.remove('show');
+                this.handleDownloadOption(option, downloadBtn, modId, modTitle, engineId, originalText);
+            });
+            
+            dropdown.appendChild(btn);
+        });
+        
+        // Alternamos la visibilidad
+        dropdown.classList.toggle('show');
+        
+        // Cerrar si se hace clic afuera
+        const outsideClickListener = (event) => {
+            if (!dropdown.contains(event.target) && !downloadBtn.contains(event.target)) {
+                dropdown.classList.remove('show');
+                document.removeEventListener('click', outsideClickListener);
+            }
         };
-
-        if (img.complete) {
-            extractColor();
-        } else {
-            img.onload = extractColor;
+        
+        if (dropdown.classList.contains('show')) {
+            document.addEventListener('click', outsideClickListener);
         }
     }
 }
