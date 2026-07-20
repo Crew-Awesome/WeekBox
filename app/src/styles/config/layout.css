@@ -204,13 +204,30 @@
 }
 
 .setting-item-storage {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
   gap: 16px;
+}
+
+.setting-item-storage .setting-info {
+  min-width: 0;
+}
+
+.setting-item-storage .setting-info h4 {
+  font-size: 0.92rem;
+}
+
+.setting-item-storage .setting-info p {
+  font-size: 0.78rem;
+  line-height: 1.45;
 }
 
 .storage-location-actions {
   display: flex;
+  flex-direction: column;
   flex-shrink: 0;
-  gap: 8px;
+  gap: 6px;
 }
 
 .storage-move-lock {
@@ -220,10 +237,29 @@
   cursor: wait;
 }
 
-.setting-item-storage .setting-info p {
+.setting-item-storage #storage-location-path {
+  display: block;
+  width: 100%;
+  margin-top: 6px;
+  padding: 5px 7px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 5px;
+  background: rgba(0, 0, 0, 0.16);
+  color: var(--text-muted);
+  cursor: pointer;
+  text-align: left;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 0.72rem;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.setting-item-storage #storage-location-path:hover,
+.setting-item-storage #storage-location-path:focus-visible {
+  border-color: var(--text-muted);
+  color: var(--text-main);
+  outline: none;
 }
 
 .storage-location-button {
@@ -232,9 +268,11 @@
   background: rgba(255, 255, 255, 0.06);
   color: var(--text-main);
   border-radius: 7px;
-  padding: 9px 12px;
+  padding: 7px 9px;
   font: inherit;
-  font-size: 0.82rem;
+  font-size: 0.76rem;
+  line-height: 1.2;
+  white-space: nowrap;
   cursor: pointer;
   transition:
     background-color 160ms ease,
@@ -251,6 +289,20 @@
 .storage-location-button:disabled {
   cursor: wait;
   opacity: 0.6;
+}
+
+@media (max-width: 720px) {
+  .setting-item-storage {
+    grid-template-columns: 1fr;
+  }
+
+  .storage-location-actions {
+    width: 100%;
+  }
+
+  .storage-location-button {
+    flex: 1;
+  }
 }
 
 /* Animaciones del Switch tipo iOS */

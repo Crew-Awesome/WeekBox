@@ -6,6 +6,7 @@ import { appUpdater } from "../../core/appUpdater.js";
 import { toastSystem } from "../toasts/toastSystem.js";
 import { AppUpdateController } from "./appUpdateController.js";
 import { StorageMoveFeedback } from "./storageMoveFeedback.js";
+import { existingStorageModal } from "../existingStorageModal.js";
 
 const appUpdates = new AppUpdateController(appUpdater);
 const storageMoveFeedback = new StorageMoveFeedback(toastSystem);
@@ -58,6 +59,10 @@ export const configModal = {
     document
       .getElementById("use-default-storage-location")
       ?.addEventListener("click", () => this.useDefaultStorageLocation());
+
+    document
+      .getElementById("storage-location-path")
+      ?.addEventListener("click", () => this.openStorageLocation());
 
     document
       .getElementById("check-app-update")
@@ -162,6 +167,13 @@ export const configModal = {
     if (label) label.textContent = FS.weekboxPath || "AppData/WeekBox";
   },
 
+  async openStorageLocation() {
+    if (!FS.weekboxPath) return;
+    await Neutralino.os.open(FS.weekboxPath).catch((error) => {
+      console.warn("Could not open the WeekBox storage folder", error);
+    });
+  },
+
   async updateAppVersionLabel() {
     return appUpdates.updateVersionLabel();
   },
@@ -218,10 +230,22 @@ export const configModal = {
         { defaultPath: FS.basePath },
       );
       if (!selectedPath) return;
+      const existingStorage = await FS.findExistingStorage(selectedPath);
+      if (existingStorage) {
+        const choice = await existingStorageModal.show(existingStorage);
+        if (choice !== "use") return;
+
+        button.disabled = true;
+        button.innerHTML =
+          '<i class="fa-solid fa-folder-open"></i> Switching library…';
+        await FS.useExistingStorage(existingStorage.basePath);
+        location.reload();
+        return;
+      }
       if (/(?:^|[\\/])weekbox[\\/]*$/i.test(selectedPath)) {
         await Neutralino.os.showMessageBox(
           "Choose the parent folder",
-          "WeekBox creates its own WeekBox folder inside the location you choose. Select the parent folder instead (for example, AppData\\Local, not AppData\\Local\\WeekBox).",
+          "This WeekBox folder is incomplete. Select a parent folder instead (for example, AppData\\Local, not AppData\\Local\\WeekBox).",
           "OK",
           "WARNING",
         );

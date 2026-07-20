@@ -189,6 +189,43 @@ class FileSystemService {
     }
   }
 
+  async findExistingStorage(basePath) {
+    const selectedPath = String(basePath || "").replace(/[\\/]+$/, "");
+    if (!selectedPath) return null;
+    const weekboxPath = isWeekBoxFolder(selectedPath)
+      ? selectedPath
+      : `${selectedPath}/WeekBox`;
+    const storageBasePath = isWeekBoxFolder(selectedPath)
+      ? getParentPath(selectedPath)
+      : selectedPath;
+    const requiredPaths = ["data", "engines", "mods"].map(
+      (directory) => `${weekboxPath}/${directory}`,
+    );
+    const hasRequiredFolders = await Promise.all(
+      requiredPaths.map((path) => this.api.exists(path)),
+    );
+    return hasRequiredFolders.every(Boolean)
+      ? { basePath: storageBasePath, weekboxPath }
+      : null;
+  }
+
+  async useExistingStorage(basePath) {
+    this.assertStorageUnlocked();
+    if (this.hasRunningProcesses()) {
+      throw new Error("Close running engines before changing WeekBox storage");
+    }
+    const storage = await this.findExistingStorage(basePath);
+    if (!storage) {
+      throw new Error(
+        "The selected folder does not contain a complete WeekBox library.",
+      );
+    }
+    this.setStoragePaths(storage.basePath);
+    await appSettings.setDataPath(this.dataPath);
+    appSettings.set("storageParentPath", storage.basePath);
+    return storage.weekboxPath;
+  }
+
   async moveStorageTo(basePath, onProgress = () => {}) {
     this.assertStorageUnlocked();
     const destinationBasePath = String(basePath || "").replace(/[\\/]+$/, "");
