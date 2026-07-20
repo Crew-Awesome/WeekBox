@@ -226,6 +226,8 @@ export const enginesView = {
           if (dlUI) dlUI.style.display = "none";
           await this.updateButtonState(); // Actualiza a "Launch"
 
+          document.dispatchEvent(new CustomEvent("mods-updated"));
+
           // Settings: Autostart Engine after download!
           if (appSettings.get("autoStartAfterDownload")) {
             setTimeout(() => {

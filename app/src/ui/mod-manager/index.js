@@ -125,6 +125,8 @@ export const modManagerModal = {
         );
       }
       await this.preload();
+    } else {
+      await this.loadInstalledMods(true);
     }
   },
 
