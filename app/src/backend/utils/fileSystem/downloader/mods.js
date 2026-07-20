@@ -124,27 +124,7 @@ export async function installMod(modName, downloadUrl) {
         await ensureDir(await getModsPath());
         await ensureDir(tempPath);
         
-        // 2. Download ZIP via native cURL (optimized)
-        // -sSL: silent, show errors, follow redirects
-        // --compressed: accept compressed streams to save bandwidth
-        // -J: use server-provided filename
-        // -O: write output to a local file
-        let dlCmd = '';
-        if (window.NL_OS === 'Windows') {
-            dlCmd = `cmd.exe /c "cd /d ${quote(tempPath)} && curl -sSL --compressed -J -O ${quote(downloadUrl)}"`;
-        } else {
-            dlCmd = `cd ${quote(tempPath)} && curl -sSL --compressed -J -O ${quote(downloadUrl)}`;
-        }
-        
-        log(`Downloading via curl...`);
-        const dlResult = await execAsync(dlCmd);
-        
-        if (dlResult.exitCode !== 0) {
-            throw new Error(`cURL Download failed: ${dlResult.stdErr}`);
-        }
-        
-        // 3. Find the downloaded file
-        // So 7z and rar files that were uploaded to gamebanana had issues to download with curl, so we try to download it 3 times before giving up
+        // 2. Ejecutar intentos de descarga y extracción (Máximo 3)
         let lastError = null;
         let extracted = false;
 
@@ -238,50 +218,6 @@ export async function installMod(modName, downloadUrl) {
         log(`Mod available at: ${installPath}`);
         await removeDir(tempPath);
         return { success: true, path: installPath };
-                
-        // 4. Verify Extension
-        let ext = fileName.includes('.') ? fileName.split('.').pop().toLowerCase() : '';
-        // Gamebanana sometimes forces a raw ID as filename without extension (e.g., '1758117')
-        // We will assume it's a zip if there's no text extension or if it's purely numeric
-        if (!ext || !isNaN(Number(ext))) {
-            log(`File has no valid extension (detected '.${ext}'). Assuming it is a .zip archive.`);
-            ext = 'zip';
-        } else {
-            log(`Detected format: .${ext}`);
-        }
-        
-        await removeDir(installPath);
-        await ensureDir(installPath);
-        
-        // 5. Extract based on format (Forcing rar and 7z as requested by user)
-        if (ext === 'zip' || ext === 'rar' || ext === '7z') {
-            log(`Extracting ${ext.toUpperCase()} archive...`);
-            if (window.NL_OS === 'Windows') {
-                // Using tar.exe built into Windows 10/11 - extremely fast and memory efficient compared to PowerShell
-                const exCmd = `cmd.exe /c "tar -xf ${quote(filePath)} -C ${quote(installPath)}"`;
-                const exResult = await execAsync(exCmd);
-                if (exResult.exitCode !== 0) throw new Error(`tar Extraction failed (format might be unsupported or corrupted): ${exResult.stdErr}`);
-            } else {
-                const exCmd = `unzip -o ${quote(filePath)} -d ${quote(installPath)}`;
-                const exResult = await execAsync(exCmd);
-                if (exResult.exitCode !== 0) throw new Error(`Unzip failed: ${exResult.stdErr}`);
-            }
-        } else {
-            throw new Error(`Formato de archivo no soportado: .${ext}`);
-        }
-        
-        log(`Extraction complete! Normalizing directory structure...`);
-        
-        // 6. Normalize structure (fix nested folders)
-        await normalizeExtractedMod(installPath);
-        
-        log(`Mod available at: ${installPath}`);
-        
-        // 7. Clean up temporary files
-        await removeDir(tempPath);
-        
-        return { success: true, path: installPath };
-        
     } catch (error) {
         log(`Mod installation failed: ${error}`);
         // Clean up broken temp folder

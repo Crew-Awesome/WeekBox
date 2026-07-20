@@ -1,9 +1,9 @@
 .app-layout-container {
-    background-color: var(--md-sys-color-surface-bg, #1e1c1f);
+    background-color: var(--md-sys-color-surface-bg);
 }
 
 .app-sidebar {
-    background-color: #2a282b;
+    background-color: var(--md-sys-color-surface-bg);
     color: #fff;
     user-select: none;
     -webkit-user-select: none;
@@ -29,7 +29,7 @@
 
 .app-sidebar-divisor {
     height: 1px;
-    background-color: #3f3c40;
+    background-color: #2d2b2e;
     margin: 16px 0;
     flex-shrink: 0;
 }
