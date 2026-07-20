@@ -37,11 +37,13 @@ export class AppUpdateController {
         sessionStorage.removeItem("weekbox_available_app_update");
         status.textContent = `WeekBox ${update.currentVersion} is up to date.`;
         button.textContent = "Up to date";
+        button.disabled = false;
         return;
       }
       if (update.status === "unsupported") {
         status.textContent = update.message;
         button.textContent = "Unavailable";
+        button.disabled = false;
         return;
       }
       this.showAvailable(update);
