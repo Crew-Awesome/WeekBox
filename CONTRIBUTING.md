@@ -1,6 +1,6 @@
 # Contributing to WeekBox
 
-Thanks for helping improve WeekBox. ❤️
+Thanks for helping improve WeekBox.
 
 ## Before you start
 
