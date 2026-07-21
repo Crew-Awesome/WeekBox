@@ -1,41 +1,22 @@
 export class FeaturedService {
-  constructor({ url, manifestUrl, getTimeAgo }) {
+  constructor({ url, getTimeAgo }) {
     this.url = url;
-    this.manifestUrl = manifestUrl;
     this.getTimeAgo = getTimeAgo;
   }
 
   async getCarousel() {
     try {
-      const manifest = await this.fetchManifest();
-      const featuredUrl = new URL(manifest.featuredUrl, this.url).href;
-      const response = await fetch(featuredUrl, { cache: "no-store" });
+      const response = await fetch(this.url, { cache: "no-store" });
       if (!response.ok) throw new Error("Featured request failed");
       const featured = await response.json();
       if (!this.isSupported(featured))
         throw new Error("Unsupported featured schema");
-      if (featured.revision !== manifest.revision)
-        throw new Error("Featured revision did not match manifest");
       const mods = this.flatten(featured);
       if (mods.length === 0) throw new Error("No featured mods");
       return mods;
     } catch (error) {
       return [];
     }
-  }
-
-  async fetchManifest() {
-    const response = await fetch(this.manifestUrl, { cache: "no-store" });
-    if (!response.ok) throw new Error("Featured manifest request failed");
-    const manifest = await response.json();
-    if (
-      manifest?.schemaVersion !== 1 ||
-      typeof manifest?.revision !== "string" ||
-      !manifest.revision
-    ) {
-      throw new Error("Unsupported featured manifest");
-    }
-    return manifest;
   }
 
   isSupported(featured) {
