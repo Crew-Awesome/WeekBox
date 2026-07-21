@@ -388,7 +388,11 @@ export const appUpdater = {
       .createDirectory(`${window.NL_PATH}/${UPDATE_DIRECTORY}`)
       .catch(() => {});
 
-    if (await Neutralino.filesystem.exists(target)) {
+    const targetExists = await Neutralino.filesystem
+      .getStats(target)
+      .then(() => true)
+      .catch(() => false);
+    if (targetExists) {
       const current = await Neutralino.filesystem.readBinaryFile(target);
       await Neutralino.filesystem.writeBinaryFile(backup, current);
     }
