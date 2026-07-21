@@ -5,6 +5,12 @@ const RELEASES_API =
 const RELEASES_PAGE = "https://github.com/Crew-Awesome/Weekbox/releases/latest";
 const UPDATE_DIRECTORY = ".weekbox-update";
 
+/**
+ * Normalizes a version string by removing leading 'v' characters, trimming whitespace,
+ * and stripping out any pre-release tags (e.g. '-beta').
+ * @param {string} value - The raw version string.
+ * @returns {string} The normalized version string.
+ */
 function normalizeVersion(value) {
   return String(value || "")
     .trim()
@@ -12,6 +18,12 @@ function normalizeVersion(value) {
     .split("-")[0];
 }
 
+/**
+ * Compares two version strings to determine their order.
+ * @param {string} left - The first version string.
+ * @param {string} right - The second version string.
+ * @returns {number} 1 if left is greater, -1 if right is greater, 0 if equal.
+ */
 function compareVersions(left, right) {
   const leftParts = normalizeVersion(left).split(".").map(Number);
   const rightParts = normalizeVersion(right).split(".").map(Number);
@@ -47,17 +59,12 @@ function createUnixApplyScript({
   expectedDigest,
   binaryName,
   scriptPath,
+  targetExe,
 }) {
   const target = quoteShellString(appPath);
   const archive = quoteShellString(archivePath);
   const staging = quoteShellString(`${appPath}/.weekbox-update-staging`);
-  const sourceBinary = quoteShellString(
-    `${appPath}/.weekbox-update-staging/${binaryName}`,
-  );
-  const sourceResources = quoteShellString(
-    `${appPath}/.weekbox-update-staging/resources.neu`,
-  );
-  const targetBinary = quoteShellString(`${appPath}/${binaryName}`);
+  const targetBinary = targetExe ? quoteShellString(targetExe) : quoteShellString(`${appPath}/${binaryName}`);
   const targetResources = quoteShellString(`${appPath}/resources.neu`);
   const updaterScript = quoteShellString(scriptPath);
 
@@ -75,9 +82,10 @@ staging=${staging}
 backup="$staging/.backup"
 rm -rf "$staging"
 unzip -qo "$archive" -d "$staging"
-source_binary=${sourceBinary}
-source_resources=${sourceResources}
-[ -f "$source_binary" ] || { echo 'The update package is missing the WeekBox executable.' >&2; exit 1; }
+source_binary=$(find "$staging" -type f -name ${quoteShellString(binaryName)} | head -n 1)
+if [ -z "$source_binary" ]; then source_binary=$(find "$staging" -type f -executable -not -name "*.so*" -not -name "*.dylib*" | head -n 1); fi
+source_resources=$(find "$staging" -type f -name "resources.neu" | head -n 1)
+if [ -z "$source_binary" ] || [ ! -f "$source_binary" ]; then echo 'The update package is missing the WeekBox executable.' >&2; exit 1; fi
 target_binary=${targetBinary}
 target_resources=${targetResources}
 retry() {
@@ -125,6 +133,10 @@ done
 `;
 }
 
+/**
+ * Retrieves the current application version from the Neutralino configuration.
+ * @returns {Promise<string>} The current application version.
+ */
 async function getCurrentVersion() {
   const config = await Neutralino.app.getConfig();
   return config.version || "0.0.0";
@@ -183,7 +195,8 @@ function getResourcesAsset(release) {
 }
 
 function getWindowsPackage(release) {
-  const expression = /^WeekBox-\d+(?:\.\d+)*-windows-x64\.zip$/i;
+  const arch = window.NL_ARCH === "arm64" ? "arm64" : window.NL_ARCH === "armhf" || window.NL_ARCH === "arm" ? "armhf" : "x64";
+  const expression = new RegExp(`^WeekBox-\\d+(?:\\.\\d+)*-windows-${arch}\\.zip$`, "i");
   return (release.assets || []).find(
     (asset) =>
       expression.test(asset.name || "") &&
@@ -192,6 +205,10 @@ function getWindowsPackage(release) {
   );
 }
 
+/**
+ * Fetches the latest release data from the GitHub API.
+ * @returns {Promise<Object>} A JSON object representing the latest GitHub release.
+ */
 async function fetchLatestRelease() {
   const response = await fetch(RELEASES_API, {
     headers: {
@@ -207,12 +224,32 @@ async function fetchLatestRelease() {
 export const appUpdater = {
   getCurrentVersion,
 
+  /**
+   * Checks for available updates by comparing the current application version
+   * against the latest version reported by the GitHub API.
+   * @returns {Promise<Object>} An object detailing the update availability status.
+   */
   async check() {
     const release = await fetchLatestRelease();
     const latestVersion = normalizeVersion(release.tag_name);
     const currentVersion = await getCurrentVersion();
     if (!latestVersion) {
       throw new Error("Could not determine the latest WeekBox version.");
+    }
+
+    const resourcesAsset = getResourcesAsset(release);
+    if (resourcesAsset) {
+      if (compareVersions(latestVersion, currentVersion) <= 0) {
+        return { status: "current", currentVersion, latestVersion };
+      }
+      return {
+        status: "available",
+        currentVersion,
+        latestVersion,
+        asset: resourcesAsset,
+        isResourcesUpdate: true,
+        releaseUrl: release.html_url || RELEASES_PAGE,
+      };
     }
 
     if (window.NL_OS === "Windows") {
@@ -230,24 +267,10 @@ export const appUpdater = {
           releaseUrl: release.html_url || RELEASES_PAGE,
         };
       }
-      const asset = getResourcesAsset(release);
-      if (!asset) {
-        return {
-          status: "unsupported",
-          message:
-            "Automatic updates are not available for this release yet. Download the latest version manually.",
-        };
-      }
-      if (compareVersions(latestVersion, currentVersion) <= 0) {
-        return { status: "current", currentVersion, latestVersion };
-      }
       return {
-        status: "available",
-        currentVersion,
-        latestVersion,
-        asset,
-        windowsResources: true,
-        releaseUrl: release.html_url || RELEASES_PAGE,
+        status: "unsupported",
+        message:
+          "Automatic updates are not available for this release yet. Download the latest version manually.",
       };
     }
 
@@ -283,12 +306,18 @@ export const appUpdater = {
     };
   },
 
+  /**
+   * Orchestrates the installation of a new update based on its type and target platform.
+   * @param {Object} update - The update data object returned by check().
+   * @param {Function} [onProgress] - Callback to report installation progress.
+   * @param {Function} [onHandoff] - Callback executed immediately before exiting the app.
+   */
   async install(update, onProgress = () => {}, onHandoff = () => {}) {
+    if (update?.isResourcesUpdate) {
+      return this.installResourcesUpdate(update, onProgress, onHandoff);
+    }
     if (update?.windowsPackage) {
       return this.installWindowsPackage(update, onProgress, onHandoff);
-    }
-    if (update?.windowsResources) {
-      return this.installWindowsResources(update, onProgress, onHandoff);
     }
 
     const platform = getPlatformPackage();
@@ -326,6 +355,7 @@ export const appUpdater = {
       expectedDigest,
       binaryName: platform.binary,
       scriptPath,
+      targetExe: window.NL_ARGS[0],
     });
     await Neutralino.filesystem.writeFile(scriptPath, applyScript);
     const command = `/bin/sh ${quoteShellString(scriptPath)} >/dev/null 2>&1 &`;
@@ -336,7 +366,7 @@ export const appUpdater = {
     await Neutralino.app.exit();
   },
 
-  async installWindowsResources(update, onProgress, onHandoff) {
+  async installResourcesUpdate(update, onProgress, onHandoff) {
     if (!update?.asset)
       throw new Error("No WeekBox update is ready to install.");
 
@@ -385,8 +415,13 @@ export const appUpdater = {
     await Neutralino.filesystem.writeBinaryFile(target, bytes);
 
     onProgress("Restarting WeekBox…");
-    const exe = `${window.NL_PATH}/WeekBox-win_x64.exe`;
-    await Neutralino.os.execCommand(`"${exe}"`, { background: true });
+    const exe = window.NL_ARGS[0];
+    if (window.NL_OS === "Darwin" && exe.includes(".app/Contents/MacOS/")) {
+      const appBundle = exe.substring(0, exe.indexOf(".app/") + 5);
+      await Neutralino.os.execCommand(`open "${appBundle}"`, { background: true });
+    } else {
+      await Neutralino.os.execCommand(`"${exe}"`, { background: true });
+    }
     onHandoff();
     await Neutralino.app.exit();
   },
@@ -428,6 +463,7 @@ export const appUpdater = {
     }
 
     const pid = window.NL_PID;
+    const targetExe = window.NL_ARGS[0].split(/[/\\]/).pop();
     const script = [
       "$ErrorActionPreference = 'Stop'",
       `$appPath = '${appPath}'`,
@@ -436,19 +472,22 @@ export const appUpdater = {
       `$pid_app = ${pid}`,
       "while (Get-Process -Id $pid_app -ErrorAction SilentlyContinue) { Start-Sleep -Seconds 1 }",
       "Expand-Archive -Path $zip -DestinationPath $staging -Force",
-      "if (Test-Path \"$appPath\\WeekBox-win_x64.exe\") { Copy-Item \"$appPath\\WeekBox-win_x64.exe\" \"$staging\\WeekBox-win_x64.exe.bak\" -Force }",
-      "if (Test-Path \"$appPath\\resources.neu\") { Copy-Item \"$appPath\\resources.neu\" \"$staging\\resources.neu.bak\" -Force }",
+      `$sourceExe = (Get-ChildItem -Path $staging -Filter '*.exe' -Recurse | Select-Object -First 1).FullName`,
+      `if (-not $sourceExe) { throw 'Executable not found in update package' }`,
+      `$sourceResources = (Get-ChildItem -Path $staging -Filter 'resources.neu' -Recurse | Select-Object -First 1).FullName`,
+      `if (Test-Path "$appPath\\$targetExe") { Copy-Item "$appPath\\$targetExe" "$staging\\app.exe.bak" -Force }`,
+      `if (Test-Path "$appPath\\resources.neu") { Copy-Item "$appPath\\resources.neu" "$staging\\resources.neu.bak" -Force }`,
       "try {",
-      "  Copy-Item \"$staging\\WeekBox-win_x64.exe\" \"$appPath\\WeekBox-win_x64.exe\" -Force",
-      "  Copy-Item \"$staging\\resources.neu\" \"$appPath\\resources.neu\" -Force",
+      `  Copy-Item $sourceExe "$appPath\\$targetExe" -Force`,
+      `  if ($sourceResources) { Copy-Item $sourceResources "$appPath\\resources.neu" -Force }`,
       "} catch {",
-      "  if (Test-Path \"$staging\\WeekBox-win_x64.exe.bak\") { Copy-Item \"$staging\\WeekBox-win_x64.exe.bak\" \"$appPath\\WeekBox-win_x64.exe\" -Force }",
-      "  if (Test-Path \"$staging\\resources.neu.bak\") { Copy-Item \"$staging\\resources.neu.bak\" \"$appPath\\resources.neu\" -Force }",
+      `  if (Test-Path "$staging\\app.exe.bak") { Copy-Item "$staging\\app.exe.bak" "$appPath\\$targetExe" -Force }`,
+      `  if (Test-Path "$staging\\resources.neu.bak") { Copy-Item "$staging\\resources.neu.bak" "$appPath\\resources.neu" -Force }`,
       "  throw",
       "}",
       "Remove-Item $zip -Force -ErrorAction SilentlyContinue",
       "Remove-Item $staging -Recurse -Force -ErrorAction SilentlyContinue",
-      "Start-Process \"$appPath\\WeekBox-win_x64.exe\"",
+      `Start-Process "$appPath\\$targetExe"`,
     ].join("\r\n");
 
     await Neutralino.filesystem.writeFile(scriptPath, script);

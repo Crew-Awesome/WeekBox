@@ -108,7 +108,9 @@ export const configModal = {
       this.showAvailableAppUpdate(event.detail);
     });
 
-    // Cambiar Tabs (Pestañas)
+    /**
+     * Initializes tab switching logic for the configuration modal.
+     */
     const tabBtns = document.querySelectorAll(".config-tab-btn");
     tabBtns.forEach((btn) => {
       btn.addEventListener("click", () => {
@@ -135,7 +137,10 @@ export const configModal = {
       });
     });
 
-    // Detectar cambios en los Toggles/Switches
+    /**
+     * Detects changes in configuration toggles and switches,
+     * saving the updated settings to the application store.
+     */
     const toggleIds = [
       "launchOnStartup",
       "blurOutOfFocus",
@@ -457,7 +462,9 @@ export const configModal = {
     const modal = document.getElementById("config-modal");
     if (!modal) return;
 
-    // Carga los valores actuales visualmente
+    /**
+     * Visually loads current configuration values into the UI.
+     */
     this.loadSettingsToUI();
 
     modal.style.display = "flex";
