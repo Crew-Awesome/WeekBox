@@ -14,6 +14,7 @@ export const modManagerModal = {
   cachedMods: null,
   cachedStandaloneMods: null,
   cachedInstalledEngines: null,
+  cachedViews: { mods: null, dependencies: null },
   eventBound: false,
   loadRequestId: 0,
   preloadPromise: null,
@@ -56,7 +57,14 @@ export const modManagerModal = {
         .addEventListener("click", () => {
           this.activeView =
             this.activeView === "mods" ? "dependencies" : "mods";
-          this.render(this.cachedMods || [], this.cachedStandaloneMods || []);
+          if (!this.showCachedView()) {
+            this.render(
+              this.cachedMods || [],
+              this.cachedStandaloneMods || [],
+              this.cachedInstalledEngines || [],
+              { preserveOtherView: true },
+            );
+          }
         });
 
       document
@@ -104,6 +112,7 @@ export const modManagerModal = {
             this.cachedMods = null;
             this.cachedStandaloneMods = null;
             this.cachedInstalledEngines = null;
+            this.cachedViews = { mods: null, dependencies: null };
             this.preloaded = false;
             this.preloadPromise = null;
           }
@@ -231,6 +240,28 @@ export const modManagerModal = {
       ?.classList.toggle("is-hidden", !isModsView);
   },
 
+  syncViewToggleIcon() {
+    const grid = document.getElementById("mod-manager-grid-container");
+    const toggleIcon = document.querySelector("#mod-manager-view-toggle i");
+    if (!grid || !toggleIcon) return;
+    toggleIcon.className = grid.classList.contains("list-view")
+      ? "fa-solid fa-table-cells-large"
+      : "fa-solid fa-list";
+  },
+
+  showCachedView() {
+    const view = this.cachedViews[this.activeView];
+    const container = document.getElementById("mod-manager-modal-body");
+    if (!view || !container) return false;
+
+    container.replaceChildren(view);
+    this.syncActiveView();
+    this.syncViewToggleIcon();
+    this.applySearchFilter();
+    this.renderPendingInstallCards();
+    return true;
+  },
+
   applySearchFilter() {
     const grid = document.getElementById("mod-manager-grid-container");
     if (!grid || this.activeView !== "mods") return;
@@ -308,6 +339,7 @@ export const modManagerModal = {
     mods,
     standaloneMods,
     installedEngines = this.cachedInstalledEngines || [],
+    { preserveOtherView = false } = {},
   ) {
     const container = document.getElementById("mod-manager-modal-body");
     if (!container) return;
@@ -357,6 +389,9 @@ export const modManagerModal = {
         return this.sortMode === "added-asc" ? difference : -difference;
       });
 
+    if (!preserveOtherView) {
+      this.cachedViews = { mods: null, dependencies: null };
+    }
     container.innerHTML = "";
 
     if (this.activeView === "dependencies") {
@@ -384,10 +419,12 @@ export const modManagerModal = {
           },
           () => this.loadInstalledMods(true),
         );
+        this.cachedViews.dependencies = container.firstElementChild;
       } else {
         container.innerHTML = modManagerTemplates.emptyState(
           "No dependencies installed yet.",
         );
+        this.cachedViews.dependencies = container.firstElementChild;
       }
       container.scrollTop = savedScrollTop;
       return;
@@ -441,6 +478,7 @@ export const modManagerModal = {
         }
       });
       gridContainer.appendChild(addLocalButton);
+      this.cachedViews.mods = gridContainer;
       container.scrollTop = savedScrollTop;
       requestAnimationFrame(() => {
         container.scrollTop = savedScrollTop;

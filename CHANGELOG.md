@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Updates no longer fail before downloading the new file.
 - Mod Manager search no longer reloads card images while typing.
+- Switching between Mods and Dependencies no longer reloads mod card images.
 
 ## [1.5.8] - 2026-07-20
 
