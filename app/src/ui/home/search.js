@@ -2,15 +2,7 @@ import { homeGrid } from "./grid/index.js";
 import { homeSearchDropdown } from "./searchDropdown.js";
 
 export const homeSearch = {
-  hintTimeoutId: null,
-  currentHintAnimation: null,
   abortController: null,
-  hintIndex: 0,
-  hints: [
-    "Search mods (e.g. Sonic, Tricky, Indie...)",
-    "Paste a GameBanana mod link",
-    "Enter a GameBanana mod ID",
-  ],
 
   init() {
     this.destroy();
@@ -21,12 +13,12 @@ export const homeSearch = {
     this.abortController = new AbortController();
     const { signal } = this.abortController;
     input.placeholder = "";
-    hint.textContent = this.hints[this.hintIndex];
+    hint.textContent =
+      "Search mods, paste a GameBanana link, or enter a mod ID";
 
     input.addEventListener(
       "focus",
       () => {
-        this.cancelHintRotation();
         this.updateHintVisibility(input, hint);
       },
       { signal },
@@ -36,7 +28,6 @@ export const homeSearch = {
       "blur",
       () => {
         this.updateHintVisibility(input, hint);
-        this.scheduleHintRotation(input, hint);
       },
       { signal },
     );
@@ -44,7 +35,6 @@ export const homeSearch = {
     input.addEventListener(
       "input",
       () => {
-        this.cancelHintRotation();
         this.updateHintVisibility(input, hint);
       },
       { signal },
@@ -63,70 +53,17 @@ export const homeSearch = {
     );
 
     this.updateHintVisibility(input, hint);
-    this.scheduleHintRotation(input, hint);
   },
 
-  canRotateHint(input) {
+  shouldShowHint(input) {
     return !input.value && document.activeElement !== input;
   },
 
   updateHintVisibility(input, hint) {
-    hint.classList.toggle("is-hidden", !this.canRotateHint(input));
-  },
-
-  scheduleHintRotation(input, hint) {
-    this.cancelHintRotation();
-    if (!this.canRotateHint(input)) return;
-    this.hintTimeoutId = setTimeout(() => {
-      this.rotateHint(input, hint);
-    }, 3600);
-  },
-
-  async rotateHint(input, hint) {
-    if (!this.canRotateHint(input)) return;
-
-    try {
-      this.currentHintAnimation = hint.animate(
-        [
-          { opacity: 1, transform: "translateY(-50%)" },
-          { opacity: 0, transform: "translateY(calc(-50% - 5px))" },
-        ],
-        { duration: 180, easing: "ease-in", fill: "forwards" },
-      );
-      await this.currentHintAnimation.finished;
-
-      if (this.canRotateHint(input)) {
-        this.hintIndex = (this.hintIndex + 1) % this.hints.length;
-        hint.textContent = this.hints[this.hintIndex];
-      }
-      if (!this.canRotateHint(input)) return;
-
-      this.currentHintAnimation = hint.animate(
-        [
-          { opacity: 0, transform: "translateY(calc(-50% + 5px))" },
-          { opacity: 1, transform: "translateY(-50%)" },
-        ],
-        { duration: 240, easing: "ease-out", fill: "forwards" },
-      );
-      await this.currentHintAnimation.finished;
-    } catch {
-      // The input was focused or edited while the hint was changing.
-    } finally {
-      this.currentHintAnimation?.cancel();
-      this.currentHintAnimation = null;
-      this.scheduleHintRotation(input, hint);
-    }
-  },
-
-  cancelHintRotation() {
-    clearTimeout(this.hintTimeoutId);
-    this.hintTimeoutId = null;
-    this.currentHintAnimation?.cancel();
-    this.currentHintAnimation = null;
+    hint.classList.toggle("is-hidden", !this.shouldShowHint(input));
   },
 
   destroy() {
-    this.cancelHintRotation();
     this.abortController?.abort();
     this.abortController = null;
   },

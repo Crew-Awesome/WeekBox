@@ -5,20 +5,11 @@ export const modManagerTemplates = {
         <header class="mod-manager-header">
           <div class="mod-manager-title-group">
             <h2>Mod Manager</h2>
-            <div class="mod-manager-view-tabs" role="group" aria-label="Mod manager content">
-              <button class="mod-manager-view-tab active" type="button" data-mod-manager-view="mods" aria-pressed="true">Mods</button>
-              <button class="mod-manager-view-tab" type="button" data-mod-manager-view="dependencies" aria-pressed="false">Dependencies</button>
-            </div>
+            <button class="mod-manager-dependencies-toggle" id="mod-manager-dependencies-toggle" type="button" aria-label="Show Dependencies" aria-pressed="false"><i class="fa-solid fa-puzzle-piece" aria-hidden="true"></i><span data-hover-label="Dependencies">Mods</span></button>
           </div>
+          <label class="mod-manager-search" for="mod-manager-search-input"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i><input id="mod-manager-search-input" type="search" placeholder="Search your mods" autocomplete="off" /></label>
           <div class="mod-manager-header-actions">
-            <div class="mod-manager-filter" id="mod-manager-engine-filter">
-              <button class="mod-manager-filter-trigger" type="button" aria-expanded="false">
-                <span class="mod-manager-filter-icon" aria-hidden="true"><i class="fa-solid fa-layer-group"></i></span>
-                <span class="mod-manager-filter-label">All mods</span>
-                <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
-              </button>
-              <div class="mod-manager-filter-menu" role="menu" hidden></div>
-            </div>
+            <button class="mod-manager-action-btn" id="mod-manager-filter-toggle" title="Filter and sort" aria-label="Filter and sort"><i class="fa-solid fa-arrow-down-wide-short" aria-hidden="true"></i></button>
             <button class="mod-manager-action-btn" id="mod-manager-view-toggle" title="Toggle View Mode">
               <i class="fa-solid fa-list"></i>
             </button>

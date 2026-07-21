@@ -69,9 +69,6 @@ export const dependenciesRenderer = {
     onSettingsSaved,
   ) {
     if (!dependencies.length) return;
-    const covers = await Promise.all(
-      dependencies.map((dependency) => FS.getModCover(dependency.id)),
-    );
     const section = document.createElement("section");
     section.className = "mod-manager-dependencies";
     const list = document.createElement("div");
@@ -79,19 +76,24 @@ export const dependenciesRenderer = {
     list.className = "mod-manager-dependency-list";
     if (isListView) list.classList.add("list-view");
 
-    dependencies.forEach((dependency, index) => {
+    dependencies.forEach((dependency) => {
       const users = getDependencyUsers(dependency, allMods);
       const row = document.createElement("article");
       row.className = "mod-manager-dependency";
       const cover = document.createElement("img");
       cover.className = "mod-manager-dependency-cover";
-      cover.src = covers[index] || "assets/icons/launcher-icon.png";
+      cover.src = "assets/icons/launcher-icon.png";
       cover.alt = "";
       cover.loading = "lazy";
       cover.addEventListener("error", () => {
         cover.src = "assets/icons/launcher-icon.png";
       });
       loadDependencyCover(dependency, cover);
+      FS.getModCover(dependency.id)
+        .then((localCover) => {
+          if (localCover && cover.isConnected) cover.src = localCover;
+        })
+        .catch(() => {});
 
       const copy = document.createElement("div");
       copy.className = "mod-manager-dependency-copy";

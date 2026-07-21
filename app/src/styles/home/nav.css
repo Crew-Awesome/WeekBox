@@ -97,7 +97,6 @@
   transition:
     opacity 240ms ease,
     transform 240ms ease;
-  will-change: opacity, transform;
   white-space: nowrap;
 }
 

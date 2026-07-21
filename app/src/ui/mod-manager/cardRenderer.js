@@ -95,6 +95,7 @@ export const cardRenderer = {
       const eyeIcon = mod.hidden ? "fa-eye-slash" : "fa-eye";
       const card = document.createElement("div");
       card.className = "mod-manager-card";
+      card.dataset.modSearch = String(mod.name || "").toLocaleLowerCase();
       card.classList.toggle("is-hidden", Boolean(mod.hidden));
       card.classList.toggle("is-unassigned", isUnassigned);
       if (mod.hidden) {

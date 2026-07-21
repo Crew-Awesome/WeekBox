@@ -10,10 +10,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Featured mods now load directly without a manifest file.
+- Mod Manager now has a search box and a filter and sort menu.
+- You can filter mods by executable, engine, or unassigned type.
+- Switching between mods and dependencies is faster.
 
 ### Fixed
 
 - Updates no longer fail before downloading the new file.
+- Mod Manager search no longer reloads card images while typing.
 
 ## [1.5.8] - 2026-07-20
 

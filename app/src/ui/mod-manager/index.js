@@ -1,17 +1,19 @@
 import { FS } from "../../utils/filesystem.js";
-import { filterManager } from "./filterManager.js";
 import { dependenciesRenderer } from "./dependenciesRenderer.js";
 import { cardRenderer } from "./cardRenderer.js";
 import { modSettingsModal } from "./modSettingsModal.js";
 import { localModImportModal } from "./localModImportModal.js";
 import { modManagerTemplates } from "../../html/components/mod-manager.js";
+import { openFilterSortModal } from "./filterSortModal.js";
 
 export const modManagerModal = {
-  engineFilter: "all",
+  typeFilter: "all",
+  sortMode: "added-desc",
+  searchQuery: "",
   activeView: "mods",
   cachedMods: null,
   cachedStandaloneMods: null,
-  filterDropdownCtrl: null,
+  cachedInstalledEngines: null,
   eventBound: false,
   loadRequestId: 0,
   preloadPromise: null,
@@ -49,25 +51,44 @@ export const modManagerModal = {
           : "fa-solid fa-list";
       });
 
-      document.querySelectorAll("[data-mod-manager-view]").forEach((button) =>
-        button.addEventListener("click", () => {
-          const view = button.dataset.modManagerView;
-          if (view === this.activeView) return;
-          this.activeView = view;
+      document
+        .getElementById("mod-manager-dependencies-toggle")
+        .addEventListener("click", () => {
+          this.activeView =
+            this.activeView === "mods" ? "dependencies" : "mods";
           this.render(this.cachedMods || [], this.cachedStandaloneMods || []);
-        }),
-      );
+        });
 
-      const engineFilterElement = document.getElementById(
-        "mod-manager-engine-filter",
-      );
-      this.filterDropdownCtrl = filterManager.setup(
-        engineFilterElement,
-        (newFilter) => {
-          this.engineFilter = newFilter;
-          this.render(this.cachedMods || [], this.cachedStandaloneMods || []);
-        },
-      );
+      document
+        .getElementById("mod-manager-search-input")
+        .addEventListener("input", (event) => {
+          this.searchQuery = event.target.value.trim().toLocaleLowerCase();
+          this.applySearchFilter();
+        });
+
+      document
+        .getElementById("mod-manager-filter-toggle")
+        .addEventListener("click", () => {
+          openFilterSortModal({
+            filter: this.typeFilter,
+            sort: this.sortMode,
+            engineIds: [
+              ...new Set(
+                (this.cachedMods || [])
+                  .filter((mod) => mod.kind !== "dependency" && mod.engineId)
+                  .map((mod) => mod.engineId),
+              ),
+            ],
+            onApply: ({ filter, sort }) => {
+              this.typeFilter = filter;
+              this.sortMode = sort;
+              this.render(
+                this.cachedMods || [],
+                this.cachedStandaloneMods || [],
+              );
+            },
+          });
+        });
 
       // FIX: Escuchar eventos globales de actualización para refrescar automáticamente
       // si la ventana está abierta y una descarga termina.
@@ -82,6 +103,7 @@ export const modManagerModal = {
           } else {
             this.cachedMods = null;
             this.cachedStandaloneMods = null;
+            this.cachedInstalledEngines = null;
             this.preloaded = false;
             this.preloadPromise = null;
           }
@@ -161,17 +183,20 @@ export const modManagerModal = {
     try {
       let mods = this.cachedMods;
       let standaloneMods = this.cachedStandaloneMods;
-      if (force || !this.cachedMods) {
-        [mods, standaloneMods] = await Promise.all([
+      let installedEngines = this.cachedInstalledEngines;
+      if (force || !this.cachedMods || !this.cachedInstalledEngines) {
+        [mods, standaloneMods, installedEngines] = await Promise.all([
           FS.getInstalledMods(),
           FS.getStandaloneMods(),
+          FS.getInstalledEngines(),
         ]);
       }
       if (requestId !== this.loadRequestId) return;
 
       this.cachedMods = mods;
       this.cachedStandaloneMods = standaloneMods;
-      await this.render(mods, standaloneMods);
+      this.cachedInstalledEngines = installedEngines;
+      await this.render(mods, standaloneMods, installedEngines);
     } catch (error) {
       if (requestId !== this.loadRequestId) return;
       console.error("Error loading mods in Mod Manager:", error);
@@ -186,14 +211,37 @@ export const modManagerModal = {
 
   syncActiveView() {
     const isModsView = this.activeView === "mods";
-    document.querySelectorAll("[data-mod-manager-view]").forEach((button) => {
-      const isActive = button.dataset.modManagerView === this.activeView;
-      button.classList.toggle("active", isActive);
-      button.setAttribute("aria-pressed", String(isActive));
-    });
+    const dependenciesToggle = document.getElementById(
+      "mod-manager-dependencies-toggle",
+    );
+    if (dependenciesToggle) {
+      dependenciesToggle.setAttribute("aria-pressed", String(!isModsView));
+      const currentLabel = isModsView ? "Mods" : "Dependencies";
+      const nextLabel = isModsView ? "Dependencies" : "Mods";
+      const label = dependenciesToggle.querySelector("span");
+      label.textContent = currentLabel;
+      label.dataset.hoverLabel = nextLabel;
+      dependenciesToggle.setAttribute("aria-label", `Show ${nextLabel}`);
+    }
     document
       .querySelector(".mod-manager-header-actions")
       ?.classList.toggle("dependencies-view", !isModsView);
+    document
+      .querySelector(".mod-manager-search")
+      ?.classList.toggle("is-hidden", !isModsView);
+  },
+
+  applySearchFilter() {
+    const grid = document.getElementById("mod-manager-grid-container");
+    if (!grid || this.activeView !== "mods") return;
+    grid.querySelectorAll(".mod-manager-card").forEach((card) => {
+      if (card.classList.contains("mod-manager-installing-card")) return;
+      card.classList.toggle(
+        "is-search-hidden",
+        Boolean(this.searchQuery) &&
+          !card.dataset.modSearch.includes(this.searchQuery),
+      );
+    });
   },
 
   updatePendingInstallCard(install) {
@@ -256,7 +304,11 @@ export const modManagerModal = {
     );
   },
 
-  async render(mods, standaloneMods) {
+  async render(
+    mods,
+    standaloneMods,
+    installedEngines = this.cachedInstalledEngines || [],
+  ) {
     const container = document.getElementById("mod-manager-modal-body");
     if (!container) return;
 
@@ -266,28 +318,49 @@ export const modManagerModal = {
     const playableMods = mods.filter((mod) => mod.kind !== "dependency");
 
     this.syncActiveView();
-    this.engineFilter = filterManager.syncEngineFilterOptions(
-      this.engineFilter,
-      playableMods,
-      standaloneMods,
-    );
-
     const standaloneModIds = new Set(standaloneMods.map((m) => String(m.id)));
-    const filteredMods = playableMods.filter((mod) => {
-      if (this.engineFilter === "all") return true;
-      if (this.engineFilter === "executable")
-        return standaloneModIds.has(String(mod.id));
-      return (
-        !standaloneModIds.has(String(mod.id)) &&
-        mod.engineId === this.engineFilter
-      );
-    });
+    const modOrder = new Map(
+      playableMods.map((mod, index) => [String(mod.id), index]),
+    );
+    const filteredMods = playableMods
+      .filter((mod) => {
+        const isExecutable = standaloneModIds.has(String(mod.id));
+        if (
+          this.typeFilter.startsWith("engine:") &&
+          mod.engineId !== this.typeFilter.slice("engine:".length)
+        )
+          return false;
+        if (this.typeFilter === "executable" && !isExecutable) return false;
+        if (this.typeFilter === "unassigned" && (mod.engineId || isExecutable))
+          return false;
+        return true;
+      })
+      .sort((left, right) => {
+        if (this.sortMode === "name-asc")
+          return String(left.name || "").localeCompare(
+            String(right.name || ""),
+          );
+        if (this.sortMode === "name-desc")
+          return String(right.name || "").localeCompare(
+            String(left.name || ""),
+          );
+        if (this.sortMode === "engine-asc")
+          return String(left.engineId || "").localeCompare(
+            String(right.engineId || ""),
+          );
+        if (this.sortMode === "engine-desc")
+          return String(right.engineId || "").localeCompare(
+            String(left.engineId || ""),
+          );
+        const difference =
+          modOrder.get(String(left.id)) - modOrder.get(String(right.id));
+        return this.sortMode === "added-asc" ? difference : -difference;
+      });
 
     container.innerHTML = "";
 
     if (this.activeView === "dependencies") {
       if (dependencies.length) {
-        const installedEngines = await FS.getInstalledEngines();
         const isListView =
           localStorage.getItem("weekbox_dependency_view") !== "grid";
         const toggleIcon = document.querySelector("#mod-manager-view-toggle i");
@@ -334,8 +407,6 @@ export const modManagerModal = {
         : "fa-solid fa-list";
 
     container.appendChild(gridContainer);
-    const installedEngines = await FS.getInstalledEngines();
-
     try {
       await cardRenderer.renderCards(
         gridContainer,
@@ -353,6 +424,7 @@ export const modManagerModal = {
           this.loadInstalledMods(true);
         },
       );
+      this.applySearchFilter();
       this.renderPendingInstallCards();
       const addLocalCard = document.createElement("div");
       addLocalCard.innerHTML = modManagerTemplates.addLocalModCard();
