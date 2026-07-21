@@ -187,29 +187,49 @@ async function extractNestedArchives(destinationPath, getTask, onEntry) {
       if (getTask?.()?.cancelled) throw new Error("Cancelled");
       const parentDir = archivePath.slice(0, archivePath.lastIndexOf("/"));
       const command = getNestedExtractionCommand(archivePath, parentDir);
-      const process = await Neutralino.os.spawnProcess(command);
-      const activeTask = getTask?.();
-      if (activeTask) activeTask.pid = process.id ?? process.pid;
-      try {
+      
+      const executeNested = async (cmd) => {
+        const process = await Neutralino.os.spawnProcess(cmd);
+        const activeTask = getTask?.();
+        if (activeTask) activeTask.pid = process.id ?? process.pid;
+        let processOutput = "";
         await listenForProcess(
           process,
           getTask,
           (event, handler, resolve, reject) => {
             if (event.action === "stdOut" || event.action === "stdErr") {
-              const output = String(event.data || "").trim();
-              if (output) reportEntry(output);
+              const output = String(event.data || "");
+              processOutput = appendProcessOutput(processOutput, output);
+              const trimmedOutput = output.trim();
+              if (trimmedOutput) reportEntry(trimmedOutput);
               return;
             }
             if (event.action !== "exit") return;
             Neutralino.events.off("spawnedProcess", handler);
             if (event.data === 0) resolve();
             else
-              reject(createProcessError("Nested extraction", event.data, ""));
+              reject(createProcessError("Nested extraction", event.data, processOutput));
           },
         );
+      };
+
+      try {
+        await executeNested(command);
         await Neutralino.filesystem.remove(archivePath).catch(() => {});
       } catch (error) {
-        console.warn("Could not extract nested archive:", archivePath, error);
+        if (window.NL_OS === "Windows" && String(error).includes("resolve failed") && !command.includes("--force-local")) {
+          try {
+            const fallbackCommand = command.includes("tar.exe") 
+              ? command.replace("tar.exe -xf", "tar.exe --force-local -xf")
+              : command.replace("tar ", "tar --force-local ");
+            await executeNested(fallbackCommand);
+            await Neutralino.filesystem.remove(archivePath).catch(() => {});
+          } catch (retryError) {
+            console.warn("Could not extract nested archive on retry:", archivePath, retryError);
+          }
+        } else {
+          console.warn("Could not extract nested archive:", archivePath, error);
+        }
       }
     }
   }
@@ -466,31 +486,44 @@ export async function extractArchive({
   const command = isWindows
     ? getWindowsExtractionCommand(archivePath, destinationPath)
     : `unzip -oq "${archivePath}" -d "${destinationPath}"`;
-  const process = await Neutralino.os.spawnProcess(command);
-  const task = getTask();
-  if (task) task.pid = process.id ?? process.pid;
 
-  let processOutput = "";
+  const execute = async (cmd) => {
+    const process = await Neutralino.os.spawnProcess(cmd);
+    const task = getTask();
+    if (task) task.pid = process.id ?? process.pid;
 
-  await listenForProcess(
-    process,
-    getTask,
-    (event, handler, resolve, reject) => {
-      if (event.action === "stdOut" || event.action === "stdErr") {
-        const output = String(event.data || "");
-        processOutput = appendProcessOutput(processOutput, output);
-        const trimmedOutput = output.trim();
-        if (trimmedOutput) reportEntry(trimmedOutput);
-        return;
-      }
-      if (event.action !== "exit") return;
-      Neutralino.events.off("spawnedProcess", handler);
-      // Windows tar can return 1 for recoverable archive warnings. The caller
-      // verifies that real files were extracted before recording an install.
-      if (event.data === 0 || (isWindows && event.data === 1)) resolve();
-      else reject(createProcessError("Extraction", event.data, processOutput));
-    },
-  );
+    let processOutput = "";
+
+    await listenForProcess(
+      process,
+      getTask,
+      (event, handler, resolve, reject) => {
+        if (event.action === "stdOut" || event.action === "stdErr") {
+          const output = String(event.data || "");
+          processOutput = appendProcessOutput(processOutput, output);
+          const trimmedOutput = output.trim();
+          if (trimmedOutput) reportEntry(trimmedOutput);
+          return;
+        }
+        if (event.action !== "exit") return;
+        Neutralino.events.off("spawnedProcess", handler);
+        // Windows tar can return 1 for recoverable archive warnings. The caller
+        // verifies that real files were extracted before recording an install.
+        if (event.data === 0 || (isWindows && event.data === 1)) resolve();
+        else reject(createProcessError("Extraction", event.data, processOutput));
+      },
+    );
+  };
+
+  try {
+    await execute(command);
+  } catch (error) {
+    if (isWindows && String(error).includes("resolve failed") && !command.includes("--force-local")) {
+      await execute(command.replace("tar.exe -xf", "tar.exe --force-local -xf"));
+    } else {
+      throw error;
+    }
+  }
 
   if (extractNested) {
     await extractNestedArchives(destinationPath, getTask, onEntry);
