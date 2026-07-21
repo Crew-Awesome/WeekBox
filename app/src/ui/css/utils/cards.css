@@ -29,6 +29,7 @@
     transition: opacity 0.2s ease;
     pointer-events: none;
     z-index: 0;
+    border-radius: inherit;
 }
 
 .md3-component-card > * {
@@ -60,30 +61,30 @@
 }
 
 .md3-component-card--elevated {
-    background-color: var(--card-bg, var(--m3-component-surface-variant));
-    color: var(--card-color, #cac4d0);
+    background-color: var(--card-bg, var(--surface-container));
+    color: var(--card-color, var(--on-surface-variant));
     box-shadow: 0px 1px 2px 0px rgba(0,0,0,0.3), 0px 1px 3px 1px rgba(0,0,0,0.15);
     border: 1px solid transparent;
 }
 
 .md3-component-card--filled {
-    background-color: var(--card-bg, var(--m3-component-secondary-container));
-    color: var(--card-color, var(--m3-component-on-secondary-container));
+    background-color: var(--card-bg, var(--secondary-container));
+    color: var(--card-color, var(--on-secondary-container));
     border: 1px solid transparent;
 }
 
 .md3-component-card--outlined {
-    background-color: var(--card-bg, var(--m3-component-surface));
-    color: var(--card-color, #cac4d0);
-    border: 1px solid var(--m3-component-outline);
+    background-color: var(--card-bg, var(--surface));
+    color: var(--card-color, var(--on-surface-variant));
+    border: 1px solid var(--outline);
 }
 
 .md3-component-card--clickable:hover::before {
-    opacity: var(--m3-state-hover);
+    opacity: 0.08;
 }
 
 .md3-component-card--clickable:focus-visible::before {
-    opacity: var(--m3-state-focus);
+    opacity: 0.12;
 }
 
 .md3-component-card--clickable:focus-visible {
@@ -91,7 +92,7 @@
 }
 
 .md3-component-card--clickable.is-dragged::before {
-    opacity: var(--m3-state-dragged);
+    opacity: 0.16;
 }
 
 .md3-component-card--elevated.md3-component-card--clickable:hover {

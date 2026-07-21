@@ -4,7 +4,7 @@
     height: 100%;
     display: flex;
     flex-direction: column;
-    color: #fff;
+    color: var(--on-surface);
     font-family: 'Inter', sans-serif;
     overflow-y: auto;
     padding: 40px;
@@ -17,7 +17,7 @@
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: black;
+    background-color: var(--surface-dim);
     z-index: -1;
 }
 
@@ -33,7 +33,7 @@
 }
 
 .discover-content p {
-    color: #ccc;
+    color: var(--on-surface-variant);
     margin-bottom: 40px;
 }
 

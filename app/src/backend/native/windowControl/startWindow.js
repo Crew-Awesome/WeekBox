@@ -93,34 +93,52 @@ export function initWindowLogic() {
         splashContainer.innerHTML = await splashResponse.text();
         initCircleLoad('#splash-container .md3-component-circle-load', splashContainer);
         
+        const setSplashText = (text) => {
+            const el = document.getElementById('setup-window-progress-text');
+            if (el) el.textContent = text;
+        };
+        
+        setSplashText('Configuring window...');
+        
         updateCircleProgress(10);
         await Neutralino.window.setSize({ width: 400, height: 600 });
         await centerWindow(400, 600);
+        
+        setSplashText('Setting up temporary directories...');
         await ensureTmpDirectory();
+        
+        setSplashText('Initializing mods library...');
         await initModsLibrary();
         startLibraryWatcher();
+        
+        setSplashText('Loading user interface...');
         
         // Load Main App in the background
         const appResponse = await fetch('src/ui/html/app.html');
         mainContainer.innerHTML = await appResponse.text();
         
+        setSplashText('Waiting for core resources...');
         updateCircleProgress(30);
         await waitForResources();
         
+        setSplashText('Starting layout and modules...');
         // Initialize Sidebar (This triggers loading Discover and inserting posters)
         const sidebar = new SidebarController();
         await sidebar.init(); 
         
         updateCircleProgress(60);
         
+        setSplashText('Downloading cover images...');
         // Wait for all newly injected images (like carousel posters) to actually download
         await waitForImagesToLoad(mainContainer);
         
         updateCircleProgress(90);
+        setSplashText('Finishing up...');
         
         // Brief pause to allow the progress circle animation to gracefully reach 100%
         await new Promise(resolve => setTimeout(resolve, 800));
         updateCircleProgress(100);
+        setSplashText('Ready!');
         await new Promise(resolve => setTimeout(resolve, 300));
         
         // Resize to full window dimensions
@@ -151,6 +169,9 @@ export function initWindowLogic() {
         // Prepare main app for interaction
         mainContainer.style.opacity = '1';
         mainContainer.style.pointerEvents = 'auto';
+        
+        // Wait 1200ms before fading out
+        await new Promise(resolve => setTimeout(resolve, 500));
         
         // Force a layout reflow before applying the opacity transition to ensure it animates smoothly
         splashContainer.style.transition = 'opacity 0.6s ease';

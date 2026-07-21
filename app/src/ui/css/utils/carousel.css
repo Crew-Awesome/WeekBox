@@ -67,7 +67,7 @@
 .m3-carousel .m3-card {
     width: 100%;
     height: 100%;
-    background-color: var(--m3-component-surface-variant, #333);
+    background-color: var(--surface-container);
     position: relative;
     display: flex;
     flex-direction: column;
@@ -98,7 +98,7 @@
     transform: translateX(-50%);
     width: 100cqw;
     height: 60%;
-    background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0) 100%);
+    background: linear-gradient(to top, color-mix(in srgb, var(--scrim) 85%, transparent) 0%, transparent 100%);
     z-index: 1;
 }
 
@@ -106,7 +106,7 @@
     position: absolute;
     top: 24px;
     left: 24px;
-    background: rgba(0, 0, 0, 0.4);
+    background: color-mix(in srgb, var(--scrim) 40%, transparent);
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
     color: #fff;

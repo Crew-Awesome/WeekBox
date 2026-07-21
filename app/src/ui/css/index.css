@@ -38,6 +38,6 @@ html, body {
 }
 
 ::-webkit-scrollbar-thumb {
-    background: #3f3c40;
+    background: var(--outline-variant);
     border-radius: 4px;
 }

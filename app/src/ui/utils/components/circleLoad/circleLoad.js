@@ -4,6 +4,7 @@ import { startAnimation } from './animator.js';
 function parseColor(val, defaultColor) {
     if (!val) return defaultColor;
     val = val.trim();
+    if (val.startsWith('var(')) return val;
     if (val.includes(',')) return `rgb(${val})`;
     return `#${val.replace(/^#/, '')}`;
 }
@@ -69,12 +70,22 @@ export class CircleLoad {
     }
 }
 
-// Legacy helper functions that use the new Object-Oriented API
+/**
+ * Initializes the CircleLoad components on the DOM.
+ * @param {string} [containerSelector='.md3-component-circle-load'] - CSS selector for target containers
+ * @param {Document|Element} [parentContainer=document] - Root element to search in
+ */
 export function initCircleLoad(containerSelector = '.md3-component-circle-load', parentContainer = document) {
     const containers = parentContainer.querySelectorAll(containerSelector);
     containers.forEach(container => new CircleLoad(container));
 }
 
+/**
+ * Updates the progress of one or multiple CircleLoad instances.
+ * @param {number} percent - The progress percentage (0 to 100)
+ * @param {string|Element} [containerSelector='.md3-component-circle-load'] - Target container or selector
+ * @param {Document|Element} [parentContainer=document] - Root element to search in
+ */
 export function updateCircleProgress(percent, containerSelector = '.md3-component-circle-load', parentContainer = document) {
     const containers = typeof containerSelector === 'string' ? parentContainer.querySelectorAll(containerSelector) : [containerSelector];
     containers.forEach(c => {
@@ -82,6 +93,12 @@ export function updateCircleProgress(percent, containerSelector = '.md3-componen
     });
 }
 
+/**
+ * Sets the mode of the loader ("determinate" or "indeterminate").
+ * @param {string} mode - The mode string
+ * @param {string|Element} [containerSelector='.md3-component-circle-load'] - Target container or selector
+ * @param {Document|Element} [parentContainer=document] - Root element to search in
+ */
 export function setCircleMode(mode, containerSelector = '.md3-component-circle-load', parentContainer = document) {
     const containers = typeof containerSelector === 'string' ? parentContainer.querySelectorAll(containerSelector) : [containerSelector];
     containers.forEach(c => {

@@ -9,8 +9,8 @@
     overflow: hidden;
     font-family: 'Inter', sans-serif;
     gap: 24px;
-    /* Movemos el color de fondo aquí */
-    background-color: var(--md-sys-color-surface);
+    /* Base surface color */
+    background-color: var(--surface);
 }
 
 .setup-background {
@@ -30,10 +30,18 @@
 }
 
 #setup-window-progress-text {
-    color: #fff;
+    color: var(--on-surface);
     font-size: 16px;
     font-weight: 500;
     letter-spacing: 0.5px;
-    text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    text-shadow: 0 2px 4px color-mix(in srgb, var(--shadow) 30%, transparent);
     z-index: 1;
+}
+
+.launcher-logo {
+    width: 128px;
+    height: 128px;
+    object-fit: contain;
+    z-index: 1;
+    margin-bottom: -8px;
 }

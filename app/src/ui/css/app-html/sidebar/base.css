@@ -1,10 +1,10 @@
 .app-layout-container {
-    background-color: var(--md-sys-color-surface-bg);
+    background-color: var(--surface);
 }
 
 .app-sidebar {
-    background-color: var(--md-sys-color-surface-bg);
-    color: #fff;
+    background-color: var(--surface);
+    color: var(--on-surface);
     user-select: none;
     -webkit-user-select: none;
 }
@@ -29,22 +29,22 @@
 
 .app-sidebar-divisor {
     height: 1px;
-    background-color: #2d2b2e;
+    background-color: var(--outline);
     margin: 16px 0;
     flex-shrink: 0;
 }
 
 .app-sidebar-resizer {
-    background-color: #3f3c40;
+    background-color: var(--outline-variant);
     cursor: col-resize;
     transition: background-color 0.2s;
 }
 
 .app-sidebar-resizer:hover,
 .app-sidebar-resizer.is-resizing {
-    background-color: #6750A4;
+    background-color: var(--primary);
 }
 
 #app-main-bakground {
-    background-color: black;
+    background-color: var(--surface-dim);
 }

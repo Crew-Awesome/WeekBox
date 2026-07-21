@@ -3,7 +3,7 @@
     text-align: left;
     background: transparent;
     border: none;
-    color: #ccc;
+    color: var(--on-surface-variant);
     padding: 10px 12px;
     font-family: 'Inter', sans-serif;
     font-size: 14px;
@@ -41,14 +41,14 @@
 }
 
 .app-sidebar-button:hover {
-    color: #fff;
-    background-color: rgba(255, 255, 255, 0.1);
+    color: var(--on-surface);
+    background-color: var(--surface-container);
 }
 
 .app-sidebar-button.active,
 .app-sidebar-config-button.active {
-    background-color: rgba(255, 255, 255, 0.15);
-    color: #fff;
+    background-color: var(--surface-container-high);
+    color: var(--on-surface);
 }
 
 .app-sidebar-config-button {
@@ -56,8 +56,8 @@
     text-align: left;
     background: transparent;
     border: none;
-    border-top: 1px solid #3f3c40;
-    color: #ccc;
+    border-top: 1px solid var(--outline-variant);
+    color: var(--on-surface-variant);
     padding: 20px;
     font-family: 'Inter', sans-serif;
     font-size: 14px;
@@ -72,8 +72,8 @@
 }
 
 .app-sidebar-config-button:hover {
-    color: #fff;
-    background-color: rgba(255, 255, 255, 0.05);
+    color: var(--on-surface);
+    background-color: var(--surface-container-low);
 }
 
 .app-sidebar-title span,
