@@ -2,6 +2,12 @@ import { FeaturedService } from "./gamebanana/featuredService.js";
 import { CategoryFeedService } from "./gamebanana/categoryFeedService.js";
 import { GameBananaCategoryResolver } from "./gamebanana/categoryResolver.js";
 import {
+  getDownloadFiles,
+  getExternalDownloadLabel,
+  getPreferredDownloadOption,
+  isInstallableDownloadFile,
+} from "./gamebanana/downloadOptions.js";
+import {
   formatBytes,
   getImageUrl,
   getTimeAgo,
@@ -14,6 +20,10 @@ import {
   getSearchTypoRelevance as rankSearchTypo,
   getTypoSearchVariants as buildTypoSearchVariants,
 } from "./gamebanana/searchRanking.js";
+import {
+  isDependencySubmission,
+  parseGameBananaSubmission,
+} from "./gamebanana/submissionLinks.js";
 import { DISCOVERY_CONFIG } from "../config/discovery.js";
 import { sniroApi } from "./sniro.js";
 import {
@@ -32,8 +42,6 @@ const EXCLUDED_ENGINE_SUBMISSIONS = new Map([
 ]);
 
 const NON_DEPENDENCY_REQUIREMENTS = new Set(EXCLUDED_ENGINE_SUBMISSIONS.keys());
-const MIN_INSTALLABLE_FILE_SIZE = 1024;
-
 function quoteCommandArgument(value) {
   return `"${String(value).replaceAll('"', '\\"')}"`;
 }
@@ -152,15 +160,7 @@ export const gameBananaApi = {
   },
 
   getGameBananaSubmission(url) {
-    const match = String(url || "").match(
-      /^https?:\/\/(?:www\.)?gamebanana\.com\/(mods|tools)\/(\d+)(?:\/|$|\?)/i,
-    );
-    if (!match) return null;
-    return {
-      type: match[1].toLowerCase() === "tools" ? "tool" : "mod",
-      id: Number(match[2]),
-      url: `https://gamebanana.com/${match[1].toLowerCase()}/${match[2]}`,
-    };
+    return parseGameBananaSubmission(url);
   },
 
   getPrimaryDownloadFile(data) {
@@ -169,52 +169,19 @@ export const gameBananaApi = {
   },
 
   getDownloadFiles(data) {
-    const files = data?._aFiles;
-    if (Array.isArray(files)) return files;
-    if (!files || typeof files !== "object") return [];
-    if (files._sDownloadUrl) return [files];
-    return Object.values(files).filter(
-      (file) => file && typeof file === "object",
-    );
+    return getDownloadFiles(data);
   },
 
   isInstallableDownloadFile(file) {
-    const placeholderText = `${file?._sFile || ""} ${file?._sDescription || ""}`
-      .replaceAll("_", " ")
-      .toLowerCase();
-    return (
-      !file?._bIsArchived &&
-      file?._bHasContents !== false &&
-      Boolean(file?._sDownloadUrl) &&
-      Number(file?._nFilesize || 0) >= MIN_INSTALLABLE_FILE_SIZE &&
-      !/\b(?:placeholder|use\s+(?:mediafire|drive|external)|download\s+(?:from|on)\s+(?:mediafire|drive))\b/.test(
-        placeholderText,
-      )
-    );
+    return isInstallableDownloadFile(file);
   },
 
   getExternalDownloadLabel(url) {
-    try {
-      const hostname = new URL(url).hostname.toLowerCase();
-      if (hostname.endsWith("mediafire.com")) return "MediaFire download";
-      if (hostname === "drive.google.com") return "Drive download";
-    } catch (error) {}
-    return "External download";
+    return getExternalDownloadLabel(url);
   },
 
   getPreferredDownloadOption(options) {
-    return (
-      options.find((option) => option.type === "gamebanana") ||
-      options.find(
-        (option) =>
-          option.type === "external" &&
-          new URL(option.downloadUrl).hostname
-            .toLowerCase()
-            .endsWith("mediafire.com"),
-      ) ||
-      options.find((option) => option.type === "external") ||
-      null
-    );
+    return getPreferredDownloadOption(options);
   },
 
   getExternalDownloadFiles(data) {
@@ -424,17 +391,9 @@ export const gameBananaApi = {
       : [];
     const resolved = await Promise.all(
       requirements
-        .filter(([, url]) => {
-          const match = String(url || "").match(
-            /^https?:\/\/(?:www\.)?gamebanana\.com\/(mods|tools|wips)\/(\d+)(?:\/|$|\?)/i,
-          );
-          return (
-            !match ||
-            !NON_DEPENDENCY_REQUIREMENTS.has(
-              `${match[1].toLowerCase()}:${match[2]}`,
-            )
-          );
-        })
+        .filter(([, url]) =>
+          isDependencySubmission(url, NON_DEPENDENCY_REQUIREMENTS),
+        )
         .map(([name, url]) => this.getRequirementDetails({ name, url })),
     );
     return resolved.filter(Boolean);
