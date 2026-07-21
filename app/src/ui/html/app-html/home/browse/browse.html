@@ -2,7 +2,7 @@
     <div id="browse-background"></div>
     <div class="browse-content">
         <!-- Carrusel Automático e Infinito -->
-        <div class="m3-carousel" data-type="auto infinite" data-aspect-ratio="16 / 9">
+        <div class="m3-carousel" data-type="auto infinite" data-aspect-ratio="1 / 4">
             <div class="m3-carousel-scroller">
                 <div class="m3-carousel-item"><div class="m3-card"><img src="" alt="Cover" class="m3-card-img"><div class="m3-card-content"><h3>Placeholder 1</h3><p>Lorem ipsum dolor sit amet</p></div></div></div>
             </div>
@@ -25,4 +25,56 @@
         <!-- Vista de Categoría (Grid) -->
         <div id="browse-category-view" style="display: none; width: 100%; padding-bottom: 60px;"></div>
     </div>
+    
+    <!-- TEMPLATES PARA JS (Seguridad anti-XSS) -->
+    <template id="tmpl-engine-row">
+        <div class="browse-engine-row" style="opacity: 0.7;">
+            <h2 class="browse-engine-header">
+                <!-- Icono opcional (img) irá aquí -->
+                <span class="browse-engine-title"></span>
+                <button class="browse-engine-see-more">See More</button>
+            </h2>
+            <div class="browse-engine-slider-container" role="region" aria-roledescription="carousel" aria-label="Mods">
+                <button class="browse-slider-btn browse-slider-prev" aria-label="Previous slide" title="Previous">
+                    <img src="assets/app/client/arrow-client.svg" alt="" aria-hidden="true" style="transform: rotate(180deg);">
+                </button>
+                <div class="browse-engine-slider-wrapper" aria-live="polite">
+                    <div class="browse-engine-track"></div>
+                </div>
+                <button class="browse-slider-btn browse-slider-next" aria-label="Next slide" title="Next">
+                    <img src="assets/app/client/arrow-client.svg" alt="" aria-hidden="true">
+                </button>
+            </div>
+        </div>
+    </template>
+
+    <template id="tmpl-mod-card">
+        <div class="m3-card browse-m3-card">
+            <div class="browse-m3-card-img-wrapper">
+                <img class="mod-cover" loading="lazy" src="" alt="Mod Cover">
+                <div class="chip-container"></div>
+            </div>
+            <div class="m3-card-content">
+                <h3 class="m3-card-title mod-title"></h3>
+                <p class="m3-card-author mod-author"></p>
+                <div class="m3-card-stats mod-stats">
+                    <span class="m3-card-stat"><img src="assets/app/icons/eye.svg" style="width:14px; opacity:0.8;"> <span class="stat-views"></span></span>
+                    <span class="m3-card-stat"><img src="assets/app/icons/likes.svg" style="width:14px; opacity:0.8;"> <span class="stat-likes"></span></span>
+                    <span class="m3-card-stat" style="margin-left: auto; display:flex; align-items:center; gap:4px;"><img src="assets/app/icons/calendar.svg" style="width:12px; opacity:0.8; filter: brightness(0) invert(1);"> <span class="stat-time"></span></span>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <template id="tmpl-category-header">
+        <div class="browse-category-header">
+            <div class="category-title-wrap">
+                <!-- Icono opcional irá aquí -->
+                <h2 class="category-title"></h2>
+            </div>
+        </div>
+        <button class="back-to-hub-fab" style="position: fixed; bottom: 30px; right: 30px; z-index: 1000; padding: 12px 24px; border-radius: 30px; background-color: #ffffff; color: #000000; font-weight: bold; border: none; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.5); transition: transform 0.2s, background-color 0.2s;">
+            Back to Hub
+        </button>
+    </template>
 </div>

@@ -1,6 +1,6 @@
 import { initCarousels } from '../../../utils/components/carousel/carousel.js';
 import { loadFeaturedCarousel } from './browse-carousel-featured.js';
-import { loadEngineRows } from './browse-engines.js';
+import { loadEngineRows } from './browse-engines/index.js';
 
 /**
  * Initializes the Browse view.
