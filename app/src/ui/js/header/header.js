@@ -32,6 +32,27 @@ export class HeaderController {
                 await this.loadHeader(target);
             }
         });
+
+        // Global scroll listener for header collapse animation
+        let lastScrollTop = 0;
+        document.addEventListener('scroll', (e) => {
+            const target = e.target;
+            if (target && target.classList && (target.classList.contains('browse-container') || target.classList.contains('app-main-content') || target.tagName === 'MAIN' || target.tagName === 'SECTION')) {
+                const currentScrollTop = target.scrollTop;
+                const appHeader = document.querySelector('.app-header');
+                if (!appHeader) return;
+                
+                // Only trigger if we scroll more than a tiny threshold to prevent jitter
+                if (Math.abs(currentScrollTop - lastScrollTop) < 5) return;
+                
+                if (currentScrollTop > lastScrollTop && currentScrollTop > 50) {
+                    appHeader.classList.add('header-collapsed');
+                } else if (currentScrollTop < lastScrollTop) {
+                    appHeader.classList.remove('header-collapsed');
+                }
+                lastScrollTop = currentScrollTop;
+            }
+        }, true); // Use capture because scroll events don't bubble
     }
 
     /**

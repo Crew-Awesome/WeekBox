@@ -1,0 +1,73 @@
+/* Carousel Controls */
+.browse-carousel-controls {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    margin-top: 16px;
+}
+
+.browse-carousel-arrow {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    width: 40px;
+    height: 40px;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--on-surface);
+    transition: background-color 0.2s ease;
+}
+
+.browse-carousel-arrow:hover {
+    background-color: var(--surface-container-highest);
+}
+
+.browse-carousel-arrow img {
+    width: 24px;
+    height: 24px;
+    pointer-events: none;
+}
+
+.browse-carousel-pills {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.browse-carousel-pill {
+    width: 32px;
+    height: 8px;
+    border-radius: 4px;
+    background-color: var(--surface-container-highest);
+    cursor: pointer;
+    overflow: hidden;
+    position: relative;
+    transition: background-color 0.2s ease, width 0.2s ease;
+}
+
+.browse-carousel-pill:hover {
+    background-color: var(--outline-variant);
+}
+
+.browse-carousel-pill-fill {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 0%;
+    background-color: var(--primary);
+    border-radius: 4px;
+}
+
+/* Animation class for fill */
+.browse-carousel-pill.is-active .browse-carousel-pill-fill {
+    animation: fillPill linear forwards;
+}
+
+@keyframes fillPill {
+    0% { width: 0%; }
+    100% { width: 100%; }
+}

@@ -136,14 +136,16 @@ export class ClientController {
         const btnBack = this.container.querySelector('#client-btn-back');
         if (btnBack) {
             btnBack.addEventListener('click', () => {
-                console.log('Back clicked');
+                if (window.history.length > 1) {
+                    window.history.back();
+                }
             });
         }
 
         const btnForward = this.container.querySelector('#client-btn-forward');
         if (btnForward) {
             btnForward.addEventListener('click', () => {
-                console.log('Forward clicked');
+                window.history.forward();
             });
         }
     }

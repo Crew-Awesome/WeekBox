@@ -1,0 +1,28 @@
+/* Category Grid View Styles */
+.browse-category-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 24px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--surface-container-high);
+}
+
+.category-title-wrap {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.category-title-wrap h2 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin: 0;
+}
+
+.browse-category-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 20px;
+    width: 100%;
+}

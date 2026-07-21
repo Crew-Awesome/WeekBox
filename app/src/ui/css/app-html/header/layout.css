@@ -14,6 +14,13 @@
     background-color: var(--surface);
     border-bottom: 1px solid var(--outline-variant);
     flex-shrink: 0;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow: hidden;
+}
+
+.app-header.header-collapsed {
+    height: 1px;
+    padding: 0 24px; /* Keep horizontal padding to not affect child positioning if needed, or 0 */
 }
 
 .app-header__content {
@@ -29,6 +36,13 @@
     margin: 0;
     padding: 0;
     gap: 8px;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.header-collapsed .app-header__tabs {
+    transform: translateX(-50px);
+    opacity: 0;
+    pointer-events: none;
 }
 
 .app-header__tab {
