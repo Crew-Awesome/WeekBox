@@ -21,6 +21,7 @@ const settingDefinitions = {
   checkAppUpdatesOnStartup: { type: "boolean", defaultValue: true },
   diagnosticReportingEnabled: { type: "boolean", defaultValue: true },
   diagnosticReportingConsentAnswered: { type: "boolean", defaultValue: false },
+  firstRunStorageSetupComplete: { type: "boolean", defaultValue: false },
 };
 
 function isValidValue(definition, value) {

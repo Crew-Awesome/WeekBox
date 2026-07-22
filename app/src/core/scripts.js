@@ -18,6 +18,7 @@ import { startupLoader } from "./startupLoader.js";
 import { networkStatus } from "./networkStatus.js";
 import { modManagerModal } from "../ui/mod-manager/index.js";
 import { diagnosticsConsentModal } from "../ui/diagnosticsConsentModal.js";
+import { firstRunStorageModal } from "../ui/firstRunStorageModal.js";
 
 function clearTestToasts() {
   document
@@ -107,6 +108,44 @@ function installGlobalErrorReporter() {
       storagePath: FS.weekboxPath,
     });
   });
+}
+
+async function completeFirstRunStorageSetup(defaultStoragePath, hadSettings) {
+  if (appSettings.get("firstRunStorageSetupComplete")) return;
+  if (hadSettings) {
+    appSettings.set("firstRunStorageSetupComplete", true);
+    return;
+  }
+
+  const choice = await firstRunStorageModal.show(defaultStoragePath);
+  let completed = choice === "default";
+  if (choice === "new" || choice === "existing") {
+    const selectedPath = await Neutralino.os.showFolderDialog(
+      choice === "existing"
+        ? "Choose an existing WeekBox folder or its parent folder"
+        : "Choose the folder that will contain WeekBox",
+      { defaultPath: FS.basePath },
+    );
+    if (selectedPath) {
+      const existing = await FS.findExistingStorage(selectedPath);
+      if (choice === "existing") {
+        if (existing) {
+          await FS.useExistingStorage(existing.basePath);
+          completed = true;
+        } else
+          await Neutralino.os.showMessageBox(
+            "WeekBox library not found",
+            "That folder does not contain a complete WeekBox library. WeekBox will keep using the current folder.",
+            "OK",
+            "WARNING",
+          );
+      } else if (!existing) {
+        await FS.moveStorageTo(selectedPath);
+        completed = true;
+      }
+    }
+  }
+  if (completed) appSettings.set("firstRunStorageSetupComplete", true);
 }
 
 installGlobalErrorReporter();
@@ -254,10 +293,15 @@ async function startApp() {
     await storageBridge.init();
     const defaultStoragePath = await FS.getDefaultStorageParentPath();
     const defaultDataPath = `${defaultStoragePath}/WeekBox/data`;
-    await appSettings.init(await appSettings.resolveDataPath(defaultDataPath));
+    const settingsDataPath = await appSettings.resolveDataPath(defaultDataPath);
+    const hadSettings = await FS.api.exists(
+      `${settingsDataPath}/settings.json`,
+    );
+    await appSettings.init(settingsDataPath);
     startupLoader.setPhase("Preparing your library", 42);
     await FS.init({ deferMaintenance: true });
     await appSettings.setDataPath(FS.dataPath);
+    await completeFirstRunStorageSetup(defaultStoragePath, hadSettings);
     startupLoader.setPhase("Loading interface", 64);
     registerHomeView();
     registerEnginesView();

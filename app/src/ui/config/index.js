@@ -94,6 +94,10 @@ export const configModal = {
       ?.addEventListener("click", () => this.useDefaultStorageLocation());
 
     document
+      .getElementById("cleanup-incomplete-downloads")
+      ?.addEventListener("click", () => this.cleanupIncompleteDownloads());
+
+    document
       .getElementById("storage-location-path")
       ?.addEventListener("click", () => this.openStorageLocation());
 
@@ -209,6 +213,23 @@ export const configModal = {
       label.textContent = await formatStoragePath(
         FS.weekboxPath || "AppData/WeekBox",
       );
+  },
+
+  async cleanupIncompleteDownloads() {
+    const button = document.getElementById("cleanup-incomplete-downloads");
+    if (!button) return;
+    button.disabled = true;
+    button.textContent = "Cleaning…";
+    try {
+      await FS.cleanupIncompleteDownloads();
+      button.textContent = "Cleaned up";
+    } catch {
+      button.textContent = "Cleanup failed";
+    }
+    setTimeout(() => {
+      button.disabled = false;
+      button.textContent = "Clean up";
+    }, 1800);
   },
 
   async openStorageLocation() {
