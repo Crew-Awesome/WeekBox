@@ -55,6 +55,29 @@ function getMessage(error) {
   return String(error || "An unexpected error occurred");
 }
 
+function getDiagnosticErrorMessage(error) {
+  if (error instanceof Error) return error.message || "An unexpected error";
+  if (error && typeof error === "object" && error.message) {
+    return String(error.message);
+  }
+  return getMessage(error);
+}
+
+function getDiagnosticStackTrace(error) {
+  if (error instanceof Error && error.stack) return error.stack;
+  if (error && typeof error === "object" && typeof error.stack === "string") {
+    return error.stack;
+  }
+
+  let nativeDetails = "No extra native error details were provided.";
+  if (error && typeof error === "object") {
+    try {
+      nativeDetails = JSON.stringify(error, null, 2);
+    } catch {}
+  }
+  return `No JavaScript stack trace was provided by Neutralino.\nNative error details:\n${nativeDetails}`;
+}
+
 function describeIssue(error) {
   const message = getMessage(error);
   const lower = message.toLowerCase();
@@ -191,14 +214,8 @@ async function submitDiagnosticReport(context, issue) {
     return;
   }
 
-  const errorMessage =
-    context.error instanceof Error
-      ? context.error.message
-      : getMessage(context.error);
-  const stackTrace =
-    context.error instanceof Error
-      ? context.error.stack || context.error.message
-      : getMessage(context.error);
+  const errorMessage = getDiagnosticErrorMessage(context.error);
+  const stackTrace = getDiagnosticStackTrace(context.error);
   const [operatingSystem, architecture] = await Promise.all([
     getOperatingSystem(),
     getArchitecture(),

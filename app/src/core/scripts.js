@@ -257,6 +257,7 @@ async function offerNestedStorageRepair() {
 }
 
 async function startApp() {
+  let startupStep = "starting native services";
   try {
     startupLoader.setPhase("Starting native services", 8);
     Neutralino.init();
@@ -290,18 +291,26 @@ async function startApp() {
       await Neutralino.app.exit();
     });
     startupLoader.setPhase("Restoring preferences", 20);
+    startupStep = "restoring preferences";
     await storageBridge.init();
+    startupStep = "finding the default storage location";
     const defaultStoragePath = await FS.getDefaultStorageParentPath();
     const defaultDataPath = `${defaultStoragePath}/WeekBox/data`;
+    startupStep = "reading saved settings";
     const settingsDataPath = await appSettings.resolveDataPath(defaultDataPath);
     const hadSettings = await FS.api.exists(
       `${settingsDataPath}/settings.json`,
     );
     await appSettings.init(settingsDataPath);
     startupLoader.setPhase("Preparing your library", 42);
+    startupStep = "preparing the WeekBox library";
     await FS.init({ deferMaintenance: true });
     await appSettings.setDataPath(FS.dataPath);
-    await completeFirstRunStorageSetup(defaultStoragePath, hadSettings);
+    try {
+      await completeFirstRunStorageSetup(defaultStoragePath, hadSettings);
+    } catch (error) {
+      console.warn("Could not finish first-run storage setup", error);
+    }
     startupLoader.setPhase("Loading interface", 64);
     registerHomeView();
     registerEnginesView();
@@ -343,11 +352,15 @@ async function startApp() {
     }
     console.log("WeekBox: modules loaded.");
   } catch (error) {
+    const message = error?.message || String(error);
+    const startupError = new Error(
+      `WeekBox could not finish ${startupStep}: ${message}`,
+    );
     startupLoader.fail("Could not start WeekBox");
     console.error("Startup error:", error);
     try {
       errorHandler.show({
-        error,
+        error: startupError,
         action: "Start WeekBox",
         storagePath: FS.weekboxPath,
       });
