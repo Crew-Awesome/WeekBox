@@ -11,6 +11,7 @@ import { ModRepository } from "./filesystem/modRepository.js";
 import { ModCoverService } from "./filesystem/modCoverService.js";
 import { isValidEngineVersion } from "./filesystem/engineVersion.js";
 import {
+  getEngineModFolderName,
   getParentPath,
   getModFolderName,
   getRealEntries,
@@ -593,7 +594,10 @@ class FileSystemService {
     const behavior = getEngineLaunchBehavior(engine.id);
     const launch = async () => {
       await this.injectModIntoEngine(mod.id, engine.id, engine.version);
-      const args = getEngineModLaunchArgs(engine.id, getModFolderName(mod));
+      const args = getEngineModLaunchArgs(
+        engine.id,
+        getEngineModFolderName(mod),
+      );
       return this.runEngine(
         engine.id,
         engine.version,
@@ -874,6 +878,7 @@ class FileSystemService {
       });
       await this.saveInstalledMod(modId, modName, {
         folderName,
+        engineFolderName: sanitizePathSegment(modName) || folderName,
         engineId: engineId || null,
         engineVersion: engineId ? engineVersion || null : null,
         source: "local",

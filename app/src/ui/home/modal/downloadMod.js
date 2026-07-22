@@ -1,5 +1,8 @@
 import { FS } from "../../../utils/filesystem.js";
-import { sanitizeModFolderName } from "../../../utils/filesystem/pathUtils.js";
+import {
+  sanitizeModFolderName,
+  sanitizePathSegment,
+} from "../../../utils/filesystem/pathUtils.js";
 import { gameBananaApi } from "../../../api/gamebanana.js";
 import { primeModCover } from "../../mod-manager/modImageLoader.js";
 import {
@@ -138,13 +141,12 @@ export const downloadMod = {
     FS.assertStorageUnlocked();
     const modsBasePath = FS.modsPath;
     const taskKey = String(modId).replace(/[^a-z0-9_-]/gi, "_");
-    const sanitizedModName = sanitizeModFolderName(
-      modName,
-      `Mod-${taskKey}`,
-    );
-    const targetModFolder = `${modsBasePath}/${sanitizedModName}`;
+    const fallbackFolderName = sanitizeModFolderName(modName, `Mod-${taskKey}`);
+    let storageFolderName = `${fallbackFolderName}--${taskKey}`;
+    let engineFolderName = fallbackFolderName;
+    let targetModFolder = `${modsBasePath}/.extract_${taskKey}`;
     const tempFilePath = `${modsBasePath}/temp_${taskKey}.zip`;
-    const downloadMarkerPath = `${targetModFolder}/.downloading`;
+    let downloadMarkerPath = `${targetModFolder}/.downloading`;
 
     this.activeTasks.set(modId, {
       cancelled: false,
@@ -271,43 +273,46 @@ export const downloadMod = {
       }
 
       if (this.activeTasks.get(modId)?.cancelled) throw new Error("Cancelled");
-      toastDownloadMod.update(modId, 99, "Flattening Folder...");
+      toastDownloadMod.update(modId, 99, "Preparing mod folder...");
+      const extractedEntries =
+        await Neutralino.filesystem.readDirectory(targetModFolder);
+      const realEntries = extractedEntries.filter(
+        (entry) =>
+          entry.entry !== "." &&
+          entry.entry !== ".." &&
+          entry.entry !== ".downloading",
+      );
+      const wrapper =
+        realEntries.length === 1 && realEntries[0].type === "DIRECTORY"
+          ? realEntries[0]
+          : null;
 
-      let flattened = true;
-      while (flattened) {
-        flattened = false;
-        const currentFiles =
-          await Neutralino.filesystem.readDirectory(targetModFolder);
-        const currentReal = currentFiles.filter(
-          (f) =>
-            f.entry !== "." && f.entry !== ".." && f.entry !== ".downloading",
-        );
-
-        if (currentReal.length === 1 && currentReal[0].type === "DIRECTORY") {
-          flattened = true;
-          const subDirName = currentReal[0].entry;
-          const subDirPath = `${targetModFolder}/${subDirName}`;
-
-          const subFiles =
-            await Neutralino.filesystem.readDirectory(subDirPath);
-          const realSubFiles = subFiles.filter(
-            (f) => f.entry !== "." && f.entry !== "..",
-          );
-
-          // Stage entries outside the wrapper before removing it. This also
-          // handles archives with repeated wrapper names (for example,
-          // `Mod/Mod/...`) without trying to move a folder into itself.
-          const flattenTempPath = `${targetModFolder}/.flatten_${taskKey}`;
-          await FS.api.ensureDir(flattenTempPath);
-          await this.moveEntries(realSubFiles, subDirPath, flattenTempPath);
-          await Neutralino.filesystem.remove(subDirPath).catch(() => {});
-
-          const stagedFiles =
-            await Neutralino.filesystem.readDirectory(flattenTempPath);
-          await this.moveEntries(stagedFiles, flattenTempPath, targetModFolder);
-          await Neutralino.filesystem.remove(flattenTempPath).catch(() => {});
-        }
+      if (wrapper) {
+        engineFolderName =
+          sanitizePathSegment(wrapper.entry) || fallbackFolderName;
+        storageFolderName = `${sanitizeModFolderName(wrapper.entry, fallbackFolderName)}--${taskKey}`;
       }
+
+      const stagingFolder = targetModFolder;
+      const finalModFolder = `${modsBasePath}/${storageFolderName}`;
+      if (await FS.api.exists(finalModFolder)) {
+        throw new Error("This mod is already installed");
+      }
+      if (wrapper) {
+        await Neutralino.filesystem.move(
+          `${stagingFolder}/${wrapper.entry}`,
+          finalModFolder,
+        );
+      } else {
+        await FS.api.ensureDir(finalModFolder);
+        await this.moveEntries(realEntries, stagingFolder, finalModFolder);
+      }
+      await FS.api.remove(stagingFolder).catch(() => {});
+      targetModFolder = finalModFolder;
+      downloadMarkerPath = `${targetModFolder}/.downloading`;
+      const activeTask = this.activeTasks.get(modId);
+      if (activeTask) activeTask.targetModFolder = targetModFolder;
+      await FS.api.write(downloadMarkerPath, "");
 
       if (this.activeTasks.get(modId)?.cancelled) throw new Error("Cancelled");
       toastDownloadMod.update(modId, 99, "Deleting temp Zip...");
@@ -322,7 +327,8 @@ export const downloadMod = {
 
       await FS.saveInstalledMod(modId, modName, {
         engineId,
-        folderName: sanitizedModName,
+        folderName: storageFolderName,
+        engineFolderName,
         ...installMetadata,
       });
 

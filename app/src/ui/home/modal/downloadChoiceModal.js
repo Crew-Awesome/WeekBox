@@ -44,10 +44,16 @@ export const downloadChoiceModal = {
         const name = document.createElement("strong");
         name.textContent = option.name;
         const meta = document.createElement("small");
-        meta.textContent =
+        const fileDetails =
           option.type === "external"
             ? option.fileSizeStr || "Alternate file source"
             : option.fileSizeStr;
+        meta.textContent = [
+          fileDetails,
+          option.uploadedAtLabel,
+        ]
+          .filter(Boolean)
+          .join(" • ");
         copy.append(name, meta);
 
         const icon = document.createElement("i");

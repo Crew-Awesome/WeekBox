@@ -1,4 +1,4 @@
-import { getModFolderName } from "./pathUtils.js";
+import { getEngineModFolderName, getModFolderName } from "./pathUtils.js";
 
 function sameId(left, right) {
   return String(left) === String(right);
@@ -84,14 +84,28 @@ export class ModInjectionService {
     const sourcePath = `${this.getModsPath()}/${folderName}`;
     await this.migrateLegacyEngineMods(engineId, version);
     const modsPath = await this.getEngineModsPath(engineId, version);
-    const linkPath = `${modsPath}/${folderName}`;
+    const engineFolderName = getEngineModFolderName(mod);
+    const linkPath = `${modsPath}/${engineFolderName}`;
 
     if (!(await this.api.exists(sourcePath))) {
       throw new Error(`Mod files not found for ${mod.name}`);
     }
     await this.api.ensureDir(modsPath);
-    if (await this.api.exists(linkPath))
+    if (await this.api.exists(linkPath)) {
+      const conflicts = (await this.modRepository.getAll()).filter(
+        (otherMod) =>
+          !sameId(otherMod.id, mod.id) &&
+          otherMod.engineId === engineId &&
+          !otherMod.hidden &&
+          getEngineModFolderName(otherMod) === engineFolderName,
+      );
+      if (conflicts.length) {
+        throw new Error(
+          `Engine folder conflict: ${engineFolderName} is already used by ${conflicts[0].name}. Remove or hide it before launching ${mod.name}.`,
+        );
+      }
       return { linked: false, path: linkPath };
+    }
 
     const command =
       window.NL_OS === "Windows"
@@ -152,7 +166,7 @@ export class ModInjectionService {
     const legacyModsPath = this.getLegacyModsPath(engineId, version);
     const bundleModsPath = await this.getEngineModsPath(engineId, version);
     const paths = [...new Set([bundleModsPath, legacyModsPath])].map(
-      (modsPath) => `${modsPath}/${getModFolderName(mod)}`,
+      (modsPath) => `${modsPath}/${getEngineModFolderName(mod)}`,
     );
     let removed = false;
     for (const linkPath of paths) {

@@ -291,6 +291,16 @@ export const gameBananaApi = {
     }
   },
 
+  formatDownloadDate(timestamp) {
+    const date = new Date(Number(timestamp) * 1000);
+    if (!Number.isFinite(date.getTime())) return null;
+    return date.toLocaleDateString(undefined, {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  },
+
   async getDownloadOptions(data) {
     const options = [
       ...this.getDownloadFiles(data)
@@ -305,10 +315,16 @@ export const gameBananaApi = {
             `File ${index + 1}`,
           fileSize: Number(file._nFilesize || 0),
           fileSizeStr: this.formatBytes(file._nFilesize || 0),
+          uploadedAt: Number(file._tsDateAdded || 0),
+          uploadedAtLabel: this.formatDownloadDate(file._tsDateAdded),
           downloadUrl: file._sDownloadUrl,
         })),
       ...this.getExternalDownloadFiles(data),
     ];
+    options.sort(
+      (left, right) =>
+        Number(right.uploadedAt || 0) - Number(left.uploadedAt || 0),
+    );
     await Promise.all(
       options
         .filter((option) => option.type === "external")

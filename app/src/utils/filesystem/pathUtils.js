@@ -27,3 +27,7 @@ export function getRealEntries(entries) {
 export function getModFolderName(mod) {
   return mod.folderName || sanitizePathSegment(mod.name);
 }
+
+export function getEngineModFolderName(mod) {
+  return mod.engineFolderName || getModFolderName(mod);
+}
