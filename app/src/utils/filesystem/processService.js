@@ -11,9 +11,10 @@ export class ProcessService {
       return false;
     }
 
+    let command = "";
     try {
       onStateChange?.("running");
-      const command = [
+      command = [
         `"${executablePath}"`,
         ...args.map((arg) => `"${String(arg).replaceAll('"', '\\"')}"`),
       ].join(" ");
@@ -35,6 +36,11 @@ export class ProcessService {
       onStateChange?.("launched");
       return true;
     } catch (error) {
+      console.error("Could not launch engine", {
+        executablePath,
+        command,
+        error,
+      });
       onStateChange?.("error");
       return false;
     }
