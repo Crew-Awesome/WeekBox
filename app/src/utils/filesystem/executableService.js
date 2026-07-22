@@ -14,6 +14,7 @@ export class ExecutableService {
   async find(dir) {
     this.lastError = null;
     const isWindows = window.NL_OS === "Windows";
+    const isMacOS = window.NL_OS === "Darwin";
     const directories = [dir];
 
     while (directories.length > 0) {
@@ -26,12 +27,28 @@ export class ExecutableService {
         for (const entry of entries) {
           const fullPath = `${currentDir}/${entry.entry}`;
           if (String(entry.type).toUpperCase() === "DIRECTORY") {
+            if (isMacOS && /\.app$/i.test(entry.entry)) {
+              const macOSDirectory = `${fullPath}/Contents/MacOS`;
+              try {
+                const appEntries = getRealEntries(
+                  await Neutralino.filesystem.readDirectory(macOSDirectory),
+                );
+                const executable = appEntries.find(
+                  (appEntry) => String(appEntry.type).toUpperCase() === "FILE",
+                );
+                if (executable) return `${macOSDirectory}/${executable.entry}`;
+              } catch (error) {
+                this.lastError = describeFileSystemError(error);
+              }
+            }
             directories.push(fullPath);
             continue;
           }
           if (
             entry.entry.toLowerCase().endsWith(".exe") ||
-            (!isWindows && !entry.entry.includes("."))
+            (!isWindows &&
+              !entry.entry.includes(".") &&
+              entry.entry !== "CodeResources")
           ) {
             return fullPath;
           }
