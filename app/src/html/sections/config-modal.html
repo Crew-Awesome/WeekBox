@@ -7,7 +7,7 @@
       </div>
       <nav class="config-nav">
         <button class="config-tab-btn active" data-tab-target="general">
-          <i class="fa-solid fa-sliders"></i> General
+          <i class="fa-solid fa-window-maximize"></i> App &amp; window
         </button>
         <button class="config-tab-btn" data-tab-target="downloads">
           <i class="fa-solid fa-download"></i> Downloads
@@ -18,6 +18,9 @@
         <button class="config-tab-btn" data-tab-target="updates">
           <i class="fa-solid fa-arrows-rotate"></i> Updates
         </button>
+        <button class="config-tab-btn" data-tab-target="privacy">
+          <i class="fa-solid fa-shield-halved"></i> Privacy
+        </button>
         <button class="config-tab-btn" data-tab-target="credits">
           <i class="fa-solid fa-heart"></i> Credits
         </button>
@@ -26,20 +29,20 @@
 
     <main class="config-main">
       <header class="config-header">
-        <h3 id="config-section-title">General</h3>
+        <h3 id="config-section-title">App &amp; window</h3>
         <button class="config-close-btn" id="config-close-btn" title="Close">
           <i class="fa-solid fa-xmark"></i>
         </button>
       </header>
 
       <div class="config-body">
-        <!-- GENERAL TAB -->
+        <!-- APP & WINDOW TAB -->
         <div id="config-general" class="config-tab-content active">
           <div class="settings-list">
             <div class="setting-item">
               <div class="setting-info">
                 <h4>Launch on startup</h4>
-                <p>Start the launcher automatically when your PC boots.</p>
+                <p>Start WeekBox automatically when your PC starts.</p>
               </div>
               <label class="switch">
                 <input type="checkbox" id="setting-launchOnStartup" />
@@ -64,40 +67,10 @@
             <div class="setting-item">
               <div class="setting-info">
                 <h4>Hide window when launching</h4>
-                <p>Minimize or hide the launcher while an engine is running.</p>
+                <p>Hide WeekBox while an engine is running.</p>
               </div>
               <label class="switch">
                 <input type="checkbox" id="setting-hideOnLaunch" />
-                <span class="slider round"></span>
-              </label>
-            </div>
-
-            <div class="setting-item">
-              <div class="setting-info">
-                <h4>Auto-start engines</h4>
-                <p>
-                  Automatically launch the engine when its download finishes.
-                </p>
-              </div>
-              <label class="switch">
-                <input type="checkbox" id="setting-autoStartAfterDownload" />
-                <span class="slider round"></span>
-              </label>
-            </div>
-
-            <div class="setting-item">
-              <div class="setting-info">
-                <h4>Diagnostic reporting</h4>
-                <p>
-                  Automatically send limited technical error reports to help
-                  improve WeekBox.
-                </p>
-              </div>
-              <label class="switch">
-                <input
-                  type="checkbox"
-                  id="setting-diagnosticReportingEnabled"
-                />
                 <span class="slider round"></span>
               </label>
             </div>
@@ -118,6 +91,16 @@
               </div>
               <label class="switch">
                 <input type="checkbox" id="setting-multithreadDownloads" />
+                <span class="slider round"></span>
+              </label>
+            </div>
+            <div class="setting-item">
+              <div class="setting-info">
+                <h4>Open engines after downloading</h4>
+                <p>Start an engine automatically once its download finishes.</p>
+              </div>
+              <label class="switch">
+                <input type="checkbox" id="setting-autoStartAfterDownload" />
                 <span class="slider round"></span>
               </label>
             </div>
@@ -243,6 +226,33 @@
               </div>
               <label class="switch">
                 <input type="checkbox" id="setting-checkUpdatesInBackground" />
+                <span class="slider round"></span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- PRIVACY TAB -->
+        <div
+          id="config-privacy"
+          class="config-tab-content"
+          style="display: none"
+        >
+          <div class="settings-list">
+            <div class="setting-item">
+              <div class="setting-info">
+                <h4>Diagnostic reporting</h4>
+                <p>
+                  Send error details to the WeekBox developers when something
+                  breaks. Personal file locations, email addresses, and common
+                  secret codes are removed first.
+                </p>
+              </div>
+              <label class="switch">
+                <input
+                  type="checkbox"
+                  id="setting-diagnosticReportingEnabled"
+                />
                 <span class="slider round"></span>
               </label>
             </div>
