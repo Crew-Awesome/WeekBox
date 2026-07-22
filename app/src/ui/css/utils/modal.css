@@ -1,0 +1,70 @@
+/* 
+ * Scoped CSS for Md3Modal Component 
+ * BEM Methodology applied: .md3-component-modal
+ */
+
+/* Backdrop (Dark Background) */
+.md3-component-modal__backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    
+    opacity: 0; /* Default invisible for fade-in */
+    visibility: hidden;
+    transition: opacity 0.2s ease, visibility 0.2s ease;
+}
+
+/* Pseudo element for backdrop styling safely separating blur from child */
+.md3-component-modal__backdrop::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    backdrop-filter: blur(var(--modal-backdrop-blur, 4px));
+    
+    /* Using color-mix to combine the custom color with the custom opacity securely */
+    background-color: color-mix(in srgb, var(--modal-backdrop-color, var(--surface-container, #000)) calc(var(--modal-backdrop-opacity, 0.5) * 100%), transparent);
+    z-index: -1;
+}
+
+/* Modal Content Container */
+.md3-component-modal__container {
+    background-color: var(--surface-container-high, #ffffff);
+    color: var(--on-surface, #000000);
+    border-radius: 28px; /* Material Design 3 standard for large modals */
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+    overflow: hidden;
+    position: relative;
+    max-width: 90vw;
+    max-height: 90vh;
+    
+    /* Default spacing / dynamic vars */
+    width: auto;
+    height: auto;
+    margin-top: auto;
+    margin-bottom: auto;
+
+    /* Animation initial state */
+    opacity: 0;
+    transform: scale(0.95) translateY(10px);
+    transition: opacity 0.2s cubic-bezier(0.2, 0, 0, 1), transform 0.2s cubic-bezier(0.2, 0, 0, 1);
+}
+
+/* Visibility states */
+.md3-component-modal__backdrop--visible {
+    visibility: visible;
+    opacity: 1;
+}
+
+.md3-component-modal__container--visible {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+}

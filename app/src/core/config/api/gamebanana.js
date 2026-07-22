@@ -566,6 +566,8 @@ export const gameBananaApi = {
         id: data._idRow,
         title: data._sName,
         author: data._aSubmitter?._sName || "Unknown Creator",
+        authorAvatar: data._aSubmitter?._sAvatarUrl || null,
+        credits: data._aCredits || [],
         description: data._sText || "<p>No description available.</p>",
         likes: data._nLikeCount || 0,
         views: data._nViewCount || 0,

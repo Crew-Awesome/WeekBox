@@ -1,0 +1,316 @@
+/* BEM Naming and Scoped CSS for Browse Mod Modal */
+.browse-mod-modal {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 24px;
+    padding: 24px;
+    height: 100%;
+    box-sizing: border-box;
+    overflow: hidden; /* Prevent global scroll */
+    color: var(--md3-sys-color-on-surface, var(--on-surface));
+    font-family: var(--font-primary, sans-serif);
+    background: var(--md3-sys-color-surface-container-lowest, var(--surface-container-lowest));
+}
+
+.browse-mod-modal__content {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    min-width: 0;
+    overflow-y: auto; /* Independent scroll */
+    padding-right: 8px; /* Room for scrollbar */
+}
+
+.browse-mod-modal__header-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 4px;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.browse-mod-modal__header-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.browse-mod-modal__title-link {
+    font-size: 24px;
+    font-weight: 600;
+    color: var(--md3-sys-color-primary, var(--primary));
+    text-decoration: none;
+    transition: opacity 0.2s;
+    margin: 0;
+}
+
+.browse-mod-modal__fav-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--md3-sys-color-surface-container-high, var(--surface-container-high));
+    border: none;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    cursor: pointer;
+    color: var(--md3-sys-color-on-surface-variant, var(--on-surface-variant));
+    transition: transform 0.2s, background-color 0.2s;
+}
+
+.browse-mod-modal__fav-btn:hover {
+    background: var(--md3-sys-color-surface-container-highest, var(--surface-container-highest));
+    transform: scale(1.05);
+}
+
+.browse-mod-modal__fav-btn svg {
+    width: 24px;
+    height: 24px;
+    fill: currentColor;
+    transition: fill 0.3s;
+}
+
+.browse-mod-modal__fav-btn.is-active svg {
+    fill: #ffd700; /* Yellow */
+}
+
+.browse-mod-modal__title-link:hover {
+    opacity: 0.8;
+}
+
+.browse-mod-modal__carousel {
+    border-radius: 12px;
+    overflow: hidden;
+    background: transparent;
+    position: relative;
+    min-height: 360px; /* Force minimum height to not look small */
+    height: 100%;      /* Try to fill available space */
+    max-height: 50vh;  /* Limit max height */
+}
+
+/* Ensure images take up the space nicely */
+.browse-mod-modal__carousel .m3-card,
+.browse-mod-modal__carousel .m3-card-img {
+    height: 100%;
+    object-fit: cover;
+}
+
+.browse-mod-modal__carousel-controls {
+    margin-top: 12px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 16px;
+}
+
+/* Reusing carousel pills styles mostly */
+.browse-mod-modal .browse-carousel-pills {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.browse-mod-modal__downloads {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.browse-mod-modal__section-title {
+    font-size: 18px;
+    font-weight: 500;
+    margin: 0;
+    color: var(--md3-sys-color-on-surface-variant, var(--on-surface-variant));
+}
+
+.browse-mod-modal__downloads-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+/* Download Item layout */
+.browse-mod-modal__download-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    border-radius: 12px;
+    background: var(--md3-sys-color-surface-container, var(--surface-container));
+    border: 1px solid var(--md3-sys-color-outline-variant, var(--outline-variant));
+    transition: background-color 0.2s;
+}
+
+.browse-mod-modal__download-item:hover {
+    background: var(--md3-sys-color-surface-container-high, var(--surface-container-high));
+}
+
+.browse-mod-modal__download-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.browse-mod-modal__download-name {
+    font-size: 16px;
+    font-weight: 500;
+}
+
+.browse-mod-modal__download-subname {
+    font-size: 12px;
+    color: var(--md3-sys-color-on-surface-variant, var(--on-surface-variant));
+}
+
+.browse-mod-modal__download-action {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* Button with svg icon colored by CSS vars */
+.browse-mod-modal__download-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 8px 24px;
+    border-radius: 20px;
+    border: none;
+    cursor: pointer;
+    background-color: var(--md3-sys-color-primary-container, var(--primary-container));
+    color: var(--md3-sys-color-on-primary-container, var(--on-primary-container));
+    font-weight: 600;
+    transition: filter 0.2s;
+}
+
+.browse-mod-modal__download-btn:hover {
+    filter: brightness(0.9);
+}
+
+/* Ensures the SVG inherits the button text color (on-container) */
+.browse-mod-modal__download-btn svg {
+    width: 20px;
+    height: 20px;
+    fill: currentColor; 
+}
+
+.browse-mod-modal__download-size {
+    font-size: 11px;
+    color: var(--md3-sys-color-on-surface-variant, var(--on-surface-variant));
+}
+
+.browse-mod-modal__description-content {
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--md3-sys-color-on-surface-variant, var(--on-surface-variant));
+    background: var(--md3-sys-color-surface-container, var(--surface-container));
+    padding: 16px;
+    border-radius: 12px;
+}
+
+/* Sidebar styling */
+.browse-mod-modal__sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    background: var(--md3-sys-color-surface-container, var(--surface-container));
+    padding: 16px;
+    border-radius: 12px;
+    height: 100%;
+    overflow-y: auto; /* Independent scroll */
+    box-sizing: border-box;
+}
+
+.browse-mod-modal__sidebar-title {
+    font-size: 16px;
+    font-weight: 600;
+    margin: 0;
+    border-bottom: 1px solid var(--md3-sys-color-outline-variant, var(--outline-variant));
+    padding-bottom: 8px;
+}
+
+.browse-mod-modal__info-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.browse-mod-modal__info-item {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.browse-mod-modal__info-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--md3-sys-color-primary, var(--primary));
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.browse-mod-modal__info-value {
+    font-size: 14px;
+    word-break: break-word;
+}
+
+/* Credit Chips */
+.browse-mod-modal__credit-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.browse-mod-modal__credit-chip {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--md3-sys-color-surface-container-high, var(--surface-container-high));
+    padding: 6px 14px 6px 6px;
+    border-radius: 30px;
+    transition: background-color 0.2s;
+    border: 1px solid var(--md3-sys-color-outline-variant, var(--outline-variant));
+}
+
+.browse-mod-modal__credit-chip:hover {
+    background: var(--md3-sys-color-surface-container-highest, var(--surface-container-highest));
+}
+
+.browse-mod-modal__credit-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.browse-mod-modal__credit-avatar-fallback {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--md3-sys-color-primary, var(--primary));
+    color: var(--md3-sys-color-on-primary, var(--on-primary));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 14px;
+}
+
+.browse-mod-modal__credit-text {
+    display: flex;
+    flex-direction: column;
+}
+
+.browse-mod-modal__credit-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--md3-sys-color-on-surface, var(--on-surface));
+}
+
+.browse-mod-modal__credit-role {
+    font-size: 11px;
+    color: var(--md3-sys-color-on-surface-variant, var(--on-surface-variant));
+}

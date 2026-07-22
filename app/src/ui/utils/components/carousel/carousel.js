@@ -1,9 +1,11 @@
 import { M3Carousel } from './carousel-core.js';
 
-export function initCarousels() {
-    const carousels = document.querySelectorAll('.m3-carousel');
+export function initCarousels(root = document) {
+    const carousels = root.querySelectorAll('.m3-carousel');
     carousels.forEach(element => {
-        // Inicializamos los módulos
-        new M3Carousel(element);
+        // Prevent double initialization
+        if (!element.m3CarouselAPI) {
+            new M3Carousel(element);
+        }
     });
 }

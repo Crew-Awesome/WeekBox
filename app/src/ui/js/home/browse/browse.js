@@ -1,6 +1,9 @@
 import { initCarousels } from '../../../utils/components/carousel/carousel.js';
 import { loadFeaturedCarousel } from './browse-carousel-featured.js';
 import { loadEngineRows } from './browse-engines/index.js';
+import { BrowseModModal } from './browse-mods-modal.js';
+
+let isModalListenerAdded = false;
 
 /**
  * Initializes the Browse view.
@@ -12,6 +15,16 @@ export async function init() {
 
     const result = await loadFeaturedCarousel(container);
     initCarousels(); // Inicializa todos los .m3-carousel
+    
+    if (!isModalListenerAdded) {
+        document.addEventListener('weekbox-open-mod', (e) => {
+            const modId = e.detail?.id;
+            if (modId) {
+                new BrowseModModal(modId);
+            }
+        });
+        isModalListenerAdded = true;
+    }
     
     // Cargar filas de engines
     loadEngineRows(container);

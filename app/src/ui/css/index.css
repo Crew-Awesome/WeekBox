@@ -3,6 +3,7 @@
 @import './utils/cards.css';
 @import './utils/carousel.css';
 @import './utils/chip.css';
+@import './utils/modal.css';
 
 @import './setupWindow/layout.css';
 
@@ -11,12 +12,25 @@
 @import './app-html/header/layout.css';
 
 @import './app-html/home/browse/layout.css';
+@import './app-html/home/browse/browse-mods-modal.css';
 
 /* 
     aqui unica y exclusivamente estaran los aspectos 
     para html y body al igual quue imports
     a otros archivos para mayor modularidad
 */
+
+/* Global Links */
+a {
+    color: var(--md3-sys-color-primary, var(--primary));
+    text-decoration: none;
+    transition: color 0.2s ease, opacity 0.2s ease;
+}
+
+a:hover {
+    text-decoration: underline;
+    opacity: 0.8;
+}
 
 html, body {
     margin: 0;

@@ -1,0 +1,51 @@
+<template id="browse-mod-modal-template">
+    <div class="browse-mod-modal">
+        <div class="browse-mod-modal__content">
+            <div class="browse-mod-modal__carousel m3-carousel" data-type="auto infinite">
+                <div class="m3-carousel-scroller" id="bmm-carousel-scroller">
+                    <!-- Carousel items will be injected here -->
+                </div>
+                <div class="browse-carousel-controls browse-mod-modal__carousel-controls">
+                    <button class="browse-carousel-arrow browse-carousel-prev" title="Previous">
+                        <img src="assets/app/client/arrow-client.svg" alt="Prev" style="transform: rotate(180deg);" />
+                    </button>
+                    <div class="browse-carousel-pills" id="bmm-carousel-pills"></div>
+                    <button class="browse-carousel-arrow browse-carousel-next" title="Next">
+                        <img src="assets/app/client/arrow-client.svg" alt="Next" />
+                    </button>
+                </div>
+            </div>
+
+            <div class="browse-mod-modal__header-bar">
+                <a href="#" target="_blank" class="browse-mod-modal__title-link" id="bmm-title"></a>
+                <div class="browse-mod-modal__header-actions">
+                    <div id="bmm-stats-row"></div>
+                    <button class="browse-mod-modal__fav-btn" id="bmm-favorite-btn">
+                        <!-- SVG injected via JS for coloring -->
+                    </button>
+                </div>
+            </div>
+
+            <div class="browse-mod-modal__downloads">
+                <h3 class="browse-mod-modal__section-title">Downloads</h3>
+                <div class="browse-mod-modal__downloads-list" id="bmm-downloads-list">
+                    <!-- Download items will be injected here -->
+                </div>
+            </div>
+
+            <div class="browse-mod-modal__description">
+                <h3 class="browse-mod-modal__section-title">Description</h3>
+                <div class="browse-mod-modal__description-content" id="bmm-description-content">
+                    <!-- Sanitized HTML will be injected here -->
+                </div>
+            </div>
+        </div>
+
+        <div class="browse-mod-modal__sidebar">
+            <h3 class="browse-mod-modal__sidebar-title">Mod Details</h3>
+            <div class="browse-mod-modal__info-list" id="bmm-info-list">
+                <!-- Details like author, game, category will go here -->
+            </div>
+        </div>
+    </div>
+</template>
