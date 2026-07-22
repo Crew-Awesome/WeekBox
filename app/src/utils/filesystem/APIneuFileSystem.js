@@ -29,6 +29,9 @@ export const APIneuFileSystem = {
         // Aquí se podría implementar una creación recursiva si fuera necesario.
       }
     }
+    if (!(await this.exists(path))) {
+      throw new Error(`Directory was not created: ${path}`);
+    }
   },
 
   /**

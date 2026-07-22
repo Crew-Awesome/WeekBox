@@ -312,6 +312,7 @@ export const downloadMod = {
       downloadMarkerPath = `${targetModFolder}/.downloading`;
       const activeTask = this.activeTasks.get(modId);
       if (activeTask) activeTask.targetModFolder = targetModFolder;
+      await FS.api.ensureDir(targetModFolder);
       await FS.api.write(downloadMarkerPath, "");
 
       if (this.activeTasks.get(modId)?.cancelled) throw new Error("Cancelled");

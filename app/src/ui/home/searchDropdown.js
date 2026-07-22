@@ -46,15 +46,18 @@ export const homeSearchDropdown = {
   },
 
   showDropdown() {
+    if (!this.input || !this.dropdown) return;
     this.updateDropdown();
     this.dropdown.style.display = "flex";
   },
 
   hideDropdown() {
+    if (!this.dropdown) return;
     this.dropdown.style.display = "none";
   },
 
   async updateDropdown() {
+    if (!this.input || !this.dropdown) return;
     const suggestionVersion = ++this.suggestionVersion;
     const query = this.input.value.trim().toLowerCase();
     this.dropdown.innerHTML = "";
