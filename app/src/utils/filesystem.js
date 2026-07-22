@@ -767,7 +767,9 @@ class FileSystemService {
       (item) =>
         item.kind !== "dependency" &&
         Array.isArray(item.dependencies) &&
-        item.dependencies.some((dependencyId) => sameId(dependencyId, mod.id)) &&
+        item.dependencies.some((dependencyId) =>
+          sameId(dependencyId, mod.id),
+        ) &&
         isUsingModEngine(item),
     );
   }
@@ -776,7 +778,9 @@ class FileSystemService {
     const allMods = await this.mods.getAll();
     const mod = allMods.find((item) => sameId(item.id, modId));
     if (this.isModLockedForChanges(mod, allMods)) {
-      throw new Error(`Close the engine before changing ${mod?.name || "this mod"}`);
+      throw new Error(
+        `Close the engine before changing ${mod?.name || "this mod"}`,
+      );
     }
     return mod;
   }

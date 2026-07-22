@@ -60,18 +60,27 @@ export const cardRenderer = {
 
     const refreshChangeButtons = () => {
       gridContainer.querySelectorAll(".mod-manager-card").forEach((card) => {
-        const mod = allMods.find((item) => String(item.id) === card.dataset.modId);
+        const mod = allMods.find(
+          (item) => String(item.id) === card.dataset.modId,
+        );
+        // Installation progress cards share the card class but do not have
+        // mod actions (and are not part of allMods yet).
+        if (!mod) return;
         const locked = FS.isModLockedForChanges(mod, allMods);
         const message = "Close the engine before changing this mod";
         const deleteBtn = card.querySelector(".mod-manager-delete-btn");
         const settingsBtn = card.querySelector(".mod-manager-settings-btn");
         const visibilityBtn = card.querySelector(".mod-manager-vis-btn");
+        if (!deleteBtn || !settingsBtn || !visibilityBtn) return;
         deleteBtn.disabled = locked;
         deleteBtn.title = locked ? message : "Delete Mod";
         deleteBtn.setAttribute("aria-label", locked ? message : "Delete Mod");
         settingsBtn.disabled = locked;
         settingsBtn.title = locked ? message : "Mod Settings";
-        settingsBtn.setAttribute("aria-label", locked ? message : "Mod Settings");
+        settingsBtn.setAttribute(
+          "aria-label",
+          locked ? message : "Mod Settings",
+        );
         visibilityBtn.disabled = locked;
         visibilityBtn.title = locked ? message : "Toggle Visibility";
       });
@@ -206,7 +215,8 @@ export const cardRenderer = {
 
       const settingsBtn = card.querySelector(".mod-manager-settings-btn");
       settingsBtn.addEventListener("click", async () => {
-        if (settingsBtn.disabled || FS.isModLockedForChanges(mod, allMods)) return;
+        if (settingsBtn.disabled || FS.isModLockedForChanges(mod, allMods))
+          return;
         settingsBtn.disabled = true;
         settingsBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
         try {
