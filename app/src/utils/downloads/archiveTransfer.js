@@ -140,6 +140,13 @@ const NESTED_ARCHIVE_PATTERNS = [
   /\.tar$/i,
 ];
 
+function isNestedArchive(entryName) {
+  return (
+    NESTED_ARCHIVE_PATTERNS.some((pattern) => pattern.test(entryName)) ||
+    (window.NL_OS === "Darwin" && /\.dmg$/i.test(String(entryName)))
+  );
+}
+
 async function collectArchiveFiles(dir) {
   const found = [];
   const stack = [dir];
@@ -156,9 +163,7 @@ async function collectArchiveFiles(dir) {
       const fullPath = `${current}/${entry.entry}`;
       if (String(entry.type).toUpperCase() === "DIRECTORY") {
         stack.push(fullPath);
-      } else if (
-        NESTED_ARCHIVE_PATTERNS.some((pattern) => pattern.test(entry.entry))
-      ) {
+      } else if (isNestedArchive(entry.entry)) {
         found.push(fullPath);
       }
     }
@@ -194,6 +199,22 @@ async function extractNestedArchives(destinationPath, getTask, onEntry) {
     for (const archivePath of archives) {
       if (getTask?.()?.cancelled) throw new Error("Cancelled");
       const parentDir = archivePath.slice(0, archivePath.lastIndexOf("/"));
+
+      // Some projects publish a ZIP installer that contains a macOS disk
+      // image. Reuse the normal DMG installation path so the .app bundle is
+      // copied into this engine version's own directory.
+      if (window.NL_OS === "Darwin" && /\.dmg$/i.test(archivePath)) {
+        await extractArchive({
+          archivePath,
+          destinationPath: parentDir,
+          getTask,
+          onEntry,
+          extractNested: false,
+        });
+        await Neutralino.filesystem.remove(archivePath).catch(() => {});
+        continue;
+      }
+
       const command = getNestedExtractionCommand(archivePath, parentDir);
 
       const executeNested = async (cmd) => {

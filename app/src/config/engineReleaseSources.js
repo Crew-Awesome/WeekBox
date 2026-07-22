@@ -4,7 +4,9 @@ export const ENGINE_RELEASE_SOURCES = {
     assets: {
       win: [/^funkin-windows-(?:64bit|x64)\.zip$/i],
       lin: [/linux/i],
-      mac: [/macos|osx/i],
+      // v0.8.4 ships its macOS disk image inside this installer archive
+      // instead of publishing a separately named macOS asset.
+      mac: [/macos|osx/i, /^funkin-installer-[\d.]+\.zip$/i],
     },
     exclude: [/debug/i, /html5/i],
   },
