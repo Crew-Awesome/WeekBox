@@ -3,6 +3,10 @@ import {
   getRangeSupportedFileSize,
   resolveExternalDownloadUrl,
 } from "./externalDownloadResolver.js";
+import {
+  getOsProcessId,
+  sameProcessId,
+} from "../filesystem/spawnedProcess.js";
 
 function formatArchiveEntry(output) {
   const lines = output.trim().split("\n");
@@ -30,8 +34,8 @@ function createThrottledEntryReporter(onEntry, intervalMs = 500) {
   };
 }
 
-function listenForProcess(process, getTask, onEvent) {
-  return new Promise(async (resolve, reject) => {
+export function listenForProcess(process, getTask, onEvent) {
+  return new Promise((resolve, reject) => {
     const handler = (event) => {
       const task = getTask();
       if (task?.cancelled) {
@@ -39,14 +43,16 @@ function listenForProcess(process, getTask, onEvent) {
         reject(new Error("Cancelled"));
         return;
       }
-      if (event.detail.id !== process.id) return;
+      if (!sameProcessId(event.detail.id, process.id)) return;
+      if (
+        event.detail.action === "exit" &&
+        sameProcessId(task?.pid, getOsProcessId(process))
+      ) {
+        task.pid = null;
+      }
       onEvent(event.detail, handler, resolve, reject);
     };
-    try {
-      await Neutralino.events.on("spawnedProcess", handler);
-    } catch (error) {
-      reject(error);
-    }
+    Neutralino.events.on("spawnedProcess", handler).catch(reject);
   });
 }
 
@@ -220,7 +226,7 @@ async function extractNestedArchives(destinationPath, getTask, onEntry) {
       const executeNested = async (cmd) => {
         const process = await Neutralino.os.spawnProcess(cmd);
         const activeTask = getTask?.();
-        if (activeTask) activeTask.pid = process.id ?? process.pid;
+        if (activeTask) activeTask.pid = getOsProcessId(process);
         let processOutput = "";
         await listenForProcess(
           process,
@@ -295,7 +301,7 @@ async function extractNestedArchives(destinationPath, getTask, onEntry) {
 async function runCurlDownload(command, getTask, onProgress, getProgress) {
   const process = await Neutralino.os.spawnProcess(command);
   const task = getTask();
-  if (task) task.pid = process.id ?? process.pid;
+  if (task) task.pid = getOsProcessId(process);
 
   let processOutput = "";
   let maxPercent = 0;
@@ -484,7 +490,7 @@ export async function extractArchive({
         `hdiutil attach -nobrowse -readonly -mountpoint ${quoteCommandArgument(mountPath)} ${quoteCommandArgument(archivePath)}`,
       );
       const task = getTask();
-      if (task) task.pid = process.id ?? process.pid;
+      if (task) task.pid = getOsProcessId(process);
 
       await listenForProcess(
         process,
@@ -547,7 +553,7 @@ export async function extractArchive({
   const execute = async (cmd) => {
     const process = await Neutralino.os.spawnProcess(cmd);
     const task = getTask();
-    if (task) task.pid = process.id ?? process.pid;
+    if (task) task.pid = getOsProcessId(process);
 
     let processOutput = "";
 

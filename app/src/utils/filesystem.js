@@ -566,7 +566,7 @@ class FileSystemService {
   }
 
   getRunningEngineMod(engineId, version) {
-    return this.activeEngineMods.get(`${engineId}:${version}`) || null;
+    return this.activeEngineMods.get(`${engineId}:${version}`) ?? null;
   }
 
   getModLaunchState(mod, engine, isStandalone) {

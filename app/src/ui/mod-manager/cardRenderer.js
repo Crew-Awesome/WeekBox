@@ -9,6 +9,10 @@ import { engineUpdateToast } from "../engines/engineUpdateToast.js";
 import { modManagerTemplates } from "../../html/components/mod-manager.js";
 import { loadModCardImage } from "./modImageLoader.js";
 import { modSettingsModal } from "./modSettingsModal.js";
+import {
+  replaceProcessExitListener,
+  syncLaunchButton,
+} from "./processUiSync.js";
 
 export const cardRenderer = {
   async renderCards(
@@ -40,21 +44,7 @@ export const cardRenderer = {
             engine,
             isStandalone,
           );
-          const isRunning = state === "running";
-          const canSwitchMod = state === "switch";
-          button.classList.toggle("is-running", isRunning);
-          button.classList.toggle("is-switchable", canSwitchMod);
-          button.setAttribute(
-            "aria-label",
-            `${isRunning ? "Close" : canSwitchMod ? "Switch Mod" : button.dataset.launchLabel} ${button.dataset.modName}`,
-          );
-          button.innerHTML = isRunning
-            ? modManagerTemplates.launchButtonRunning()
-            : canSwitchMod
-              ? modManagerTemplates.launchButtonSwitch()
-              : modManagerTemplates.launchButtonDefault(
-                  button.dataset.launchLabel,
-                );
+          syncLaunchButton(button, state, modManagerTemplates);
         });
     };
 
@@ -86,15 +76,19 @@ export const cardRenderer = {
       });
     };
 
+    let removeProcessExitListener = () => {};
     const onProcessExit = () => {
       if (!gridContainer.isConnected) {
-        document.removeEventListener("weekbox-process-exit", onProcessExit);
+        removeProcessExitListener();
         return;
       }
       refreshLaunchButtons();
       refreshChangeButtons();
     };
-    document.addEventListener("weekbox-process-exit", onProcessExit);
+    removeProcessExitListener = replaceProcessExitListener(
+      gridContainer.parentElement,
+      onProcessExit,
+    );
 
     for (const mod of modsToRender) {
       const isExecutable = standaloneModIds.has(String(mod.id));

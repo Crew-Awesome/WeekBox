@@ -4,6 +4,7 @@ import { gameBananaApi } from "../../api/gamebanana.js";
 import { modSettingsModal } from "./modSettingsModal.js";
 import { getGameBananaSource } from "./modSettingsTemplates.js";
 import { modManagerTemplates } from "../../html/components/mod-manager.js";
+import { replaceProcessExitListener } from "./processUiSync.js";
 
 function getDependencyUsers(dependency, allMods) {
   return allMods.filter(
@@ -180,13 +181,17 @@ export const dependenciesRenderer = {
     });
     section.append(list);
     container.append(section);
+    let removeProcessExitListener = () => {};
     const onProcessExit = () => {
       if (!section.isConnected) {
-        document.removeEventListener("weekbox-process-exit", onProcessExit);
+        removeProcessExitListener();
         return;
       }
       syncDependencyActions.forEach((sync) => sync());
     };
-    document.addEventListener("weekbox-process-exit", onProcessExit);
+    removeProcessExitListener = replaceProcessExitListener(
+      section.parentElement,
+      onProcessExit,
+    );
   },
 };

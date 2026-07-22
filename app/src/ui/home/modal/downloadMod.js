@@ -99,7 +99,9 @@ export const downloadMod = {
         const os = window.NL_OS;
         if (os === "Windows") {
           Neutralino.os
-            .execCommand(`taskkill /F /PID ${task.pid}`, { background: true })
+            .execCommand(`taskkill /T /F /PID ${task.pid}`, {
+              background: true,
+            })
             .catch(() => {});
         } else {
           Neutralino.os
