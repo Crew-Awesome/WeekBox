@@ -5,6 +5,33 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.4] - 2026-07-22
+
+### Added
+
+- Download choices now show file dates.
+
+### Changed
+
+- Newer download files are shown first.
+- Download checks now run in the background and are cached.
+- Mod downloads use safer folder names and handle wrapped folders better.
+- Error messages and support reports are clearer.
+
+### Fixed
+
+- Mods with Unicode names now install correctly.
+- Empty downloads now show the right error.
+- Bad downloads no longer look like WeekBox errors.
+- Mods with the same engine folder are detected before launch.
+- Running executable mods stay marked as running.
+- Running mods can be closed and restored more reliably.
+- Mod Manager buttons update after an engine closes.
+- Cancelling a download now stops its child processes too.
+- Failed folder creation is reported instead of being ignored.
+- The search box no longer crashes when its dropdown is missing.
+- Windows archive installs now check that files were really extracted.
+
 ## [1.7.3] - 2026-07-21
 
 ### Fixed
