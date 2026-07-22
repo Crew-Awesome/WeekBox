@@ -33,6 +33,15 @@ export const engineManagerModal = {
           void this.loadInstalledEngines();
         }
       });
+      document.addEventListener("weekbox-process-exit", () => {
+        if (
+          document
+            .getElementById("engine-manager-modal")
+            ?.classList.contains("show")
+        ) {
+          void this.loadInstalledEngines();
+        }
+      });
     }
   },
   async open() {
@@ -158,6 +167,7 @@ export const engineManagerModal = {
         const item = document.createElement("div");
         item.className = "version-item";
         const updateDisabled = !networkStatus.online;
+        const running = FS.isEngineRunning(engineId, version);
         item.innerHTML = `
           <span class="version-text">${version}</span>
           <div class="version-actions">
@@ -174,7 +184,7 @@ export const engineManagerModal = {
             <button class="engine-action-btn engine-dir-btn" title="Open Directory">
               <i class="fa-solid fa-folder-open"></i>
             </button>
-            <button class="engine-action-btn engine-delete-btn" title="Uninstall Version">
+            <button class="engine-action-btn engine-delete-btn" title="${running ? "Close the engine before uninstalling" : "Uninstall Version"}" aria-label="${running ? "Close the engine before uninstalling" : "Uninstall Version"}" ${running ? "disabled" : ""}>
               <i class="fa-solid fa-trash"></i>
             </button>
           </div>
@@ -240,6 +250,7 @@ export const engineManagerModal = {
         const deleteBtn = item.querySelector(".engine-delete-btn");
         deleteBtn.addEventListener("click", async (e) => {
           e.stopPropagation();
+          if (FS.isEngineRunning(engineId, version)) return;
           deleteBtn.disabled = true;
           deleteBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i>`;
           const targetPath = `${FS.enginesPath}/${engineId}/${version}`;

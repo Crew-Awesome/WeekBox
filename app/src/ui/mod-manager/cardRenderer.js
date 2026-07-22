@@ -174,12 +174,10 @@ export const cardRenderer = {
             );
             return;
           }
-          await FS.toggleModLaunch(
-            mod,
-            engine,
-            isExecutable,
-            refreshLaunchButtons,
-          );
+          await FS.toggleModLaunch(mod, engine, isExecutable, () => {
+            refreshLaunchButtons();
+            refreshChangeButtons();
+          });
         } catch (error) {
           console.error(error);
         } finally {

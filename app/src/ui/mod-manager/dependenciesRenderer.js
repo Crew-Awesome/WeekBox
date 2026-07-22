@@ -75,6 +75,7 @@ export const dependenciesRenderer = {
     list.id = "mod-manager-grid-container";
     list.className = "mod-manager-dependency-list";
     if (isListView) list.classList.add("list-view");
+    const syncDependencyActions = [];
 
     dependencies.forEach((dependency) => {
       const users = getDependencyUsers(dependency, allMods);
@@ -162,11 +163,30 @@ export const dependenciesRenderer = {
           remove.disabled = false;
         }
       });
+      syncDependencyActions.push(() => {
+        const isLocked = FS.isModLockedForChanges(dependency, allMods);
+        settings.disabled = isLocked;
+        settings.title = isLocked ? lockedMessage : "Dependency Settings";
+        remove.disabled = users.length > 0 || isLocked;
+        remove.title = users.length
+          ? "Remove dependent mods first"
+          : isLocked
+            ? lockedMessage
+            : "Delete Dependency";
+      });
       actions.append(directory, settings, remove);
       row.append(cover, copy, actions);
       list.append(row);
     });
     section.append(list);
     container.append(section);
+    const onProcessExit = () => {
+      if (!section.isConnected) {
+        document.removeEventListener("weekbox-process-exit", onProcessExit);
+        return;
+      }
+      syncDependencyActions.forEach((sync) => sync());
+    };
+    document.addEventListener("weekbox-process-exit", onProcessExit);
   },
 };

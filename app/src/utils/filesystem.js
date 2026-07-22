@@ -55,6 +55,9 @@ class FileSystemService {
     this.processes = new ProcessService(this.executables);
     this.activeEngineProcesses = this.processes.activeProcesses;
     this.activeEngineMods = new Map();
+    document.addEventListener("weekbox-process-exit", (event) => {
+      this.activeEngineMods.delete(event.detail.key);
+    });
     this.mods = new ModRepository({
       api: this.api,
       getDataPath: () => this.dataPath,
@@ -121,6 +124,11 @@ class FileSystemService {
       }
     }
     this.isInitialized = true;
+    const restoredProcesses = await this.processes.restore();
+    restoredProcesses.forEach(({ key, modId }) => {
+      if (modId !== null && modId !== undefined)
+        this.activeEngineMods.set(key, modId);
+    });
     if (!deferMaintenance) await this.runStartupMaintenance();
   }
 
@@ -535,6 +543,7 @@ class FileSystemService {
         onStateChange?.(state);
       },
       args,
+      { modId },
     );
     if (launched) this.activeEngineMods.set(key, modId);
     return launched;
@@ -578,7 +587,7 @@ class FileSystemService {
       throw new Error("Assigned engine is not installed");
     if (isStandalone) {
       return state === "running"
-        ? this.closeStandaloneMod(mod.id)
+        ? this.closeStandaloneMod(mod.id, onStateChange)
         : this.runStandaloneMod(mod.id, onStateChange);
     }
     const behavior = getEngineLaunchBehavior(engine.id);
@@ -594,7 +603,8 @@ class FileSystemService {
       );
     };
     if (state === "launch") return launch();
-    if (state === "running") return this.closeEngine(engine.id, engine.version);
+    if (state === "running")
+      return this.closeEngine(engine.id, engine.version, onStateChange);
     if (await this.closeEngineAndWait(engine.id, engine.version))
       return launch();
     return false;
@@ -727,6 +737,8 @@ class FileSystemService {
       (state) => {
         if (state === "completed" || state === "error") onExit?.();
       },
+      [],
+      { modId: mod.id },
     );
   }
 
