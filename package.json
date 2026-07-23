@@ -9,7 +9,7 @@
     "dev:neu": "npx @neutralinojs/neu run",
     "dev": "npm-run-all --parallel build:assets:watch dev:neu",
     "prebuild": "npm run build:assets",
-    "build": "npx @neutralinojs/neu build",
+    "build": "npm run build:assets && npx @neutralinojs/neu build",
     "release": "npm run build:assets && npx @neutralinojs/neu build --release",
     "format": "node scripts/formatter.js"
   },

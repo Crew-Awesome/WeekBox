@@ -609,7 +609,21 @@ export async function extractArchive({
 
   const isWindows = window.NL_OS === "Windows";
   const archiveFormat = await detectArchiveFormat(archivePath);
-  const command = isWindows
+
+  let portable7z = null;
+  if (archiveFormat === "rar" || archiveFormat === "7z") {
+    const binName = isWindows ? "7za.exe" : window.NL_OS === "Darwin" ? "7za-mac" : "7za-linux";
+    const binPath = `${window.NL_CWD}/app/assets/bin/${binName}`;
+    try {
+      if ((await Neutralino.filesystem.getStats(binPath)).isFile) {
+        portable7z = binPath;
+      }
+    } catch {}
+  }
+
+  const command = portable7z
+    ? `${quoteCommandArgument(portable7z)} x -y -aoa -o${quoteCommandArgument(destinationPath)} ${quoteCommandArgument(archivePath)}`
+    : isWindows
     ? getWindowsExtractionCommand(archivePath, destinationPath)
     : archiveFormat === "tar" || archiveFormat === "gzip"
       ? `tar -xf ${quoteCommandArgument(archivePath)} -C ${quoteCommandArgument(destinationPath)}`
