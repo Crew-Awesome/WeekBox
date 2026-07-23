@@ -174,7 +174,7 @@ export const downloadMod = {
     try {
       await FS.api.ensureDir(modsBasePath);
       await FS.api.ensureDir(targetModFolder);
-      await FS.api.write(downloadMarkerPath, "");
+      await FS.api.write(downloadMarkerPath, "1");
       if (this.activeTasks.get(modId)?.cancelled) throw new Error("Cancelled");
       toastDownloadMod.update(modId, 2, "Connecting...");
 
@@ -315,7 +315,7 @@ export const downloadMod = {
       const activeTask = this.activeTasks.get(modId);
       if (activeTask) activeTask.targetModFolder = targetModFolder;
       await FS.api.ensureDir(targetModFolder);
-      await FS.api.write(downloadMarkerPath, "");
+      await FS.api.write(downloadMarkerPath, "1");
 
       if (this.activeTasks.get(modId)?.cancelled) throw new Error("Cancelled");
       toastDownloadMod.update(modId, 99, "Deleting temp Zip...");
