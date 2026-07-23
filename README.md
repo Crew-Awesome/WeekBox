@@ -63,7 +63,6 @@ It is built with [Neutralinojs](https://neutralino.js.org/) and uses [GameBanana
 ## Project policies
 
 - [WeekBox Privacy Policy](./PRIVACY.md)
-- [Code Signing Policy](./CODE_SIGNING_POLICY.md)
 - [Security Policy](./SECURITY.md)
 - [Contributing](./CONTRIBUTING.md)
 - [Code of Conduct](./CODE_OF_CONDUCT.md)
