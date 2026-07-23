@@ -1,58 +1,58 @@
-# GUÍA DE CONTRIBUCIONES
+# CONTRIBUTION GUIDE
 
-Bienvenido al proyecto **Weekbox**. Esta guía te proporciona los estándares y mejores prácticas para contribuir al proyecto de manera consistente y segura.
+Welcome to **Weekbox**. This guide sets out the standards and best practices for contributing to the project consistently and safely.
 
-## Indice
+## Table of Contents
 
-1. [Estructura de Archivos](#estructura-de-archivos)
-2. [Convenciones de Nombres](#convenciones-de-nombres)
-3. [Proceso de Formato](#proceso-de-formato)
-4. [Estándares de CSS](#estándares-de-css)
-5. [Estándares de JavaScript](#estándares-de-javascript)
-6. [Estructura de Componentes](#estructura-de-componentes)
-7. [Seguridad](#seguridad)
-8. [Principios de Modularización](#principios-de-modularización)
-9. [Documentación](#documentación)
+1. [File Structure](#file-structure)
+2. [Naming Conventions](#naming-conventions)
+3. [Formatting Process](#formatting-process)
+4. [CSS Standards](#css-standards)
+5. [JavaScript Standards](#javascript-standards)
+6. [Component Structure](#component-structure)
+7. [Security](#security)
+8. [Modularization Principles](#modularization-principles)
+9. [Documentation](#documentation)
 
 ---
 
-## ESTRUCTURA DE ARCHIVOS
+## FILE STRUCTURE
 
-El proyecto sigue una estructura organizada que separa la lógica del UI, backend y configuración:
+The project uses an organized structure that separates UI logic, backend code, and configuration:
 
 ```
 app/src/
 ├── ui/
-│   ├── js/              # Lógica JavaScript
-│   ├── css/             # Estilos CSS modularizados
-│   ├── html/            # Plantillas HTML
+│   ├── js/              # JavaScript logic
+│   ├── css/             # Modular CSS styles
+│   ├── html/            # HTML templates
 │   └── utils/
-│       ├── componentes/      # Web Components reutilizables
-│       └── helpers/          # Funciones utilitarias
+│       ├── componentes/      # Reusable Web Components
+│       └── helpers/          # Utility functions
 ├── backend/
-│   ├── api/             # Endpoints y lógica de API
-│   ├── config/          # Configuración del proyecto
-│   └── native/          # Integraciones nativas del SO
+│   ├── api/             # API endpoints and logic
+│   ├── config/          # Project configuration
+│   └── native/          # Native operating-system integrations
 ```
 
-### DIRECTORIOS PRINCIPALES
+### MAIN DIRECTORIES
 
-- **`app/ui/js/`**: Contiene la lógica JavaScript, controladores y handlers
-- **`app/ui/css/`**: Estilos modularizados y organizados jerárquicamente
-- **`app/ui/html/`**: Plantillas HTML (templates)
-- **`app/ui/utils/componentes/`**: Web Components reutilizables
-- **`app/ui/utils/helpers/`**: Funciones auxiliares y transformadores
-- **`app/backend/api/`**: Servicios y endpoints de API
-- **`app/backend/config/`**: Configuración de motores, fuentes y descubrimiento
-- **`app/backend/native/`**: Integraciones específicas del SO (PC, Mac, Linux)
+- **`app/ui/js/`**: JavaScript logic, controllers, and handlers
+- **`app/ui/css/`**: Modular styles organized hierarchically
+- **`app/ui/html/`**: HTML templates
+- **`app/ui/utils/componentes/`**: Reusable Web Components
+- **`app/ui/utils/helpers/`**: Helper and transformation functions
+- **`app/backend/api/`**: API services and endpoints
+- **`app/backend/config/`**: Engine, source, and discovery configuration
+- **`app/backend/native/`**: Operating-system-specific integrations (PC, Mac, Linux)
 
 ---
 
-## CONVENCIONES DE NOMBRES
+## NAMING CONVENTIONS
 
-Todos los archivos y directorios deben seguir el formato **kebab-case** (texto-con-guiones):
+All files and directories must use **kebab-case** (words-separated-by-hyphens):
 
-### EJEMPLOS CORRECTOS
+### CORRECT EXAMPLES
 
 ```
 ✓ archivo-principal.js
@@ -63,7 +63,7 @@ Todos los archivos y directorios deben seguir el formato **kebab-case** (texto-c
 ✓ gestor-almacenamiento.js
 ```
 
-### EJEMPLOS INCORRECTOS
+### INCORRECT EXAMPLES
 
 ```
 ✗ archivoPrincipal.js          (camelCase)
@@ -74,49 +74,49 @@ Todos los archivos y directorios deben seguir el formato **kebab-case** (texto-c
 
 ---
 
-## PROCESO DE FORMATO
+## FORMATTING PROCESS
 
-Antes de enviar un pull request, **todos los archivos deben estar formateados correctamente**.
+Before submitting a pull request, **all files must be formatted correctly**.
 
-### FORMATEAR TODOS LOS ARCHIVOS
+### FORMAT ALL FILES
 
 ```bash
 npm run format
 ```
 
-Este comando aplicará:
-- Formatos de indentación consistentes
-- Espacios y saltos de línea según estándares
-- Consistencia en comillas y puntuación
+This command applies:
+- Consistent indentation
+- Standard spacing and line breaks
+- Consistent quotation marks and punctuation
 
-### VERIFICACIÓN ANTES DE PUSH
+### CHECK BEFORE PUSHING
 
 ```bash
-# Revisar qué archivos necesitan formato
+# Check which files need formatting
 npm run format:check
 
-# Formatear automáticamente
+# Format automatically
 npm run format
 
-# Hacer commit
+# Commit
 git add .
 git commit -m "feat: descripcion-del-cambio"
 git push
 ```
 
-### ⚠️ IMPORTANTE
+### ⚠️ IMPORTANT
 
-**No hagas push sin ejecutar `npm run format` primero.** Los archivos sin formato serán rechazados en la revisión.
+**Do not push without running `npm run format` first.** Unformatted files will be rejected during review.
 
 ---
 
-## ESTÁNDARES DE CSS
+## CSS STANDARDS
 
-Seguimos un enfoque modular y seguro para los estilos, organizados jerárquicamente por responsabilidad.
+We use a modular, safe approach to styling, organized hierarchically by responsibility.
 
-### ESTRUCTURA JERÁRQUICA DE CSS
+### HIERARCHICAL CSS STRUCTURE
 
-Los estilos se organizan en carpetas temáticas, donde cada carpeta representa un conjunto de funcionalidades relacionadas, p.ej::
+Styles are organized into topic-based directories, each representing a related group of features, for example:
 
 ```
 app/src/ui/css/
@@ -147,9 +147,9 @@ app/src/ui/css/
     └── animaciones.css
 ```
 
-### FLUJO DE IMPORTS EN CSS
+### CSS IMPORT FLOW
 
-**Regla**: Cada nivel solo importa lo que necesita de abajo hacia arriba.
+**Rule**: Each layer imports only what it needs, from the bottom up.
 
 #### 1. `app/ui/css/index.css` (Entry Point)
 
@@ -374,9 +374,9 @@ body {
 }
 ```
 
-### CSS SCOPED Y BEM
+### SCOPED CSS AND BEM
 
-Utiliza **CSS Scoped** combinado con **BEM** (Block Element Modifier) para evitar conflictos de estilos:
+Use **scoped CSS** together with **BEM** (Block Element Modifier) to prevent style conflicts:
 
 ```css
 /* ✓ CORRECTO: BEM con prefijo del componente */
@@ -408,7 +408,7 @@ Utiliza **CSS Scoped** combinado con **BEM** (Block Element Modifier) para evita
 }
 ```
 
-### CONVENCIONES CSS OBLIGATORIAS
+### REQUIRED CSS CONVENTIONS
 
 ```css
 /* ✓ Usar variables globales SIEMPRE */
@@ -437,11 +437,11 @@ color: red !important;
 
 ---
 
-## ESTÁNDARES DE JAVASCRIPT
+## JAVASCRIPT STANDARDS
 
-### SIN INNERHTML
+### NO INNERHTML
 
-**Nunca uses `innerHTML` para insertar contenido.** Esto expone el proyecto a vulnerabilidades XSS.
+**Never use `innerHTML` to insert content.** It exposes the project to XSS vulnerabilities.
 
 ```javascript
 /* ✗ INCORRECTO y peligroso */
@@ -454,9 +454,9 @@ element.textContent = datosDelUsuario;
 // Ver sección "Estructura de Componentes"
 ```
 
-### SIN CREACIÓN DE HTML DESDE JAVASCRIPT
+### DO NOT CREATE HTML FROM JAVASCRIPT
 
-**No crear elementos HTML mediante string concatenation o DOM manipulation directo.**
+**Do not create HTML elements through string concatenation or direct DOM manipulation.**
 
 ```javascript
 /* ✗ INCORRECTO */
@@ -472,7 +472,7 @@ element.innerHTML = html;
 // Ver sección "Estructura de Componentes - Templates HTML"
 ```
 
-### CONVENCIONES DE NOMBRES EN JAVASCRIPT
+### JAVASCRIPT NAMING CONVENTIONS
 
 ```javascript
 /* Constantes en UPPER_SNAKE_CASE */
@@ -491,15 +491,15 @@ class ModalConfirmacion { }
 
 ---
 
-## ESTRUCTURA DE COMPONENTES
+## COMPONENT STRUCTURE
 
 ### WEB COMPONENTS
 
-Todos los componentes de UI deben ser **Web Components** _(o la mayor parte)_.
+All UI components should be **Web Components** _(or mostly so)_.
 
-### ARCHIVO DE COMPONENTE
+### COMPONENT FILE
 
-Cada componente debe tener esta estructura:
+Each component must have this structure:
 
 ```
 app/ui/utils/components/
@@ -509,7 +509,7 @@ app/ui/utils/components/
 │   └── componente-nombre.html    # Plantilla
 ```
 
-### EJEMPLO DE COMPONENTE: componente-boton.js
+### COMPONENT EXAMPLE: componente-boton.js
 
 ```javascript
 /**
@@ -763,7 +763,7 @@ class ComponenteBoton extends HTMLElement {
 customElements.define('componente-boton', ComponenteBoton);
 ```
 
-### PLANTILLA HTML: componente-boton.html
+### HTML TEMPLATE: componente-boton.html
 
 ```html
 <template id="plantilla-componente-boton">
@@ -778,7 +778,7 @@ customElements.define('componente-boton', ComponenteBoton);
 </script>
 ```
 
-### ESTILOS: componente-boton.css
+### STYLES: componente-boton.css
 
 ```css
 /* ✓ Importar variables globales en cada componente */
@@ -836,11 +836,11 @@ customElements.define('componente-boton', ComponenteBoton);
 }
 ```
 
-### API PÚBLICA Y DATA- ATTRIBUTES
+### PUBLIC API AND DATA ATTRIBUTES
 
-Todos los componentes deben exponer una API pública clara y soportar configuración mediante `data-` attributes en HTML.
+All components must expose a clear public API and support configuration through HTML `data-` attributes.
 
-#### GESTIÓN DE RECURSOS (MEMORY LEAKS)
+#### RESOURCE MANAGEMENT (MEMORY LEAKS)
 
 ```javascript
 /**
@@ -876,7 +876,7 @@ destroy() {
 }
 ```
 
-#### REGISTRAR EVENT LISTENERS CORRECTAMENTE
+#### REGISTER EVENT LISTENERS CORRECTLY
 
 ```javascript
 setupEventListeners() {
@@ -898,7 +898,7 @@ setupEventListeners() {
 }
 ```
 
-#### USAR DATA- ATTRIBUTES
+#### USING DATA ATTRIBUTES
 
 ```javascript
 /**
@@ -919,7 +919,7 @@ initializeFromDataAttributes() {
 }
 ```
 
-#### USO EN HTML
+#### HTML USAGE
 
 ```html
 <!-- Opción 1: Atributos estándar -->
@@ -950,25 +950,25 @@ initializeFromDataAttributes() {
 </script>
 ```
 
-#### CHECKLIST PARA COMPONENTES
+#### COMPONENT CHECKLIST
 
-- [ ] ✅ Tengo `eventListeners = []` en constructor
-- [ ] ✅ Implementé `disconnectedCallback()` que llama a `destroy()`
-- [ ] ✅ Implementé método `destroy()` público
-- [ ] ✅ Registro todos los listeners en `setupEventListeners()`
-- [ ] ✅ Tengo `initializeFromDataAttributes()` en `connectedCallback()`
-- [ ] ✅ Expongo getters y setters públicos para configuración
-- [ ] ✅ Disparo eventos personalizados (`CustomEvent`)
-- [ ] ✅ Documenté la API pública en JSDoc
-- [ ] ✅ Probé que no haya memory leaks (DevTools → Memory)
+- [ ] ✅ I have `eventListeners = []` in the constructor
+- [ ] ✅ I implemented `disconnectedCallback()` and it calls `destroy()`
+- [ ] ✅ I implemented a public `destroy()` method
+- [ ] ✅ I register every listener in `setupEventListeners()`
+- [ ] ✅ I call `initializeFromDataAttributes()` from `connectedCallback()`
+- [ ] ✅ I expose public getters and setters for configuration
+- [ ] ✅ I dispatch custom events (`CustomEvent`)
+- [ ] ✅ I documented the public API with JSDoc
+- [ ] ✅ I tested for memory leaks (DevTools → Memory)
 
 ---
 
-## SEGURIDAD
+## SECURITY
 
-### PREVENCIÓN DE XSS (CROSS-SITE SCRIPTING)
+### XSS (CROSS-SITE SCRIPTING) PREVENTION
 
-**Nunca uses `innerHTML` con datos dinámicos:**
+**Never use `innerHTML` with dynamic data:**
 
 ```javascript
 /* ✗ PELIGROSO */
@@ -980,9 +980,9 @@ const usuario = { nombre: '<img src=x onerror="alert(\'XSS\')">' };
 elemento.textContent = usuario.nombre;
 ```
 
-### SANITIZACIÓN DE DATOS
+### DATA SANITIZATION
 
-Si necesitas renderizar HTML, sanitiza los datos:
+If you need to render HTML, sanitize the data:
 
 ```javascript
 /**
@@ -997,7 +997,7 @@ function sanitizarHTML(html) {
 }
 ```
 
-### VALIDACIÓN DE DATOS EXTERNOS
+### EXTERNAL-DATA VALIDATION
 
 ```javascript
 /**
@@ -1038,11 +1038,11 @@ function validarURL(url) {
 
 ---
 
-## PRINCIPIOS DE MODULARIZACIÓN
+## MODULARIZATION PRINCIPLES
 
-Seguimos el principio de **Separation of Concerns (SoC)** para mantener el código modular y mantenible.
+We follow the **Separation of Concerns (SoC)** principle to keep code modular and maintainable.
 
-### CAPAS DE LA APLICACIÓN
+### APPLICATION LAYERS
 
 ```
 API (Datos)
@@ -1054,9 +1054,9 @@ UI (Componentes)
 Utilidades (Helpers)
 ```
 
-### EJEMPLO: GESTOR DE DESCARGAS
+### EXAMPLE: DOWNLOAD MANAGER
 
-#### 1. CAPA DE API: `app/backend/api/servicio-descarga.js`
+#### 1. API LAYER: `app/backend/api/servicio-descarga.js`
 
 ```javascript
 /**
@@ -1091,7 +1091,7 @@ export async function iniciarDescarga(urlArchivo, nombreArchivo) {
 }
 ```
 
-#### 2. CAPA DE LÓGICA: `app/ui/js/gestor-descargas.js`
+#### 2. LOGIC LAYER: `app/ui/js/gestor-descargas.js`
 
 ```javascript
 /**
@@ -1140,7 +1140,7 @@ function guardarArchivoLocal(blob, nombreArchivo) {
 }
 ```
 
-#### 3. CAPA DE UI: `app/ui/utils/componentes/componente-descarga/componente-descarga.js`
+#### 3. UI LAYER: `app/ui/utils/componentes/componente-descarga/componente-descarga.js`
 
 ```javascript
 /**
@@ -1195,7 +1195,7 @@ class ComponenteDescarga extends HTMLElement {
 customElements.define('componente-descarga', ComponenteDescarga);
 ```
 
-#### 4. UTILIDADES: `app/ui/utils/helpers/descarga-toast.js`
+#### 4. UTILITIES: `app/ui/utils/helpers/descarga-toast.js`
 
 ```javascript
 /**
@@ -1221,13 +1221,13 @@ export function mostrarToastDescarga(mensaje, tipo = 'info') {
 
 ---
 
-## DOCUMENTACIÓN
+## DOCUMENTATION
 
-### COMENTARIOS JSDOC
+### JSDOC COMMENTS
 
-Todos los archivos JavaScript deben incluir documentación completa usando **JSDoc**. Los comentarios simples como `//` solo están permitidos para eliminar logs temporales.
+All JavaScript files must include complete **JSDoc** documentation. Simple `//` comments are allowed only to remove temporary logs.
 
-### ESTRUCTURA DE JSDOC
+### JSDOC STRUCTURE
 
 ```javascript
 /**
@@ -1258,7 +1258,7 @@ function funcionEjemplo(parametro) {
 }
 ```
 
-### EJEMPLO COMPLETO CON JSDOC (preferiblemente en ingles)
+### FULL JSDOC EXAMPLE (preferably in English)
 
 ```javascript
 /**
@@ -1304,7 +1304,7 @@ export function obtenerUsuarioActual() {
 }
 ```
 
-### DOCUMENTAR CLASES
+### DOCUMENTING CLASSES
 
 ```javascript
 /**
@@ -1387,7 +1387,7 @@ export class GestorEstado {
 }
 ```
 
-### NO USAR COMENTARIOS `//` PARA EXPLICAR CÓDIGO
+### DO NOT USE `//` COMMENTS TO EXPLAIN CODE
 
 ```javascript
 /* ✗ INCORRECTO */
@@ -1415,7 +1415,7 @@ function obtenerUsuarioDelEstado() {
 }
 ```
 
-### COMENTARIOS `//` SOLO PARA LOGS TEMPORALES
+### `//` COMMENTS ONLY FOR TEMPORARY LOGS
 
 ```javascript
 // TODO: Implementar validación de email
@@ -1427,50 +1427,50 @@ function registrarUsuario(email) {
 
 ---
 
-## CHECKLIST DE CONTRIBUCIÓN
+## CONTRIBUTION CHECKLIST
 
-Antes de hacer un pull request, verifica:
+Before opening a pull request, verify the following:
 
 ### GENERAL
-- [ ] He seguido la estructura de carpetas definida
-- [ ] Todos los archivos están en kebab-case
-- [ ] He ejecutado `npm run format` en mis cambios
-- [ ] He documentado con JSDoc todas las funciones y clases
-- [ ] No tengo comentarios `//` innecesarios (solo para quitar logs de debug temporales)
+- [ ] I followed the defined directory structure
+- [ ] All files use kebab-case
+- [ ] I ran `npm run format` on my changes
+- [ ] I documented every function and class with JSDoc
+- [ ] I have no unnecessary `//` comments (only temporary debug-log removal comments)
 
 ### JAVASCRIPT
-- [ ] Mi código no contiene `innerHTML`
-- [ ] He validado datos externos antes de usarlos
-- [ ] He aplicado SoC en mi código
-- [ ] Las funciones son pequeñas y tienen una única responsabilidad
-- [ ] He usado camelCase para variables y funciones
-- [ ] He usado UPPER_SNAKE_CASE para constantes
-- [ ] He mantenido el codigo modular en todo momento y escalable
+- [ ] My code does not contain `innerHTML`
+- [ ] I validated external data before using it
+- [ ] I applied SoC in my code
+- [ ] Functions are small and have a single responsibility
+- [ ] I used camelCase for variables and functions
+- [ ] I used UPPER_SNAKE_CASE for constants
+- [ ] I kept the code modular and scalable throughout
 
 ### CSS
-- [ ] Mis CSS están divididos por responsabilidades
-- [ ] He usado variables de `app/ui/css/variables.css` en todos mis estilos
-- [ ] Mi CSS complejo está dividido en archivos separados con @import
-- [ ] Los estilos CSS usan BEM y están scoped
-- [ ] No tengo `!important` sin justificación
-- [ ] No tengo estilos inline en HTML
+- [ ] My CSS is split by responsibility
+- [ ] I used variables from `app/ui/css/variables.css` in all my styles
+- [ ] My complex CSS is split into separate files using `@import`
+- [ ] CSS styles use BEM and are scoped
+- [ ] I have no unjustified `!important` declarations
+- [ ] I have no inline HTML styles
 
-### COMPONENTES WEB COMPONENTS (Si aplica)
-- [ ] He usado Web Components para nuevos componentes de UI
-- [ ] He implementado `destroy()` para limpiar event listeners
-- [ ] He implementado `disconnectedCallback()` que llama a `destroy()`
-- [ ] Registro todos los event listeners en array para cleanup
-- [ ] He implementado `initializeFromDataAttributes()`
-- [ ] Tengo getters y setters públicos para la API
-- [ ] Disparo eventos personalizados (`CustomEvent`)
-- [ ] La estructura es: `componente-nombre/` con `.js`, `.css`, `.html`
-- [ ] He documentado la API pública en JSDoc con examples
-- [ ] He probado que no hay memory leaks (DevTools Memory)
+### WEB COMPONENTS (IF APPLICABLE)
+- [ ] I used Web Components for new UI components
+- [ ] I implemented `destroy()` to clean up event listeners
+- [ ] I implemented `disconnectedCallback()` and it calls `destroy()`
+- [ ] I register all event listeners in an array for cleanup
+- [ ] I implemented `initializeFromDataAttributes()`
+- [ ] I have public getters and setters for the API
+- [ ] I dispatch custom events (`CustomEvent`)
+- [ ] The structure is `componente-nombre/` with `.js`, `.css`, and `.html`
+- [ ] I documented the public API in JSDoc with examples
+- [ ] I tested for memory leaks (DevTools Memory)
 
 ---
 
-## CONTACTO
+## CONTACT
 
-Si tienes preguntas sobre estas convenciones, abre un issue o contacta a los mantenedores del proyecto.
+If you have questions about these conventions, open an issue or contact the project maintainers.
 
-¡Gracias por contribuir! 🎉
+Thank you for contributing! 🎉
