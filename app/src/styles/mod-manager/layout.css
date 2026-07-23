@@ -470,6 +470,10 @@
   overflow: hidden;
 }
 
+#mod-manager-modal .mod-manager-content {
+  height: 84vh;
+}
+
 .mod-manager-overlay.show .mod-manager-content {
   transform: scale(1) translateY(0);
 }
