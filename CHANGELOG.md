@@ -5,6 +5,18 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.8.2] - 2026-07-22
+
+### Changed
+
+- The startup screen now shows the library task WeekBox is currently performing.
+- Mods assigned to a retired engine are changed to Unassigned during startup.
+
+### Removed
+
+- A retired engine is no longer shown in downloads, discovery categories, filters, search results, or engine management.
+- Existing installations of the retired engine are removed during startup.
+
 ## [1.8.1] - 2026-07-22
 
 ### Added
