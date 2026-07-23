@@ -1,5 +1,5 @@
-import { appEvents } from "../../core/events.js";
-import { getSelectedEngine } from "../../core/state.js";
+import { appEvents } from "../../backend/core/events.js";
+import { getSelectedEngine } from "../../backend/core/state.js";
 import { engineDropdown } from "./dropdown.js";
 import { getTargetLink } from "./utils.js";
 import { FS } from "../../utils/filesystem.js";
@@ -7,7 +7,7 @@ import { downloadEngine } from "./downloadEngine.js";
 import { modsMaster } from "./modsMasterClass.js";
 import { rememberInstalledEngineBuild } from "./engineUpdateService.js";
 import { engineInstallToast } from "./engineInstallToast.js";
-import { appSettings } from "../../core/settings.js";
+import { appSettings } from "../../backend/core/settings.js";
 
 export const enginesView = {
   async init() {

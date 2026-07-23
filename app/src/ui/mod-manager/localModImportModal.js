@@ -1,5 +1,5 @@
-import { ENGINE_DETAILS } from "../../config/engines.js";
-import { gameBananaApi } from "../../api/gamebanana.js";
+import { ENGINE_DETAILS } from "../../backend/config/engines.js";
+import { gameBananaApi } from "../../backend/api/gamebanana.js";
 import { FS } from "../../utils/filesystem.js";
 
 function folderName(path) {

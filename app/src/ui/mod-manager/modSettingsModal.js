@@ -1,4 +1,4 @@
-import { gameBananaApi } from "../../api/gamebanana.js";
+import { gameBananaApi } from "../../backend/api/gamebanana.js";
 import { FS } from "../../utils/filesystem.js";
 import { sanitizePathSegment } from "../../utils/filesystem/pathUtils.js";
 import { setupModSettingsDropdowns } from "./modSettingsDropdowns.js";
@@ -7,7 +7,7 @@ import {
   loadingContent,
   settingsContent,
 } from "./modSettingsTemplates.js";
-import { networkStatus } from "../../core/networkStatus.js";
+import { networkStatus } from "../../backend/core/networkStatus.js";
 
 export const modSettingsModal = {
   isOpening: false,

@@ -1,12 +1,12 @@
-import { router } from "../core/router.js";
-import { setSelectedEngine } from "../core/state.js";
-import { getEngineReleaseVersions } from "../api/githubReleaseProvider.js";
+import { router } from "../backend/core/router.js";
+import { setSelectedEngine } from "../backend/core/state.js";
+import { getEngineReleaseVersions } from "../backend/api/githubReleaseProvider.js";
 import { modManagerModal } from "./mod-manager/index.js";
 import { engineManagerModal } from "./engine-manager/index.js";
 import { engineUpdateService } from "./engines/engineUpdateService.js";
 import { FS } from "../utils/filesystem.js";
 import { configModal } from "./config/index.js";
-import { networkStatus } from "../core/networkStatus.js";
+import { networkStatus } from "../backend/core/networkStatus.js";
 
 export const sidebar = {
   updateEngineMarquee(button) {
@@ -158,7 +158,7 @@ export const sidebar = {
     const wrapper = document.getElementById("engines-wrapper");
     if (!wrapper) return;
     try {
-      const response = await fetch("src/data/engines-router.json");
+      const response = await fetch("src/backend/data/engines-router.json");
       if (!response.ok) throw new Error("Failed to load engines-router.json");
       const enginesRouter = await response.json();
       wrapper.innerHTML = "";

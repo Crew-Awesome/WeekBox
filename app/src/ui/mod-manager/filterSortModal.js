@@ -1,5 +1,5 @@
 import { setupDropdown } from "../../utils/dropdown.js";
-import { ENGINE_DETAILS } from "../../config/engines.js";
+import { ENGINE_DETAILS } from "../../backend/config/engines.js";
 
 const BASE_TYPE_OPTIONS = [
   ["all", "All mods", "fa-layer-group"],

@@ -1,24 +1,24 @@
 import { storageBridge } from "./storagePatch.js";
 import { router } from "./router.js";
-import { homeView, registerHomeView } from "../ui/home/index.js";
-import { registerEnginesView } from "../ui/engines/index.js";
-import { downloadEngine } from "../ui/engines/downloadEngine.js";
-import { engineUpdateToast } from "../ui/engines/engineUpdateToast.js";
-import { toastDownloadMod } from "../ui/home/modal/toastDownloadMod.js";
+import { homeView, registerHomeView } from "../../ui/home/index.js";
+import { registerEnginesView } from "../../ui/engines/index.js";
+import { downloadEngine } from "../../ui/engines/downloadEngine.js";
+import { engineUpdateToast } from "../../ui/engines/engineUpdateToast.js";
+import { toastDownloadMod } from "../../ui/home/modal/toastDownloadMod.js";
 import { disableProductionRefreshShortcuts } from "./productionShortcuts.js";
-import { FS } from "../utils/filesystem.js";
+import { FS } from "../../utils/filesystem.js";
 import { appSettings } from "./settings.js";
 import { openLaunchDeepLink, openWeekboxLink } from "./deepLinks.js";
-import { errorHandler } from "../ui/errors/errorHandler.js";
+import { errorHandler } from "../../ui/errors/errorHandler.js";
 import { appUpdater } from "./appUpdater.js";
-import { appUpdateModal } from "../ui/updates/appUpdateModal.js";
-import { toastSystem } from "../ui/toasts/toastSystem.js";
-import { storageRecommendationModal } from "../ui/storageRecommendationModal.js";
+import { appUpdateModal } from "../../ui/updates/appUpdateModal.js";
+import { toastSystem } from "../../ui/toasts/toastSystem.js";
+import { storageRecommendationModal } from "../../ui/storageRecommendationModal.js";
 import { startupLoader } from "./startupLoader.js";
 import { networkStatus } from "./networkStatus.js";
-import { modManagerModal } from "../ui/mod-manager/index.js";
-import { diagnosticsConsentModal } from "../ui/diagnosticsConsentModal.js";
-import { firstRunStorageModal } from "../ui/firstRunStorageModal.js";
+import { modManagerModal } from "../../ui/mod-manager/index.js";
+import { diagnosticsConsentModal } from "../../ui/diagnosticsConsentModal.js";
+import { firstRunStorageModal } from "../../ui/firstRunStorageModal.js";
 import { syncWindowsProtocolRegistration } from "./windowsProtocol.js";
 
 function clearTestToasts() {

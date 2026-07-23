@@ -1,4 +1,4 @@
-import { appSettings } from "../core/settings.js";
+import { appSettings } from "../backend/core/settings.js";
 
 export const diagnosticsConsentModal = {
   async showIfNeeded() {

@@ -1,9 +1,9 @@
 import { FS } from "../../utils/filesystem.js";
-import { gameBananaApi } from "../../api/gamebanana.js";
+import { gameBananaApi } from "../../backend/api/gamebanana.js";
 import {
   ENGINE_DETAILS,
   getEngineLaunchBehavior,
-} from "../../config/engines.js";
+} from "../../backend/config/engines.js";
 import { applyDominantColor } from "../../utils/extractColor.js";
 import { engineUpdateToast } from "../engines/engineUpdateToast.js";
 import { modManagerTemplates } from "../../html/components/mod-manager.js";

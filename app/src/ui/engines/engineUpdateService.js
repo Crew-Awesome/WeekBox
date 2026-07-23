@@ -1,12 +1,12 @@
-import { getEngineUpdateCandidate } from "../../api/githubReleaseProvider.js";
-import { ENGINE_DETAILS } from "../../config/engines.js";
+import { getEngineUpdateCandidate } from "../../backend/api/githubReleaseProvider.js";
+import { ENGINE_DETAILS } from "../../backend/config/engines.js";
 import { FS } from "../../utils/filesystem.js";
 import { getTargetLink, getTargetPlatform } from "./utils.js";
 import { downloadEngine } from "./downloadEngine.js";
 import { engineUpdateModal } from "./engineUpdateModal.js";
 import { engineUpdateToast } from "./engineUpdateToast.js";
-import { appSettings } from "../../core/settings.js";
-import { networkStatus } from "../../core/networkStatus.js";
+import { appSettings } from "../../backend/core/settings.js";
+import { networkStatus } from "../../backend/core/networkStatus.js";
 
 const SKIP_PREFIX = "weekbox-engine-update-skip-";
 const UPDATE_STATE_FILE = "engineupdatestate.json";

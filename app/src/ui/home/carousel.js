@@ -1,6 +1,6 @@
-import { gameBananaApi } from "../../api/gamebanana.js";
+import { gameBananaApi } from "../../backend/api/gamebanana.js";
 import { modModal } from "./modal/index.js";
-import { networkStatus } from "../../core/networkStatus.js";
+import { networkStatus } from "../../backend/core/networkStatus.js";
 
 export const homeCarousel = {
   currentSlideIndex: 0,

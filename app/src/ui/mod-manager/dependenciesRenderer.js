@@ -1,6 +1,6 @@
 import { FS } from "../../utils/filesystem.js";
 import { sanitizePathSegment } from "../../utils/filesystem/pathUtils.js";
-import { gameBananaApi } from "../../api/gamebanana.js";
+import { gameBananaApi } from "../../backend/api/gamebanana.js";
 import { modSettingsModal } from "./modSettingsModal.js";
 import { getGameBananaSource } from "./modSettingsTemplates.js";
 import { modManagerTemplates } from "../../html/components/mod-manager.js";

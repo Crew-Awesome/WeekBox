@@ -1,4 +1,4 @@
-import { appSettings } from "../../core/settings.js";
+import { appSettings } from "../../backend/core/settings.js";
 import "./wineModal.js";
 
 const DIAGNOSTIC_REPORT_ENDPOINT =

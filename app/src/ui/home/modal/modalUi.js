@@ -1,4 +1,4 @@
-import { ENGINE_DETAILS } from "../../../config/engines.js";
+import { ENGINE_DETAILS } from "../../../backend/config/engines.js";
 
 export async function ensureModal(onClose) {
   if (!document.getElementById("mod-modal")) {

@@ -1,5 +1,5 @@
 import { toastSystem } from "../toasts/toastSystem.js";
-import { ENGINE_DETAILS } from "../../config/engines.js";
+import { ENGINE_DETAILS } from "../../backend/config/engines.js";
 
 function getToastId(engineId) {
   return `engine-update-toast-${engineId}`;

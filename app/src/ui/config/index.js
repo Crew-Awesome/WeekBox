@@ -1,14 +1,14 @@
-import { appSettings } from "../../core/settings.js";
+import { appSettings } from "../../backend/core/settings.js";
 import { FS } from "../../utils/filesystem.js";
 import { downloadEngine } from "../engines/downloadEngine.js";
 import { downloadMod } from "../home/modal/downloadMod.js";
-import { appUpdater } from "../../core/appUpdater.js";
+import { appUpdater } from "../../backend/core/appUpdater.js";
 import { toastSystem } from "../toasts/toastSystem.js";
 import { AppUpdateController } from "./appUpdateController.js";
 import { StorageMoveFeedback } from "./storageMoveFeedback.js";
 import { existingStorageModal } from "../existingStorageModal.js";
-import { networkStatus } from "../../core/networkStatus.js";
-import { syncWindowsProtocolRegistration } from "../../core/windowsProtocol.js";
+import { networkStatus } from "../../backend/core/networkStatus.js";
+import { syncWindowsProtocolRegistration } from "../../backend/core/windowsProtocol.js";
 
 const appUpdates = new AppUpdateController(appUpdater);
 const storageMoveFeedback = new StorageMoveFeedback(toastSystem);

@@ -3,7 +3,7 @@ import {
   sanitizeModFolderName,
   sanitizePathSegment,
 } from "../../../utils/filesystem/pathUtils.js";
-import { gameBananaApi } from "../../../api/gamebanana.js";
+import { gameBananaApi } from "../../../backend/api/gamebanana.js";
 import { primeModCover } from "../../mod-manager/modImageLoader.js";
 import {
   downloadArchive,

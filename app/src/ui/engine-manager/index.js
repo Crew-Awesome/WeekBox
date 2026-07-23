@@ -1,9 +1,9 @@
 import { FS } from "../../utils/filesystem.js";
-import { ENGINE_DETAILS } from "../../config/engines.js";
+import { ENGINE_DETAILS } from "../../backend/config/engines.js";
 import { engineUpdateService } from "../engines/engineUpdateService.js";
 import { engineUpdateToast } from "../engines/engineUpdateToast.js";
 import { applyDominantColor } from "../../utils/extractColor.js";
-import { networkStatus } from "../../core/networkStatus.js";
+import { networkStatus } from "../../backend/core/networkStatus.js";
 
 export const engineManagerModal = {
   currentIndex: 0,

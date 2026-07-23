@@ -1,5 +1,5 @@
 import { toastDownloadMod } from "../home/modal/toastDownloadMod.js";
-import { ENGINE_DETAILS } from "../../config/engines.js";
+import { ENGINE_DETAILS } from "../../backend/config/engines.js";
 
 function getToastId(engineId, version) {
   return `engine-install:${engineId}:${version}`;

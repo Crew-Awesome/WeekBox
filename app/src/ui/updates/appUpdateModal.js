@@ -1,4 +1,4 @@
-import { appUpdater } from "../../core/appUpdater.js";
+import { appUpdater } from "../../backend/core/appUpdater.js";
 
 export const appUpdateModal = {
   close() {

@@ -26,7 +26,7 @@ async function buildAssets(watch = false) {
   ensureDirectoryExists(outDir);
 
   const jsOptions = {
-    entryPoints: [path.resolve(__dirname, "../app/src/core/scripts.js")],
+    entryPoints: [path.resolve(__dirname, "../app/src/backend/core/scripts.js")],
     bundle: true,
     outfile: path.resolve(outDir, "bundle.js"),
     format: "esm",

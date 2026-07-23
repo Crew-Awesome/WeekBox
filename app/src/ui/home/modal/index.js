@@ -1,4 +1,4 @@
-import { gameBananaApi } from "../../../api/gamebanana.js";
+import { gameBananaApi } from "../../../backend/api/gamebanana.js";
 import { sidebar } from "../../sidebar.js";
 import { modModalCarousel } from "./carousel.js";
 import { downloadMod } from "./downloadMod.js";

@@ -1,5 +1,5 @@
 import { emitViewChange } from "./events.js";
-import { sidebar } from "../ui/sidebar.js";
+import { sidebar } from "../../ui/sidebar.js";
 
 export const router = {
   async init() {

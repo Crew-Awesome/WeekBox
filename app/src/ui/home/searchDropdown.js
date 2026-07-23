@@ -1,4 +1,4 @@
-import { gameBananaApi } from "../../api/gamebanana.js";
+import { gameBananaApi } from "../../backend/api/gamebanana.js";
 import { homeSearch } from "./search.js";
 
 export const homeSearchDropdown = {

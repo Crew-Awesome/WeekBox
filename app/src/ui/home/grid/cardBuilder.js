@@ -1,5 +1,5 @@
 import { modModal } from "../modal/index.js";
-import { ENGINE_DETAILS } from "../../../config/engines.js";
+import { ENGINE_DETAILS } from "../../../backend/config/engines.js";
 import { applyDominantColor } from "../../../utils/extractColor.js";
 
 export function createCard(mod, index) {

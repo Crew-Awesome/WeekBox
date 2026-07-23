@@ -1,7 +1,7 @@
-import { gameBananaApi } from "../../../api/gamebanana.js";
+import { gameBananaApi } from "../../../backend/api/gamebanana.js";
 import { gridState } from "./gridState.js";
 import { createCard } from "./cardBuilder.js";
-import { networkStatus } from "../../../core/networkStatus.js";
+import { networkStatus } from "../../../backend/core/networkStatus.js";
 
 export const gridRender = {
   async renderGrid(isInitial = false) {
