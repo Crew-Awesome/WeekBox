@@ -1,4 +1,5 @@
 import { appSettings } from "../../core/settings.js";
+import "./wineModal.js";
 
 const DIAGNOSTIC_REPORT_ENDPOINT =
   "https://fnfweekbox.vercel.app/api/diagnostic-report";

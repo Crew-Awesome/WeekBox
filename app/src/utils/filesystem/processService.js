@@ -229,10 +229,25 @@ export class ProcessService {
     let command = "";
     try {
       onStateChange?.("running");
-      command = [
-        `"${executablePath}"`,
-        ...args.map((arg) => `"${String(arg).replaceAll('"', '\\"')}"`),
-      ].join(" ");
+      
+      const isExe = String(executablePath).toLowerCase().endsWith(".exe");
+      if (window.NL_OS === "Linux" && isExe) {
+        const wineCheck = await Neutralino.os.execCommand("which wine");
+        if (wineCheck.exitCode !== 0) {
+          window.dispatchEvent(new CustomEvent("wine-missing"));
+          onStateChange?.("error");
+          return false;
+        }
+        command = [
+          `wine "${executablePath}"`,
+          ...args.map((arg) => `"${String(arg).replaceAll('"', '\\"')}"`),
+        ].join(" ");
+      } else {
+        command = [
+          `"${executablePath}"`,
+          ...args.map((arg) => `"${String(arg).replaceAll('"', '\\"')}"`),
+        ].join(" ");
+      }
       const process = await Neutralino.os.spawnProcess(command, {
         cwd: this.executables.getDirectory(executablePath),
       });
