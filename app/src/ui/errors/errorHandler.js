@@ -256,9 +256,7 @@ async function submitDiagnosticReport(context, issue) {
   });
 
   if (response.status !== 202) {
-    throw new Error(
-      `Diagnostic reporting failed with status ${response.status}`,
-    );
+    console.warn(`Diagnostic reporting failed with status ${response.status}`);
   }
 }
 

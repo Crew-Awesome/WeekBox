@@ -79,6 +79,11 @@ function createProcessError(operation, exitCode, output) {
       "The download could not be written to storage. Check that the WeekBox folder is writable and has enough free space, then try again.",
     );
   }
+  if (operation === "Extraction" && Number(exitCode) === 127 && detail.includes("7z")) {
+    return new Error(
+      "To install .7z or .rar mods on Linux, you must install the p7zip package (e.g. sudo apt install p7zip-full).",
+    );
+  }
   return new Error(
     `${operation} failed with exit code ${exitCode}${detail ? `: ${detail}` : ""}`,
   );
