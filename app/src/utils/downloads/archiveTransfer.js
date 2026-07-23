@@ -612,13 +612,21 @@ export async function extractArchive({
 
   let portable7z = null;
   if (archiveFormat === "rar" || archiveFormat === "7z") {
-    const binName = isWindows ? "7za.exe" : window.NL_OS === "Darwin" ? "7za-mac" : "7za-linux";
-    const binPath = `${window.NL_CWD}/app/assets/bin/${binName}`;
-    try {
-      if ((await Neutralino.filesystem.getStats(binPath)).isFile) {
-        portable7z = binPath;
-      }
-    } catch {}
+    const binNames = isWindows
+      ? ["7z.exe", "7za.exe"]
+      : window.NL_OS === "Darwin"
+        ? ["7zz-mac", "7za-mac", "7zz"]
+        : ["7zz-linux", "7za-linux", "7zzs", "7zz"];
+        
+    for (const binName of binNames) {
+      const binPath = `${window.NL_CWD}/app/assets/bin/${binName}`;
+      try {
+        if ((await Neutralino.filesystem.getStats(binPath)).isFile) {
+          portable7z = binPath;
+          break;
+        }
+      } catch {}
+    }
   }
 
   const command = portable7z
