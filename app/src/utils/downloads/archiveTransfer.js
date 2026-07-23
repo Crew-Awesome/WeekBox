@@ -60,6 +60,13 @@ function quoteCommandArgument(value) {
   return `"${String(value).replaceAll('"', '\\"')}"`;
 }
 
+function spawnProcessWithShell(command) {
+  if (window.NL_OS === "Windows") {
+    return Neutralino.os.spawnProcess(command);
+  }
+  return Neutralino.os.spawnProcess(`sh -c ${quoteCommandArgument(command)}`);
+}
+
 function appendProcessOutput(output, data) {
   const next = `${output}${String(data || "")}`;
   return next.length > 4000 ? next.slice(-4000) : next;
@@ -268,7 +275,7 @@ async function extractNestedArchives(destinationPath, getTask, onEntry) {
       const command = getNestedExtractionCommand(archivePath, parentDir);
 
       const executeNested = async (cmd) => {
-        const process = await Neutralino.os.spawnProcess(cmd);
+        const process = await spawnProcessWithShell(cmd);
         const activeTask = getTask?.();
         if (activeTask) activeTask.pid = getOsProcessId(process);
         let processOutput = "";
@@ -343,7 +350,7 @@ async function extractNestedArchives(destinationPath, getTask, onEntry) {
 }
 
 async function runCurlDownload(command, getTask, onProgress, getProgress) {
-  const process = await Neutralino.os.spawnProcess(command);
+  const process = await spawnProcessWithShell(command);
   const task = getTask();
   if (task) task.pid = getOsProcessId(process);
 
@@ -536,7 +543,7 @@ export async function extractArchive({
 
     try {
       await Neutralino.filesystem.createDirectory(mountPath);
-      const process = await Neutralino.os.spawnProcess(
+      const process = await spawnProcessWithShell(
         `hdiutil attach -nobrowse -readonly -mountpoint ${quoteCommandArgument(mountPath)} ${quoteCommandArgument(archivePath)}`,
       );
       const task = getTask();
@@ -608,7 +615,7 @@ export async function extractArchive({
         : `unzip -oq ${quoteCommandArgument(archivePath)} -d ${quoteCommandArgument(destinationPath)}`;
 
   const execute = async (cmd) => {
-    const process = await Neutralino.os.spawnProcess(cmd);
+    const process = await spawnProcessWithShell(cmd);
     const task = getTask();
     if (task) task.pid = getOsProcessId(process);
 
