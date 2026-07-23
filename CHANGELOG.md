@@ -5,17 +5,35 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- WeekBox now generates and includes the Neutralino client library during dependency setup, preventing startup failures when the `Neutralino` API is unavailable.
+
+### Changed
+
+- Local development and build instructions now use the project npm scripts.
+
 ## [1.8.2] - 2026-07-22
 
 ### Changed
 
-- The startup screen now shows the library task WeekBox is currently performing.
-- Mods assigned to a retired engine are changed to Unassigned during startup.
+- WeekBox now loads its app files in a safer way. This helps it start more reliably, especially on Linux.
+- WeekBox makes sure it does not use old app files from its cache after an update.
+- The startup screen now tells you what WeekBox is doing while it checks your library.
+- On Linux, WeekBox can open Windows `.exe` games and mods with Wine when Wine is installed.
+
+### Fixed
+
+- WeekBox can unpack `.7z` and `.rar` downloads on Windows, macOS, and Linux without needing you to install a separate archive app.
+- Linux download and archive commands now run correctly.
+- If Wine is missing on Linux, WeekBox explains how to install it instead of failing without a clear reason.
 
 ### Removed
 
-- A retired engine is no longer shown in downloads, discovery categories, filters, search results, or engine management.
-- Existing installations of the retired engine are removed during startup.
+- ALE Psych has been removed from WeekBox.
+- Old ALE Psych installs are removed when WeekBox starts. Mods that used ALE Psych are kept, but are changed to Unassigned.
 
 ## [1.8.1] - 2026-07-22
 
