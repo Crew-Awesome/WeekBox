@@ -1,14 +1,14 @@
-import { FS } from "../../../../utils/filesystem.js";
+import { FS } from "../../../utils/filesystem.js";
 import {
   sanitizeModFolderName,
   sanitizePathSegment,
-} from "../../../../utils/filesystem/pathUtils.js";
+} from "../../../utils/filesystem/pathUtils.js";
 import { gameBananaApi } from "../../../../backend/api/gamebanana.js";
 import { primeModCover } from "../../mod-manager/modImageLoader.js";
 import {
   downloadArchive,
   extractArchive,
-} from "../../../../utils/downloads/archiveTransfer.js";
+} from "../../../utils/downloads/archiveTransfer.js";
 import { toastDownloadMod } from "./toastDownloadMod.js";
 import { errorHandler } from "../../errors/errorHandler.js";
 

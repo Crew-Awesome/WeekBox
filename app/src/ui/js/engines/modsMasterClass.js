@@ -1,4 +1,4 @@
-import { FS } from "../../../utils/filesystem.js";
+import { FS } from "../../utils/filesystem.js";
 
 class ModsMasterClass {
   async injectBeforeLaunch(engineId, version) {

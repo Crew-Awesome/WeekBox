@@ -1,6 +1,6 @@
 // Opcional: utils/downloadToast.js simplificado
 import { FS } from "./filesystem.js";
-import { appEvents } from "../backend/core/events.js";
+import { appEvents } from "../../backend/core/events.js";
 
 class GlobalDownloadToast {
   constructor() {

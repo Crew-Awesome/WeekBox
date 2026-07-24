@@ -3,7 +3,7 @@ import {
   getEngineLaunchBehavior,
   getEngineModLaunchArgs,
   ENGINE_DETAILS,
-} from "../backend/config/engines.js";
+} from "../../backend/config/engines.js";
 import { ExecutableService } from "./filesystem/executableService.js";
 import { ModInjectionService } from "./filesystem/modInjectionService.js";
 import { LibraryMaintenanceService } from "./filesystem/libraryMaintenanceService.js";
@@ -18,7 +18,7 @@ import {
   sanitizePathSegment,
 } from "./filesystem/pathUtils.js";
 import { ProcessService } from "./filesystem/processService.js";
-import { appSettings } from "../backend/core/settings.js";
+import { appSettings } from "../../backend/core/settings.js";
 
 function sameId(left, right) {
   return String(left) === String(right);

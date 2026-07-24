@@ -1,5 +1,5 @@
 import { appSettings } from "../../../backend/core/settings.js";
-import { FS } from "../../../utils/filesystem.js";
+import { FS } from "../../utils/filesystem.js";
 import { downloadEngine } from "../engines/downloadEngine.js";
 import { downloadMod } from "../home/modal/downloadMod.js";
 import { appUpdater } from "../../../backend/core/appUpdater.js";

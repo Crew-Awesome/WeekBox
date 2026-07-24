@@ -1,4 +1,4 @@
-import { FS } from "../../../utils/filesystem.js";
+import { FS } from "../../utils/filesystem.js";
 
 const modCoverCache = new Map();
 

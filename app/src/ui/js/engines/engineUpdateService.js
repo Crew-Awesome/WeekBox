@@ -1,6 +1,6 @@
 import { getEngineUpdateCandidate } from "../../../backend/api/githubReleaseProvider.js";
 import { ENGINE_DETAILS } from "../../../backend/config/engines.js";
-import { FS } from "../../../utils/filesystem.js";
+import { FS } from "../../utils/filesystem.js";
 import { getTargetLink, getTargetPlatform } from "./utils.js";
 import { downloadEngine } from "./downloadEngine.js";
 import { engineUpdateModal } from "./engineUpdateModal.js";

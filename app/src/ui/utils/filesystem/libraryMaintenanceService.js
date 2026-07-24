@@ -3,7 +3,7 @@ import {
   getRealEntries,
   sanitizePathSegment,
 } from "./pathUtils.js";
-import { ENGINE_DETAILS } from "../../backend/config/engines.js";
+import { ENGINE_DETAILS } from "../../../backend/config/engines.js";
 import { isValidEngineVersion } from "./engineVersion.js";
 
 function sameId(left, right) {

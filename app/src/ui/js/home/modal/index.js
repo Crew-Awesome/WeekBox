@@ -4,7 +4,7 @@ import { modModalCarousel } from "./carousel.js";
 import { downloadMod } from "./downloadMod.js";
 import { dependencyReviewModal } from "./dependencyReviewModal.js";
 import { downloadChoiceModal } from "./downloadChoiceModal.js";
-import { FS } from "../../../../utils/filesystem.js";
+import { FS } from "../../../utils/filesystem.js";
 import {
   ensureModal,
   hideModal,

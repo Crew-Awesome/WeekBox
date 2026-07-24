@@ -6,7 +6,7 @@ import { downloadEngine } from "../../ui/js/engines/downloadEngine.js";
 import { engineUpdateToast } from "../../ui/js/engines/engineUpdateToast.js";
 import { toastDownloadMod } from "../../ui/js/home/modal/toastDownloadMod.js";
 import { disableProductionRefreshShortcuts } from "./productionShortcuts.js";
-import { FS } from "../../utils/filesystem.js";
+import { FS } from "../../ui/utils/filesystem.js";
 import { appSettings } from "./settings.js";
 import { openLaunchDeepLink, openWeekboxLink } from "./deepLinks.js";
 import { errorHandler } from "../../ui/js/errors/errorHandler.js";

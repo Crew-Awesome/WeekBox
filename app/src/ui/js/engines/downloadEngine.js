@@ -1,8 +1,8 @@
-import { FS } from "../../../utils/filesystem.js";
+import { FS } from "../../utils/filesystem.js";
 import {
   downloadArchive,
   extractArchive,
-} from "../../../utils/downloads/archiveTransfer.js";
+} from "../../utils/downloads/archiveTransfer.js";
 import { errorHandler } from "../errors/errorHandler.js";
 import {
   describeExtractedFiles,

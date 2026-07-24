@@ -1,8 +1,8 @@
-import { FS } from "../../../utils/filesystem.js";
+import { FS } from "../../utils/filesystem.js";
 import { ENGINE_DETAILS } from "../../../backend/config/engines.js";
 import { engineUpdateService } from "../engines/engineUpdateService.js";
 import { engineUpdateToast } from "../engines/engineUpdateToast.js";
-import { applyDominantColor } from "../../../utils/extractColor.js";
+import { applyDominantColor } from "../../utils/extractColor.js";
 import { networkStatus } from "../../../backend/core/networkStatus.js";
 
 export const engineManagerModal = {

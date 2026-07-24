@@ -1,5 +1,5 @@
 import { ENGINE_DETAILS } from "../../../backend/config/engines.js";
-import { setupDropdown } from "../../../utils/dropdown.js";
+import { setupDropdown } from "../../utils/dropdown.js";
 import { escapeHtml } from "./modSettingsTemplates.js";
 
 export function setupModSettingsDropdowns(overlay, mod, installedEngines) {

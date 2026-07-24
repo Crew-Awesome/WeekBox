@@ -1,6 +1,6 @@
 import { gridState } from "./gridState.js";
 import { gridRender } from "./gridRender.js";
-import { setupDropdown } from "../../../../utils/dropdown.js";
+import { setupDropdown } from "../../../utils/dropdown.js";
 
 export const filterManager = {
   filterClickHandler: null,

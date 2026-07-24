@@ -1,6 +1,6 @@
 import { fetchAndRenderReleaseNotes } from "./releaseNotes.js";
 import { getTargetLink, extractVersionFallback } from "./utils.js";
-import { setupDropdown } from "../../../utils/dropdown.js";
+import { setupDropdown } from "../../utils/dropdown.js";
 
 export const engineDropdown = {
   dropdownController: null,

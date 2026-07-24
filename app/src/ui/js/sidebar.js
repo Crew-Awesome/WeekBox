@@ -4,7 +4,7 @@ import { getEngineReleaseVersions } from "../../backend/api/githubReleaseProvide
 import { modManagerModal } from "./mod-manager/index.js";
 import { engineManagerModal } from "./engine-manager/index.js";
 import { engineUpdateService } from "./engines/engineUpdateService.js";
-import { FS } from "../../utils/filesystem.js";
+import { FS } from "../utils/filesystem.js";
 import { configModal } from "./config/index.js";
 import { networkStatus } from "../../backend/core/networkStatus.js";
 

@@ -1,6 +1,6 @@
 import { modModal } from "../modal/index.js";
 import { ENGINE_DETAILS } from "../../../../backend/config/engines.js";
-import { applyDominantColor } from "../../../../utils/extractColor.js";
+import { applyDominantColor } from "../../../utils/extractColor.js";
 
 export function createCard(mod, index) {
   const card = document.createElement("button");
