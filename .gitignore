@@ -8,3 +8,4 @@ neutralino.js
 *.log
 .tmp/
 node_modules/
+app/dist/bundle.js

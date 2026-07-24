@@ -18,7 +18,7 @@ async function getBase64FromUrl(url) {
 __name(getBase64FromUrl, "getBase64FromUrl");
 
 // app/src/ui/utils/downloads/archiveTransfer.js
-import { appSettings } from "../../backend/core/settings.js";
+import { appSettings } from "../../backend/core/index.js";
 
 // app/src/ui/utils/downloads/externalDownloadResolver.js
 function quoteCommandArgument(value) {
@@ -1987,7 +1987,7 @@ __name(_ProcessService, "ProcessService");
 var ProcessService = _ProcessService;
 
 // app/src/ui/utils/filesystem.js
-import { appSettings as appSettings2 } from "../../backend/core/settings.js";
+import { appSettings as appSettings2 } from "../../backend/core/index.js";
 function sameId4(left, right) {
   return String(left) === String(right);
 }
@@ -3002,7 +3002,7 @@ var FileSystemService = _FileSystemService;
 var FS = new FileSystemService();
 
 // app/src/ui/utils/downloadToast.js
-import { appEvents } from "../../backend/core/events.js";
+import { appEvents } from "../../backend/core/index.js";
 var _GlobalDownloadToast = class _GlobalDownloadToast {
   constructor() {
     this.el = null;

@@ -1,3 +1,35 @@
+
+function __renderTemplate(id, data = {}) {
+    const tpl = document.getElementById(id);
+    if (!tpl) return '';
+    let html = tpl.innerHTML;
+    for (const key in data) {
+        html = html.replace(new RegExp('{{' + key + '}}', 'g'), data[key]);
+    }
+    return html;
+}
+
+const __modManagerTemplates = {
+    mainModal: () => __renderTemplate('tpl-mainModal'),
+    unassignedBadge: () => __renderTemplate('tpl-unassignedBadge'),
+    executableBadge: () => __renderTemplate('tpl-executableBadge'),
+    engineBadge: (name, icon) => __renderTemplate('tpl-engineBadge', {name, icon}),
+    engineCompatibilityPicker: (modId, engineId, engineVersion, selectedEngineIcon, selectedEngineName, engineOptionsHtml, selectedVersion, versionOptionsHtml) => 
+        __renderTemplate('tpl-engineCompatibilityPicker', {modId, engineId, engineVersion, selectedEngineIconHtml: selectedEngineIcon ? `<img src="assets/icons/${selectedEngineIcon}" alt=""/>` : `<i class="fa-solid fa-question-circle" aria-hidden="true"></i>`, selectedEngineName, unassignedSelectedClass: !engineId ? 'selected' : '', engineOptionsHtml, selectedVersion, versionOptionsHtml}),
+    engineOption: (id, name, icon, isSelected) => __renderTemplate('tpl-engineOption', {id, name, icon, selectedClass: isSelected ? 'selected' : ''}),
+    versionOption: (version, isSelected) => __renderTemplate('tpl-versionOption', {versionValue: version === "Any version" ? "" : version, version, selectedClass: isSelected ? 'selected' : ''}),
+    cardContent: (launchKind, modId, engineId, engineVersion, launchLabel, modName, isHidden, isUnassigned, eyeIcon, engineBadgeHtml) => __renderTemplate('tpl-cardContent', {launchKind, modId, engineId, engineVersion, launchLabel, modName, eyeIcon, engineBadgeHtml, disabledAttr: isHidden || isUnassigned ? 'disabled' : ''}),
+    launchButtonRunning: () => __renderTemplate('tpl-launchButtonRunning'),
+    launchButtonSwitch: () => __renderTemplate('tpl-launchButtonSwitch'),
+    launchButtonDefault: (launchLabel) => __renderTemplate('tpl-launchButtonDefault', {launchLabel}),
+    emptyState: (message) => __renderTemplate('tpl-emptyState', {message}),
+    addLocalModCard: () => __renderTemplate('tpl-addLocalModCard'),
+    deleteSpinner: () => __renderTemplate('tpl-deleteSpinner'),
+    deleteIcon: () => __renderTemplate('tpl-deleteIcon'),
+    unassignedQuestionIcon: () => __renderTemplate('tpl-unassignedQuestionIcon'),
+    openDirectoryIcon: () => __renderTemplate('tpl-openDirectoryIcon')
+};
+
 var __defProp = Object.defineProperty;
 var __name = (target, value) => __defProp(target, "name", { value, configurable: true });
 
@@ -75,7 +107,7 @@ __name(_AppUpdateController, "AppUpdateController");
 var AppUpdateController = _AppUpdateController;
 
 // app/src/ui/js/config/index.js
-import { appSettings as appSettings2 } from "../../backend/core/settings.js";
+import { appSettings as appSettings2 } from "../../backend/core/index.js";
 import { FS as FS4 } from "../utils/index.js";
 
 // app/src/ui/js/engines/downloadEngine.js
@@ -86,7 +118,7 @@ import {
 } from "../utils/index.js";
 
 // app/src/ui/js/errors/errorHandler.js
-import { appSettings } from "../../backend/core/settings.js";
+import { appSettings } from "../../backend/core/index.js";
 
 // app/src/ui/js/errors/wineModal.js
 var wineModal = {
@@ -1345,7 +1377,7 @@ var downloadMod = {
 };
 
 // app/src/ui/js/config/index.js
-import { appUpdater } from "../../backend/core/appUpdater.js";
+import { appUpdater } from "../../backend/core/index.js";
 
 // app/src/ui/js/config/storageMoveFeedback.js
 var TOAST_ID = "weekbox-storage-move";
@@ -1445,8 +1477,8 @@ var existingStorageModal = {
 };
 
 // app/src/ui/js/config/index.js
-import { networkStatus } from "../../backend/core/networkStatus.js";
-import { syncWindowsProtocolRegistration } from "../../backend/core/windowsProtocol.js";
+import { networkStatus } from "../../backend/core/index.js";
+import { syncWindowsProtocolRegistration } from "../../backend/core/index.js";
 var appUpdates = new AppUpdateController(appUpdater);
 var storageMoveFeedback = new StorageMoveFeedback(toastSystem);
 async function formatStoragePath(path) {
@@ -1478,9 +1510,9 @@ __name(isSameStoragePath, "isSameStoragePath");
 var configModal = {
   async init() {
     if (!document.getElementById("config-modal")) {
-      const response = await fetch("src/ui/html/sections/config-modal.html");
-      if (!response.ok) return;
-      const html = await response.text();
+      const tpl = document.getElementById("tpl-config-modal");
+      if (!tpl) return;
+      const html = tpl.innerHTML;
       const wrapper = document.createElement("div");
       wrapper.innerHTML = html;
       document.body.appendChild(wrapper.firstElementChild);
@@ -1881,7 +1913,7 @@ This can take a while for large libraries.`,
 };
 
 // app/src/ui/js/diagnosticsConsentModal.js
-import { appSettings as appSettings3 } from "../../backend/core/settings.js";
+import { appSettings as appSettings3 } from "../../backend/core/index.js";
 var diagnosticsConsentModal = {
   async showIfNeeded() {
     if (appSettings3.get("diagnosticReportingConsentAnswered")) return;
@@ -2118,8 +2150,8 @@ var engineUpdateToast = {
 };
 
 // app/src/ui/js/engines/engineUpdateService.js
-import { appSettings as appSettings4 } from "../../backend/core/settings.js";
-import { networkStatus as networkStatus2 } from "../../backend/core/networkStatus.js";
+import { appSettings as appSettings4 } from "../../backend/core/index.js";
+import { networkStatus as networkStatus2 } from "../../backend/core/index.js";
 var SKIP_PREFIX = "weekbox-engine-update-skip-";
 var UPDATE_STATE_FILE = "engineupdatestate.json";
 var AUTO_CHECK_INTERVAL_MS = 3 * 60 * 60 * 1e3;
@@ -2282,15 +2314,15 @@ var engineUpdateService = {
 
 // app/src/ui/js/engine-manager/index.js
 import { applyDominantColor } from "../utils/index.js";
-import { networkStatus as networkStatus3 } from "../../backend/core/networkStatus.js";
+import { networkStatus as networkStatus3 } from "../../backend/core/index.js";
 var engineManagerModal = {
   currentIndex: 0,
   resizeObserver: null,
   async init() {
     if (!document.getElementById("engine-manager-modal")) {
-      const response = await fetch("src/ui/html/sections/engine-manager.html");
-      if (!response.ok) return;
-      const html = await response.text();
+      const tpl = document.getElementById("tpl-engine-manager");
+      if (!tpl) return;
+      const html = tpl.innerHTML;
       const wrapper = document.createElement("div");
       wrapper.innerHTML = html;
       document.body.appendChild(wrapper.firstElementChild);
@@ -2810,8 +2842,8 @@ var engineInstallToast = {
 };
 
 // app/src/ui/js/engines/index.js
-import { appEvents } from "../../backend/core/events.js";
-import { getSelectedEngine } from "../../backend/core/state.js";
+import { appEvents } from "../../backend/core/index.js";
+import { getSelectedEngine } from "../../backend/core/index.js";
 import { FS as FS8 } from "../utils/index.js";
 
 // app/src/ui/js/engines/modsMasterClass.js
@@ -2847,7 +2879,7 @@ var ModsMasterClass = _ModsMasterClass;
 var modsMaster = new ModsMasterClass();
 
 // app/src/ui/js/engines/index.js
-import { appSettings as appSettings5 } from "../../backend/core/settings.js";
+import { appSettings as appSettings5 } from "../../backend/core/index.js";
 var enginesView = {
   async init() {
     this.isVisible = true;
@@ -3197,8 +3229,8 @@ import { gameBananaApi as gameBananaApi7 } from "../../backend/api/gamebanana.js
 import { gameBananaApi as gameBananaApi6 } from "../../backend/api/gamebanana.js";
 
 // app/src/ui/js/sidebar.js
-import { router } from "../../backend/core/router.js";
-import { setSelectedEngine } from "../../backend/core/state.js";
+import { router } from "../../backend/core/index.js";
+import { setSelectedEngine } from "../../backend/core/index.js";
 import { getEngineReleaseVersions } from "../../backend/api/githubReleaseProvider.js";
 
 // app/src/ui/js/mod-manager/index.js
@@ -3404,7 +3436,7 @@ function setupModSettingsDropdowns(overlay, mod, installedEngines) {
 __name(setupModSettingsDropdowns, "setupModSettingsDropdowns");
 
 // app/src/ui/js/mod-manager/modSettingsModal.js
-import { networkStatus as networkStatus4 } from "../../backend/core/networkStatus.js";
+import { networkStatus as networkStatus4 } from "../../backend/core/index.js";
 var modSettingsModal = {
   isOpening: false,
   openRequestId: 0,
@@ -3578,7 +3610,7 @@ var modSettingsModal = {
 };
 
 // app/src/ui/js/mod-manager/dependenciesRenderer.js
-import { modManagerTemplates } from "../html/components/mod-manager.js";
+const modManagerTemplates = __modManagerTemplates;
 
 // app/src/ui/js/mod-manager/processUiSync.js
 var ownerListeners = /* @__PURE__ */ new WeakMap();
@@ -3784,7 +3816,7 @@ import {
   getEngineLaunchBehavior
 } from "../../backend/config/engines.js";
 import { applyDominantColor as applyDominantColor2 } from "../utils/index.js";
-import { modManagerTemplates as modManagerTemplates2 } from "../html/components/mod-manager.js";
+const modManagerTemplates2 = __modManagerTemplates;
 var cardRenderer = {
   async renderCards(gridContainer, modsToRender, allMods, standaloneMods, installedEngines, onModDeleted, onSettingsSaved) {
     const standaloneModIds = new Set(standaloneMods.map((m) => String(m.id)));
@@ -4223,7 +4255,7 @@ var localModImportModal = {
 };
 
 // app/src/ui/js/mod-manager/index.js
-import { modManagerTemplates as modManagerTemplates3 } from "../html/components/mod-manager.js";
+const modManagerTemplates3 = __modManagerTemplates;
 
 // app/src/ui/js/mod-manager/filterSortModal.js
 import { setupDropdown as setupDropdown3 } from "../utils/index.js";
@@ -4781,7 +4813,7 @@ var modManagerModal = {
 
 // app/src/ui/js/sidebar.js
 import { FS as FS14 } from "../utils/index.js";
-import { networkStatus as networkStatus5 } from "../../backend/core/networkStatus.js";
+import { networkStatus as networkStatus5 } from "../../backend/core/index.js";
 var sidebar = {
   updateEngineMarquee(button) {
     const container = button.querySelector(".marquee-container");
@@ -5325,10 +5357,10 @@ import { FS as FS15 } from "../utils/index.js";
 import { ENGINE_DETAILS as ENGINE_DETAILS9 } from "../../backend/config/engines.js";
 async function ensureModal4(onClose) {
   if (!document.getElementById("mod-modal")) {
-    const response = await fetch("src/ui/html/sections/modal.html");
-    if (!response.ok) throw new Error("Could not load mod modal");
+    const tpl = document.getElementById("tpl-modal");
+    if (!tpl) throw new Error("Could not load mod modal");
     const wrapper = document.createElement("div");
-    wrapper.innerHTML = await response.text();
+    wrapper.innerHTML = tpl.innerHTML;
     document.body.appendChild(wrapper.firstElementChild);
   }
   const modal = document.getElementById("mod-modal");
@@ -5561,7 +5593,7 @@ var modModal = {
 };
 
 // app/src/ui/js/home/carousel.js
-import { networkStatus as networkStatus6 } from "../../backend/core/networkStatus.js";
+import { networkStatus as networkStatus6 } from "../../backend/core/index.js";
 var homeCarousel = {
   currentSlideIndex: 0,
   slideInterval: null,
@@ -5799,7 +5831,7 @@ var gridState = {
 
 // app/src/ui/js/home/grid/gridRender.js
 import { gameBananaApi as gameBananaApi8 } from "../../backend/api/gamebanana.js";
-import { networkStatus as networkStatus7 } from "../../backend/core/networkStatus.js";
+import { networkStatus as networkStatus7 } from "../../backend/core/index.js";
 var gridRender = {
   async renderGrid(isInitial = false) {
     if (gridState.isLoading) {
@@ -6101,7 +6133,7 @@ var homeScroll = {
 };
 
 // app/src/ui/js/home/index.js
-import { appEvents as appEvents2 } from "../../backend/core/events.js";
+import { appEvents as appEvents2 } from "../../backend/core/index.js";
 
 // app/src/ui/js/home/searchDropdown.js
 import { gameBananaApi as gameBananaApi9 } from "../../backend/api/gamebanana.js";
@@ -6328,7 +6360,7 @@ var homeSearch = {
 };
 
 // app/src/ui/js/home/index.js
-import { networkStatus as networkStatus8 } from "../../backend/core/networkStatus.js";
+import { networkStatus as networkStatus8 } from "../../backend/core/index.js";
 var homeView = {
   hasVisited: false,
   ready: Promise.resolve(),
@@ -6447,7 +6479,7 @@ var storageRecommendationModal = {
 };
 
 // app/src/ui/js/updates/appUpdateModal.js
-import { appUpdater as appUpdater2 } from "../../backend/core/appUpdater.js";
+import { appUpdater as appUpdater2 } from "../../backend/core/index.js";
 var appUpdateModal = {
   close() {
     const modal = document.getElementById("app-update-modal");
