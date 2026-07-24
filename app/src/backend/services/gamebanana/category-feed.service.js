@@ -1,11 +1,11 @@
-import { DISCOVERY_CONFIG } from "../../config/discovery.js";
-import { CandidateCollector } from "./candidateCollector.js";
+import { DISCOVERY_CONFIG } from "../../config/discovery.config.js";
+import { CandidateCollector } from "../../utils/gamebanana/candidate-collector.js";
 import {
   createDiscoveryResult,
   normalizeDiscoveryCandidate,
-} from "./discoveryShapes.js";
-import { applyDiversity, rankCandidates } from "./discoveryRanker.js";
-import { DiscoverySnapshotStore } from "./discoverySnapshotStore.js";
+} from "../../utils/gamebanana/discovery-shapes.js";
+import { applyDiversity, rankCandidates } from "../../utils/gamebanana/discovery-ranker.js";
+import { DiscoverySnapshotStore } from "../../utils/gamebanana/discovery-snapshot-store.js";
 
 export class CategoryFeedService {
   constructor({

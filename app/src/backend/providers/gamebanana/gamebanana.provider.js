@@ -1,36 +1,36 @@
-import { FeaturedService } from "./gamebanana/featuredService.js";
-import { CategoryFeedService } from "./gamebanana/categoryFeedService.js";
-import { GameBananaCategoryResolver } from "./gamebanana/categoryResolver.js";
+import { FeaturedService } from "../../services/gamebanana/featured.service.js";
+import { CategoryFeedService } from "../../services/gamebanana/category-feed.service.js";
+import { GameBananaCategoryResolver } from "../../utils/gamebanana/category-resolver.js";
 import {
   getDownloadFiles,
   getExternalDownloadLabel,
   getPreferredDownloadOption,
   isInstallableDownloadFile,
-} from "./gamebanana/downloadOptions.js";
+} from "../../utils/gamebanana/download-options.js";
 import {
   formatBytes,
   getImageUrl,
   getTimeAgo,
   toGridMod,
-} from "./gamebanana/modPresentation.js";
-import { GameBananaTransport } from "./gamebanana/transport.js";
-import { GameBananaSearchService } from "./gamebanana/searchService.js";
+} from "../../utils/gamebanana/mod-presentation.js";
+import { GameBananaTransport } from "./transport.js";
+import { GameBananaSearchService } from "../../services/gamebanana/search.service.js";
 import {
   getSearchTitleRelevance as rankSearchTitle,
   getSearchTypoRelevance as rankSearchTypo,
   getTypoSearchVariants as buildTypoSearchVariants,
-} from "./gamebanana/searchRanking.js";
+} from "../../utils/gamebanana/search-ranking.js";
 import {
   isDependencySubmission,
   parseGameBananaSubmission,
-} from "./gamebanana/submissionLinks.js";
-import { DISCOVERY_CONFIG } from "../config/discovery.js";
-import { sniroApi } from "./sniro.js";
+} from "../../utils/gamebanana/submission-links.js";
+import { DISCOVERY_CONFIG } from "../../config/discovery.config.js";
+import { peoApi } from "../peo/peo.provider.js";
 import {
   ENGINE_CATEGORY_IDS,
   ENGINE_CATEGORY_ROOTS,
   EXCLUDED_MOD_CATEGORY_IDS,
-} from "../config/engines.js";
+} from "../../config/engines.config.js";
 
 const EXCLUDED_ENGINE_SUBMISSIONS = new Map([
   ["mods:309789", "psych"],
@@ -489,10 +489,10 @@ export const gameBananaApi = {
     const notifyProgress = async (details) => {
       if (typeof onProgress === "function") await onProgress(details);
     };
-    if (String(modId).startsWith("sniro:")) {
+    if (String(modId).startsWith("peo:")) {
       try {
-        return await sniroApi.getModDetails(
-          String(modId).slice("sniro:".length),
+        return await peoApi.getModDetails(
+          String(modId).slice("peo:".length),
         );
       } catch {
         return null;
@@ -706,18 +706,18 @@ export const gameBananaApi = {
       gameBananaPage: 1,
       exhausted: false,
       snapshotId: null,
-      sniroMods: null,
+      peoMods: null,
     };
     this.psychOnlineFeedCache.set(cacheKey, state);
-    if (!state.sniroMods) {
-      const sniroSort =
+    if (!state.peoMods) {
+      const peoSort =
         {
           popular: "favoritedCount:desc",
           ripe: "downloadHits:desc",
           new: "submitted:desc",
           updated: "submitted:desc",
         }[filter] || "submitted:desc";
-      state.sniroMods = await sniroApi.listAll("", sniroSort).catch(() => []);
+      state.peoMods = await peoApi.listAll("", peoSort).catch(() => []);
     }
 
     const pageSize = 12;
@@ -761,9 +761,9 @@ export const gameBananaApi = {
       filter === "popular"
         ? this.mergePsychOnlineDiscoveryMods(
             state.gameBananaMods,
-            state.sniroMods,
+            state.peoMods,
           )
-        : [...state.gameBananaMods, ...state.sniroMods].sort(sortCombinedMods);
+        : [...state.gameBananaMods, ...state.peoMods].sort(sortCombinedMods);
     const start = (Math.max(1, Number(page) || 1) - 1) * pageSize;
     return {
       mods: combined.slice(start, start + pageSize),
@@ -772,19 +772,19 @@ export const gameBananaApi = {
     };
   },
 
-  mergePsychOnlineDiscoveryMods(gameBananaMods, sniroMods) {
+  mergePsychOnlineDiscoveryMods(gameBananaMods, peoMods) {
     const merged = [];
     let gameBananaIndex = 0;
-    let sniroIndex = 0;
+    let peoIndex = 0;
     while (
       gameBananaIndex < gameBananaMods.length ||
-      sniroIndex < sniroMods.length
+      peoIndex < peoMods.length
     ) {
       merged.push(
         ...gameBananaMods.slice(gameBananaIndex, gameBananaIndex + 4),
       );
       gameBananaIndex += 4;
-      if (sniroIndex < sniroMods.length) merged.push(sniroMods[sniroIndex++]);
+      if (peoIndex < peoMods.length) merged.push(peoMods[peoIndex++]);
     }
     return merged;
   },
@@ -836,7 +836,7 @@ export const gameBananaApi = {
     if (!this.searchService) {
       this.searchService = new GameBananaSearchService({
         api: this,
-        sniroApi,
+        peoApi,
       });
     }
     return this.searchService;

@@ -2,7 +2,7 @@ import {
   getSearchTitleRelevance,
   getSearchTypoRelevance,
   getTypoSearchVariants,
-} from "./searchRanking.js";
+} from "../../utils/gamebanana/search-ranking.js";
 
 const SEARCH_API_URL = "https://gamebanana.com/apiv13/Util/Search";
 const SNIRO_SORT = "submitted:desc";
@@ -25,7 +25,7 @@ function getQueryVariants(query) {
   return [...variants];
 }
 
-function getSniroFallbackTerm(query) {
+function getPeoFallbackTerm(query) {
   return query
     .split(/\s+/)
     .find(
@@ -36,9 +36,9 @@ function getSniroFallbackTerm(query) {
 }
 
 export class GameBananaSearchService {
-  constructor({ api, sniroApi }) {
+  constructor({ api, peoApi }) {
     this.api = api;
-    this.sniroApi = sniroApi;
+    this.peoApi = peoApi;
   }
 
   async getSuggestions(query, limit = 8) {
@@ -78,9 +78,9 @@ export class GameBananaSearchService {
       const directMod = await this.getDirectMod(normalizedQuery, page);
       if (directMod) return this.cache(cacheKey, [directMod]);
 
-      const sniroResults =
+      const peoResults =
         page === 1
-          ? this.sniroApi.listAll(normalizedQuery, SNIRO_SORT).catch(() => [])
+          ? this.peoApi.listAll(normalizedQuery, SNIRO_SORT).catch(() => [])
           : Promise.resolve([]);
       let records = await this.findRecords(normalizedQuery, page, perPage);
       if (!records.length && page === 1) {
@@ -91,9 +91,9 @@ export class GameBananaSearchService {
       await this.resolveEngines(primaryRecords);
       let mods = primaryRecords.map((mod) => this.api.toGridMod(mod));
       if (page === 1)
-        mods = await this.insertSniroMods(
+        mods = await this.insertPeoMods(
           mods,
-          sniroResults,
+          peoResults,
           normalizedQuery,
           primaryRecords.length,
           perPage,
@@ -223,15 +223,15 @@ export class GameBananaSearchService {
     }
   }
 
-  async insertSniroMods(mods, sniroResults, query, primaryCount, perPage) {
-    let candidates = await sniroResults;
+  async insertPeoMods(mods, peoResults, query, primaryCount, perPage) {
+    let candidates = await peoResults;
     let matching = candidates.filter(
       (mod) => getSearchTitleRelevance(mod, query) > 0,
     );
     if (!matching.length) {
-      const fallbackTerm = getSniroFallbackTerm(query);
+      const fallbackTerm = getPeoFallbackTerm(query);
       if (fallbackTerm) {
-        candidates = await this.sniroApi
+        candidates = await this.peoApi
           .listAll(fallbackTerm, SNIRO_SORT)
           .catch(() => []);
         matching = candidates.filter(

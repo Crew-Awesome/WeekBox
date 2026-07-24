@@ -107,7 +107,7 @@ __name(_AppUpdateController, "AppUpdateController");
 var AppUpdateController = _AppUpdateController;
 
 // app/src/ui/js/config/index.js
-import { appSettings as appSettings2 } from "../../backend/core/index.js";
+import { appSettings as appSettings2 } from "../../backend/core/index-core.js";
 import { FS as FS4 } from "../utils/index.js";
 
 // app/src/ui/js/engines/downloadEngine.js
@@ -118,7 +118,7 @@ import {
 } from "../utils/index.js";
 
 // app/src/ui/js/errors/errorHandler.js
-import { appSettings } from "../../backend/core/index.js";
+import { appSettings } from "../../backend/core/index-core.js";
 
 // app/src/ui/js/errors/wineModal.js
 var wineModal = {
@@ -829,7 +829,7 @@ import {
   sanitizeModFolderName,
   sanitizePathSegment
 } from "../utils/index.js";
-import { gameBananaApi } from "../../backend/api/gamebanana.js";
+import { gameBananaApi } from "../../backend/providers/gamebanana/gamebanana.provider.js";
 
 // app/src/ui/js/mod-manager/modImageLoader.js
 import { FS as FS2 } from "../utils/index.js";
@@ -1377,7 +1377,7 @@ var downloadMod = {
 };
 
 // app/src/ui/js/config/index.js
-import { appUpdater } from "../../backend/core/index.js";
+import { appUpdater } from "../../backend/core/index-core.js";
 
 // app/src/ui/js/config/storageMoveFeedback.js
 var TOAST_ID = "weekbox-storage-move";
@@ -1477,8 +1477,8 @@ var existingStorageModal = {
 };
 
 // app/src/ui/js/config/index.js
-import { networkStatus } from "../../backend/core/index.js";
-import { syncWindowsProtocolRegistration } from "../../backend/core/index.js";
+import { networkStatus } from "../../backend/core/index-core.js";
+import { syncWindowsProtocolRegistration } from "../../backend/core/index-core.js";
 var appUpdates = new AppUpdateController(appUpdater);
 var storageMoveFeedback = new StorageMoveFeedback(toastSystem);
 async function formatStoragePath(path) {
@@ -1913,7 +1913,7 @@ This can take a while for large libraries.`,
 };
 
 // app/src/ui/js/diagnosticsConsentModal.js
-import { appSettings as appSettings3 } from "../../backend/core/index.js";
+import { appSettings as appSettings3 } from "../../backend/core/index-core.js";
 var diagnosticsConsentModal = {
   async showIfNeeded() {
     if (appSettings3.get("diagnosticReportingConsentAnswered")) return;
@@ -1959,11 +1959,11 @@ var diagnosticsConsentModal = {
 
 // app/src/ui/js/engine-manager/index.js
 import { FS as FS6 } from "../utils/index.js";
-import { ENGINE_DETAILS as ENGINE_DETAILS3 } from "../../backend/config/engines.js";
+import { ENGINE_DETAILS as ENGINE_DETAILS3 } from "../../backend/config/engines.config.js";
 
 // app/src/ui/js/engines/engineUpdateService.js
-import { getEngineUpdateCandidate } from "../../backend/api/githubReleaseProvider.js";
-import { ENGINE_DETAILS as ENGINE_DETAILS2 } from "../../backend/config/engines.js";
+import { getEngineUpdateCandidate } from "../../backend/providers/github/github-release.provider.js";
+import { ENGINE_DETAILS as ENGINE_DETAILS2 } from "../../backend/config/engines.config.js";
 import { FS as FS5 } from "../utils/index.js";
 
 // app/src/ui/js/engines/utils.js
@@ -2070,7 +2070,7 @@ var engineUpdateModal = {
 };
 
 // app/src/ui/js/engines/engineUpdateToast.js
-import { ENGINE_DETAILS } from "../../backend/config/engines.js";
+import { ENGINE_DETAILS } from "../../backend/config/engines.config.js";
 function getToastId(engineId) {
   return `engine-update-toast-${engineId}`;
 }
@@ -2150,8 +2150,8 @@ var engineUpdateToast = {
 };
 
 // app/src/ui/js/engines/engineUpdateService.js
-import { appSettings as appSettings4 } from "../../backend/core/index.js";
-import { networkStatus as networkStatus2 } from "../../backend/core/index.js";
+import { appSettings as appSettings4 } from "../../backend/core/index-core.js";
+import { networkStatus as networkStatus2 } from "../../backend/core/index-core.js";
 var SKIP_PREFIX = "weekbox-engine-update-skip-";
 var UPDATE_STATE_FILE = "engineupdatestate.json";
 var AUTO_CHECK_INTERVAL_MS = 3 * 60 * 60 * 1e3;
@@ -2314,7 +2314,7 @@ var engineUpdateService = {
 
 // app/src/ui/js/engine-manager/index.js
 import { applyDominantColor } from "../utils/index.js";
-import { networkStatus as networkStatus3 } from "../../backend/core/index.js";
+import { networkStatus as networkStatus3 } from "../../backend/core/index-core.js";
 var engineManagerModal = {
   currentIndex: 0,
   resizeObserver: null,
@@ -2797,7 +2797,7 @@ var engineDropdown = {
 };
 
 // app/src/ui/js/engines/engineInstallToast.js
-import { ENGINE_DETAILS as ENGINE_DETAILS4 } from "../../backend/config/engines.js";
+import { ENGINE_DETAILS as ENGINE_DETAILS4 } from "../../backend/config/engines.config.js";
 function getToastId2(engineId, version) {
   return `engine-install:${engineId}:${version}`;
 }
@@ -2842,8 +2842,8 @@ var engineInstallToast = {
 };
 
 // app/src/ui/js/engines/index.js
-import { appEvents } from "../../backend/core/index.js";
-import { getSelectedEngine } from "../../backend/core/index.js";
+import { appEvents } from "../../backend/core/index-core.js";
+import { getSelectedEngine } from "../../backend/core/index-core.js";
 import { FS as FS8 } from "../utils/index.js";
 
 // app/src/ui/js/engines/modsMasterClass.js
@@ -2879,7 +2879,7 @@ var ModsMasterClass = _ModsMasterClass;
 var modsMaster = new ModsMasterClass();
 
 // app/src/ui/js/engines/index.js
-import { appSettings as appSettings5 } from "../../backend/core/index.js";
+import { appSettings as appSettings5 } from "../../backend/core/index-core.js";
 var enginesView = {
   async init() {
     this.isVisible = true;
@@ -3223,15 +3223,15 @@ var firstRunStorageModal = {
 };
 
 // app/src/ui/js/home/carousel.js
-import { gameBananaApi as gameBananaApi7 } from "../../backend/api/gamebanana.js";
+import { gameBananaApi as gameBananaApi7 } from "../../backend/providers/gamebanana/gamebanana.provider.js";
 
 // app/src/ui/js/home/modal/index.js
-import { gameBananaApi as gameBananaApi6 } from "../../backend/api/gamebanana.js";
+import { gameBananaApi as gameBananaApi6 } from "../../backend/providers/gamebanana/gamebanana.provider.js";
 
 // app/src/ui/js/sidebar.js
-import { router } from "../../backend/core/index.js";
-import { setSelectedEngine } from "../../backend/core/index.js";
-import { getEngineReleaseVersions } from "../../backend/api/githubReleaseProvider.js";
+import { router } from "../../backend/core/index-core.js";
+import { setSelectedEngine } from "../../backend/core/index-core.js";
+import { getEngineReleaseVersions } from "../../backend/providers/github/github-release.provider.js";
 
 // app/src/ui/js/mod-manager/index.js
 import { FS as FS13 } from "../utils/index.js";
@@ -3239,15 +3239,15 @@ import { FS as FS13 } from "../utils/index.js";
 // app/src/ui/js/mod-manager/dependenciesRenderer.js
 import { FS as FS10 } from "../utils/index.js";
 import { sanitizePathSegment as sanitizePathSegment3 } from "../utils/index.js";
-import { gameBananaApi as gameBananaApi3 } from "../../backend/api/gamebanana.js";
+import { gameBananaApi as gameBananaApi3 } from "../../backend/providers/gamebanana/gamebanana.provider.js";
 
 // app/src/ui/js/mod-manager/modSettingsModal.js
-import { gameBananaApi as gameBananaApi2 } from "../../backend/api/gamebanana.js";
+import { gameBananaApi as gameBananaApi2 } from "../../backend/providers/gamebanana/gamebanana.provider.js";
 import { FS as FS9 } from "../utils/index.js";
 import { sanitizePathSegment as sanitizePathSegment2 } from "../utils/index.js";
 
 // app/src/ui/js/mod-manager/modSettingsDropdowns.js
-import { ENGINE_DETAILS as ENGINE_DETAILS5 } from "../../backend/config/engines.js";
+import { ENGINE_DETAILS as ENGINE_DETAILS5 } from "../../backend/config/engines.config.js";
 import { setupDropdown as setupDropdown2 } from "../utils/index.js";
 
 // app/src/ui/js/mod-manager/modSettingsTemplates.js
@@ -3436,7 +3436,7 @@ function setupModSettingsDropdowns(overlay, mod, installedEngines) {
 __name(setupModSettingsDropdowns, "setupModSettingsDropdowns");
 
 // app/src/ui/js/mod-manager/modSettingsModal.js
-import { networkStatus as networkStatus4 } from "../../backend/core/index.js";
+import { networkStatus as networkStatus4 } from "../../backend/core/index-core.js";
 var modSettingsModal = {
   isOpening: false,
   openRequestId: 0,
@@ -3810,11 +3810,11 @@ var dependenciesRenderer = {
 
 // app/src/ui/js/mod-manager/cardRenderer.js
 import { FS as FS11 } from "../utils/index.js";
-import { gameBananaApi as gameBananaApi4 } from "../../backend/api/gamebanana.js";
+import { gameBananaApi as gameBananaApi4 } from "../../backend/providers/gamebanana/gamebanana.provider.js";
 import {
   ENGINE_DETAILS as ENGINE_DETAILS6,
   getEngineLaunchBehavior
-} from "../../backend/config/engines.js";
+} from "../../backend/config/engines.config.js";
 import { applyDominantColor as applyDominantColor2 } from "../utils/index.js";
 const modManagerTemplates2 = __modManagerTemplates;
 var cardRenderer = {
@@ -4026,8 +4026,8 @@ var cardRenderer = {
 };
 
 // app/src/ui/js/mod-manager/localModImportModal.js
-import { ENGINE_DETAILS as ENGINE_DETAILS7 } from "../../backend/config/engines.js";
-import { gameBananaApi as gameBananaApi5 } from "../../backend/api/gamebanana.js";
+import { ENGINE_DETAILS as ENGINE_DETAILS7 } from "../../backend/config/engines.config.js";
+import { gameBananaApi as gameBananaApi5 } from "../../backend/providers/gamebanana/gamebanana.provider.js";
 import { FS as FS12 } from "../utils/index.js";
 function folderName(path) {
   return String(path || "").split(/[\\/]/).filter(Boolean).pop() || "Local mod";
@@ -4259,7 +4259,7 @@ const modManagerTemplates3 = __modManagerTemplates;
 
 // app/src/ui/js/mod-manager/filterSortModal.js
 import { setupDropdown as setupDropdown3 } from "../utils/index.js";
-import { ENGINE_DETAILS as ENGINE_DETAILS8 } from "../../backend/config/engines.js";
+import { ENGINE_DETAILS as ENGINE_DETAILS8 } from "../../backend/config/engines.config.js";
 var BASE_TYPE_OPTIONS = [
   ["all", "All mods", "fa-layer-group"],
   ["executable", "Executables", "fa-file-code", "assets/icons/exe.png"]
@@ -4813,7 +4813,7 @@ var modManagerModal = {
 
 // app/src/ui/js/sidebar.js
 import { FS as FS14 } from "../utils/index.js";
-import { networkStatus as networkStatus5 } from "../../backend/core/index.js";
+import { networkStatus as networkStatus5 } from "../../backend/core/index-core.js";
 var sidebar = {
   updateEngineMarquee(button) {
     const container = button.querySelector(".marquee-container");
@@ -5354,7 +5354,7 @@ var downloadChoiceModal = {
 import { FS as FS15 } from "../utils/index.js";
 
 // app/src/ui/js/home/modal/modalUi.js
-import { ENGINE_DETAILS as ENGINE_DETAILS9 } from "../../backend/config/engines.js";
+import { ENGINE_DETAILS as ENGINE_DETAILS9 } from "../../backend/config/engines.config.js";
 async function ensureModal4(onClose) {
   if (!document.getElementById("mod-modal")) {
     const tpl = document.getElementById("tpl-modal");
@@ -5428,7 +5428,7 @@ function showModData(data, isInstalled, onDownload) {
   document.getElementById("modal-time").textContent = data.timeAgo;
   document.getElementById("modal-likes").textContent = data.likes.toLocaleString();
   document.getElementById("modal-views").textContent = (data.downloads ?? data.views).toLocaleString();
-  document.getElementById("modal-views-icon").className = data.source === "sniro" ? "fa-solid fa-download" : "fa-solid fa-eye";
+  document.getElementById("modal-views-icon").className = data.source === "peo" ? "fa-solid fa-download" : "fa-solid fa-eye";
   const description = document.getElementById("modal-description");
   const content = document.createElement("template");
   content.innerHTML = data.description;
@@ -5438,11 +5438,11 @@ function showModData(data, isInstalled, onDownload) {
   description.replaceChildren(content.content);
   document.getElementById("modal-image-loader").style.display = "none";
   const gameBananaLink = document.getElementById("modal-gamebanana-link");
-  const sourceUrl = data.source === "sniro" ? data.sourceUrl : data.gameBananaUrl;
+  const sourceUrl = data.source === "peo" ? data.sourceUrl : data.gameBananaUrl;
   if (sourceUrl) gameBananaLink.href = sourceUrl;
   else gameBananaLink.removeAttribute("href");
   gameBananaLink.hidden = !sourceUrl;
-  if (data.source === "sniro") {
+  if (data.source === "peo") {
     gameBananaLink.querySelector("img").src = "assets/icons/psychonline.png";
     gameBananaLink.setAttribute("aria-label", "Open Psych Online mods");
     gameBananaLink.title = "Open Psych Online mods";
@@ -5593,7 +5593,7 @@ var modModal = {
 };
 
 // app/src/ui/js/home/carousel.js
-import { networkStatus as networkStatus6 } from "../../backend/core/index.js";
+import { networkStatus as networkStatus6 } from "../../backend/core/index-core.js";
 var homeCarousel = {
   currentSlideIndex: 0,
   slideInterval: null,
@@ -5730,13 +5730,13 @@ var homeCarousel = {
 };
 
 // app/src/ui/js/home/grid/cardBuilder.js
-import { ENGINE_DETAILS as ENGINE_DETAILS10 } from "../../backend/config/engines.js";
+import { ENGINE_DETAILS as ENGINE_DETAILS10 } from "../../backend/config/engines.config.js";
 import { applyDominantColor as applyDominantColor3 } from "../utils/index.js";
 function createCard(mod, index) {
   const card = document.createElement("button");
   card.type = "button";
   card.className = "mod-card";
-  if (mod.source === "sniro") card.classList.add("mod-card--no-author");
+  if (mod.source === "peo") card.classList.add("mod-card--no-author");
   const imageContainer = document.createElement("div");
   imageContainer.className = "mod-image-container";
   const image = document.createElement("img");
@@ -5768,7 +5768,7 @@ function createCard(mod, index) {
   author.className = "mod-author";
   author.textContent = `by ${mod.author}`;
   info.appendChild(title);
-  if (mod.source !== "sniro") info.appendChild(author);
+  if (mod.source !== "peo") info.appendChild(author);
   let engineBadgeHtml = `
     <div class="home-engine-badge grid-engine-badge">
       <i class="fa-solid fa-question-circle"></i>
@@ -5793,9 +5793,9 @@ function createCard(mod, index) {
     ["fa-regular fa-clock", mod.timeAgo],
     ["fa-solid fa-heart", Number(mod.likes).toLocaleString()],
     [
-      mod.source === "sniro" ? "fa-solid fa-download" : "fa-solid fa-eye",
+      mod.source === "peo" ? "fa-solid fa-download" : "fa-solid fa-eye",
       Number(
-        mod.source === "sniro" ? mod.downloads : mod.views
+        mod.source === "peo" ? mod.downloads : mod.views
       ).toLocaleString()
     ]
   ].forEach(([icon, value]) => {
@@ -5830,8 +5830,8 @@ var gridState = {
 };
 
 // app/src/ui/js/home/grid/gridRender.js
-import { gameBananaApi as gameBananaApi8 } from "../../backend/api/gamebanana.js";
-import { networkStatus as networkStatus7 } from "../../backend/core/index.js";
+import { gameBananaApi as gameBananaApi8 } from "../../backend/providers/gamebanana/gamebanana.provider.js";
+import { networkStatus as networkStatus7 } from "../../backend/core/index-core.js";
 var gridRender = {
   async renderGrid(isInitial = false) {
     if (gridState.isLoading) {
@@ -6133,10 +6133,10 @@ var homeScroll = {
 };
 
 // app/src/ui/js/home/index.js
-import { appEvents as appEvents2 } from "../../backend/core/index.js";
+import { appEvents as appEvents2 } from "../../backend/core/index-core.js";
 
 // app/src/ui/js/home/searchDropdown.js
-import { gameBananaApi as gameBananaApi9 } from "../../backend/api/gamebanana.js";
+import { gameBananaApi as gameBananaApi9 } from "../../backend/providers/gamebanana/gamebanana.provider.js";
 var homeSearchDropdown = {
   recentSearches: [],
   maxRecent: 5,
@@ -6360,7 +6360,7 @@ var homeSearch = {
 };
 
 // app/src/ui/js/home/index.js
-import { networkStatus as networkStatus8 } from "../../backend/core/index.js";
+import { networkStatus as networkStatus8 } from "../../backend/core/index-core.js";
 var homeView = {
   hasVisited: false,
   ready: Promise.resolve(),
@@ -6479,7 +6479,7 @@ var storageRecommendationModal = {
 };
 
 // app/src/ui/js/updates/appUpdateModal.js
-import { appUpdater as appUpdater2 } from "../../backend/core/index.js";
+import { appUpdater as appUpdater2 } from "../../backend/core/index-core.js";
 var appUpdateModal = {
   close() {
     const modal = document.getElementById("app-update-modal");

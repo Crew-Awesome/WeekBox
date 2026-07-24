@@ -1,8 +1,8 @@
-import { toGridMod, toModDetails } from "./modMapper.js";
+import { toGridMod, toModDetails } from "../../utils/peo/mod-mapper.js";
 
 const PAGE_SIZE = 15;
 
-export class SniroModService {
+export class PeoModService {
   constructor({
     baseUrl = "https://funkin.sniro.boo",
     fetchImpl = (...args) => fetch(...args),

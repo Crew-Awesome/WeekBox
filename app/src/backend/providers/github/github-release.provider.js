@@ -1,4 +1,4 @@
-import { ENGINE_RELEASE_SOURCES } from "../config/engineReleaseSources.js";
+import { ENGINE_RELEASE_SOURCES } from "../../config/engine-release-sources.config.js";
 
 const CACHE_PREFIX = "weekbox-engine-releases-v2-";
 const CACHE_FRESH_MS = 3 * 60 * 60 * 1000;

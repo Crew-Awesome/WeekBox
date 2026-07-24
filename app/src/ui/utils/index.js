@@ -18,7 +18,7 @@ async function getBase64FromUrl(url) {
 __name(getBase64FromUrl, "getBase64FromUrl");
 
 // app/src/ui/utils/downloads/archiveTransfer.js
-import { appSettings } from "../../backend/core/index.js";
+import { appSettings } from "../../backend/core/index-core.js";
 
 // app/src/ui/utils/downloads/externalDownloadResolver.js
 function quoteCommandArgument(value) {
@@ -819,7 +819,7 @@ import {
   getEngineLaunchBehavior,
   getEngineModLaunchArgs,
   ENGINE_DETAILS as ENGINE_DETAILS2
-} from "../../backend/config/engines.js";
+} from "../../backend/config/engines.config.js";
 
 // app/src/ui/utils/filesystem/pathUtils.js
 function sanitizePathSegment(value) {
@@ -1174,7 +1174,7 @@ __name(_ModInjectionService, "ModInjectionService");
 var ModInjectionService = _ModInjectionService;
 
 // app/src/ui/utils/filesystem/libraryMaintenanceService.js
-import { ENGINE_DETAILS } from "../../backend/config/engines.js";
+import { ENGINE_DETAILS } from "../../backend/config/engines.config.js";
 
 // app/src/ui/utils/filesystem/engineVersion.js
 var ENGINE_VERSION_PATTERN = /^(?:Latest|Nightly|[a-z]+-\d{1,4}|v?\d{1,4}\.\d{1,4}(?:\.\d{1,4})?(?:[a-z][a-z0-9.-]*|[-+][0-9a-z][0-9a-z.-]*)?|\d{1,3}\.\d{1,3}\.\d{2}\.\d{2}\.\d{2})$/i;
@@ -1196,15 +1196,15 @@ function getStableUrlId(url) {
 __name(getStableUrlId, "getStableUrlId");
 function getImportedPsychOnlineMetadata(folderName, downloadUrl) {
   const parsed = new URL(downloadUrl);
-  const isSniro = parsed.hostname.toLowerCase() === "funkin.sniro.boo";
-  const sourceId = isSniro ? parsed.pathname.match(/^\/mod\/([^/]+)\/dl\//)?.[1] : null;
+  const isPeo = parsed.hostname.toLowerCase() === "funkin.sniro.boo";
+  const sourceId = isPeo ? parsed.pathname.match(/^\/mod\/([^/]+)\/dl\//)?.[1] : null;
   return {
-    id: sourceId ? `sniro:${sourceId}` : `psychonline:${getStableUrlId(downloadUrl)}`,
+    id: sourceId ? `peo:${sourceId}` : `psychonline:${getStableUrlId(downloadUrl)}`,
     name: folderName,
     engineId: "psychonline",
     engineLocked: true,
-    source: isSniro ? "sniro" : "gamebanana",
-    sourceUrl: isSniro ? "https://funkin.sniro.boo/mods" : downloadUrl,
+    source: isPeo ? "peo" : "gamebanana",
+    sourceUrl: isPeo ? "https://funkin.sniro.boo/mods" : downloadUrl,
     downloadUrl,
     folderName
   };
@@ -1987,7 +1987,7 @@ __name(_ProcessService, "ProcessService");
 var ProcessService = _ProcessService;
 
 // app/src/ui/utils/filesystem.js
-import { appSettings as appSettings2 } from "../../backend/core/index.js";
+import { appSettings as appSettings2 } from "../../backend/core/index-core.js";
 function sameId4(left, right) {
   return String(left) === String(right);
 }
@@ -3002,7 +3002,7 @@ var FileSystemService = _FileSystemService;
 var FS = new FileSystemService();
 
 // app/src/ui/utils/downloadToast.js
-import { appEvents } from "../../backend/core/index.js";
+import { appEvents } from "../../backend/core/index-core.js";
 var _GlobalDownloadToast = class _GlobalDownloadToast {
   constructor() {
     this.el = null;

@@ -4,9 +4,9 @@ const FALLBACK_IMAGE = "assets/icons/psychonline.png";
 
 export function toGridMod(mod) {
   return {
-    id: `sniro:${mod.id}`,
+    id: `peo:${mod.id}`,
     sourceId: mod.id,
-    source: "sniro",
+    source: "peo",
     title: mod.title || "Untitled mod",
     author: "",
     keywords: Array.isArray(mod.keywords) ? mod.keywords : [],
@@ -30,9 +30,9 @@ export function toModDetails(data, baseUrl) {
     if (!slug) return [];
     const fileSize = Number(download.size) || 0;
     const trackedOption = {
-      id: `sniro:${download.id}:tracked`,
+      id: `peo:${download.id}:tracked`,
       name: `${slug} (Psych Online)`,
-      type: "sniro",
+      type: "peo",
       fileSize,
       fileSizeStr: formatBytes(fileSize),
       downloadUrl: `${baseUrl}/mod/${encodeURIComponent(data.id)}/dl/${encodeURIComponent(slug)}`,
@@ -40,7 +40,7 @@ export function toModDetails(data, baseUrl) {
     const rawOptions = (Array.isArray(download.urls) ? download.urls : [])
       .filter(Boolean)
       .map((url, index) => ({
-        id: `sniro:${download.id}:raw:${index}`,
+        id: `peo:${download.id}:raw:${index}`,
         name: `${slug} (Raw source ${index + 1})`,
         type: "external",
         fileSize,
@@ -50,9 +50,9 @@ export function toModDetails(data, baseUrl) {
     return [trackedOption, ...rawOptions];
   });
   return {
-    id: `sniro:${data.id}`,
+    id: `peo:${data.id}`,
     sourceId: data.id,
-    source: "sniro",
+    source: "peo",
     title: data.title || "Untitled mod",
     author: "",
     hideAuthor: true,
@@ -66,7 +66,7 @@ export function toModDetails(data, baseUrl) {
     images: data.images?.length ? data.images : [FALLBACK_IMAGE],
     fileSizeStr: downloadOptions[0]?.fileSizeStr || "No download available",
     downloadUrl: downloadOptions[0]?.downloadUrl || "",
-    downloadType: "sniro",
+    downloadType: "peo",
     downloadOptions,
     requirements: [],
     sourceUrl: `${baseUrl}/mods`,
